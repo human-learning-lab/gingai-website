@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRole } from '../../context/RoleContext';
-import { IconStar, IconStop } from '../../components/Icons';
+import { IconStop } from '../../components/Icons';
 import LeftNav from '../../components/LeftNav/LeftNav';
 import type { ScreenId } from '../../types';
 
@@ -65,14 +65,18 @@ function AthleteCapture() {
           <div className="why-lbl">Why 3 of 5 · 4/6 sailors done</div>
         </div>
 
+        {/* One question at a time: previous answer for context, then current question */}
         <div className="cap-convo">
-          <AiQ text="After Race 5 — what was the <strong>one moment</strong> that cost you most? First thing that comes." />
-          <SailorR text="The tack at mark 2. Way too late — lost about 3 boat lengths." />
-          <AiQ why="Why 1" text="What caused the timing to be off? Your read of the mark, a communication gap, or something else?" />
-          <SailorR text="I was waiting for a call that never came. I had the angle — should have just gone." />
-          <AiQ why="Why 2" text="Why were you waiting for a call? Is that the agreed protocol, or was the ownership unclear?" />
-          <SailorR text="We never actually decided who owns that call in these conditions. Both of us thought the other person was on it." />
-          <AiQ why="Why 3" whyColor="var(--red)" text="That's a clear ownership gap. <strong>Is the decision rule genuinely unclear, or is it clear but not followed?</strong>" recording />
+          <SailorR
+            text="We never actually decided who owns that call in these conditions. Both of us thought the other person was on it."
+            faded
+          />
+          <AiQ
+            why="Why 3"
+            whyColor="var(--red)"
+            recording
+            text="That's a clear ownership gap. <strong>Is the decision rule genuinely unclear, or is it clear but not followed?</strong>"
+          />
         </div>
 
         <div className="cap-foot">
@@ -96,18 +100,28 @@ function AthleteCapture() {
 function AiQ({ text, why, whyColor, recording }: { text: string; why?: string; whyColor?: string; recording?: boolean }) {
   return (
     <div className="ai-q">
-      <div className="ai-q-ava"><IconStar size={12} /></div>
+      {/* GingAI "G" logo avatar instead of star */}
+      <div className="ai-q-ava" style={{ fontSize: 14, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.02em' }}>
+        G
+      </div>
       <div className="ai-q-bub">
-        {why && <><div className="why-chip" style={whyColor ? { color: whyColor } : undefined}>{why}{recording ? ' · Recording' : ''}</div><br /></>}
+        {why && (
+          <>
+            <div className="why-chip" style={whyColor ? { color: whyColor } : undefined}>
+              {why}{recording ? ' · Recording' : ''}
+            </div>
+            <br />
+          </>
+        )}
         <span dangerouslySetInnerHTML={{ __html: text }} />
       </div>
     </div>
   );
 }
 
-function SailorR({ text }: { text: string }) {
+function SailorR({ text, faded }: { text: string; faded?: boolean }) {
   return (
-    <div className="sailor-r">
+    <div className="sailor-r" style={faded ? { opacity: 0.45 } : undefined}>
       <div className="sailor-r-ava">R</div>
       <div className="sailor-r-bub">{text}</div>
     </div>
