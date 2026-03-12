@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { RoleProvider, useRole } from './context/RoleContext';
+import { ThemeProvider } from './context/ThemeContext';
 import ProtoBar from './components/ProtoBar/ProtoBar';
 import DayBackbone from './screens/DayBackbone';
 import Capture from './screens/Capture';
@@ -30,8 +31,10 @@ function AppInner() {
 
 export default function App() {
   return (
-    <RoleProvider>
-      <AppInner />
-    </RoleProvider>
+    <ThemeProvider>
+      <RoleProvider>
+        <AppInner />
+      </RoleProvider>
+    </ThemeProvider>
   );
 }

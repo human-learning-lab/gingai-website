@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BLOCKS } from '../../data/blocks';
 import type { Block } from '../../types';
+import { useTheme } from '../../context/ThemeContext';
 
 interface Props {
   selectedId: string;
@@ -62,8 +63,24 @@ function WindArrow({ bearing }: { bearing: number }) {
   );
 }
 
+const CONDITIONS = [
+  { id: 'overcast', label: 'Overcast', wind: '10–12', theme: 'dark'  as const },
+  { id: 'sunny',    label: 'Sunny',    wind: '14–18', theme: 'light' as const },
+  { id: 'stormy',   label: 'Storm',    wind: '22–28', theme: 'dark'  as const },
+];
+
 function WeatherPanel() {
+  const { setTheme } = useTheme();
+  const [condIdx, setCondIdx] = useState(0);
+  const cond = CONDITIONS[condIdx];
   const windBearing = 202;
+  const isSunny = cond.id === 'sunny';
+
+  function cycle() {
+    const next = (condIdx + 1) % CONDITIONS.length;
+    setCondIdx(next);
+    setTheme(CONDITIONS[next].theme);
+  }
 
   return (
     <div style={{
@@ -72,40 +89,48 @@ function WeatherPanel() {
       borderTop: '1px solid var(--line)',
       position: 'relative',
       overflow: 'hidden',
-    }}>
-      {/* Background sky illustration — overcast clouds */}
+      cursor: 'pointer',
+    }} onClick={cycle} title="Click to change conditions">
+
+      {/* Background sky illustration */}
       <svg
-        viewBox="0 0 202 110"
-        width="202" height="110"
+        viewBox="0 0 202 120"
+        width="202" height="120"
         style={{
           position: 'absolute', top: 0, right: -10,
-          opacity: 0.07, pointerEvents: 'none',
+          opacity: isSunny ? 0.45 : 0.10,
+          pointerEvents: 'none',
+          transition: 'opacity 0.4s',
         }}
         aria-hidden
       >
-        {/* Sun peeking behind clouds */}
-        <circle cx="160" cy="28" r="22" fill="#FEDD00" />
-        {/* Sun rays */}
-        {Array.from({ length: 8 }).map((_, i) => {
-          const angle = (i * 45 * Math.PI) / 180;
-          const x1 = 160 + Math.cos(angle) * 26;
-          const y1 = 28 + Math.sin(angle) * 26;
-          const x2 = 160 + Math.cos(angle) * 34;
-          const y2 = 28 + Math.sin(angle) * 34;
-          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#FEDD00" strokeWidth="2.5" strokeLinecap="round" />;
+        {/* Sun */}
+        <circle cx="158" cy="30" r={isSunny ? 30 : 22} fill="#FEDD00" style={{ transition: 'r 0.4s' }} />
+        {Array.from({ length: 10 }).map((_, i) => {
+          const angle = (i * 36 * Math.PI) / 180;
+          const r1 = isSunny ? 34 : 26;
+          const r2 = isSunny ? 44 : 34;
+          return (
+            <line key={i}
+              x1={158 + Math.cos(angle) * r1} y1={30 + Math.sin(angle) * r1}
+              x2={158 + Math.cos(angle) * r2} y2={30 + Math.sin(angle) * r2}
+              stroke="#FEDD00" strokeWidth="2.5" strokeLinecap="round"
+            />
+          );
         })}
-        {/* Large cloud covering most of sun */}
-        <ellipse cx="110" cy="52" rx="55" ry="22" fill="white" />
-        <ellipse cx="138" cy="44" rx="36" ry="18" fill="white" />
-        <ellipse cx="85"  cy="48" rx="30" ry="16" fill="white" />
-        <ellipse cx="162" cy="54" rx="28" ry="14" fill="white" />
-        {/* Second cloud lower */}
-        <ellipse cx="50"  cy="78" rx="42" ry="16" fill="white" />
-        <ellipse cx="76"  cy="70" rx="28" ry="14" fill="white" />
-        <ellipse cx="28"  cy="74" rx="22" ry="12" fill="white" />
-        {/* Faint rain lines */}
-        {[30, 44, 58, 70, 84, 96].map((x, i) => (
-          <line key={i} x1={x} y1={88} x2={x - 4} y2={104} stroke="white" strokeWidth="1.2" strokeLinecap="round" opacity="0.6" />
+        {/* Clouds — hidden when sunny */}
+        {!isSunny && <>
+          <ellipse cx="110" cy="52" rx="55" ry="22" fill="white" />
+          <ellipse cx="138" cy="44" rx="36" ry="18" fill="white" />
+          <ellipse cx="85"  cy="48" rx="30" ry="16" fill="white" />
+          <ellipse cx="162" cy="54" rx="28" ry="14" fill="white" />
+          <ellipse cx="50"  cy="78" rx="42" ry="16" fill="white" />
+          <ellipse cx="76"  cy="70" rx="28" ry="14" fill="white" />
+          <ellipse cx="28"  cy="74" rx="22" ry="12" fill="white" />
+        </>}
+        {/* Rain on storm */}
+        {cond.id === 'stormy' && [30, 44, 58, 70, 84, 96].map((x, i) => (
+          <line key={i} x1={x} y1={90} x2={x - 5} y2={110} stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
         ))}
       </svg>
       {/* Wind — primary stat */}
@@ -115,10 +140,9 @@ function WeatherPanel() {
           <div style={{
             fontFamily: "'Barlow Condensed', sans-serif",
             fontWeight: 800, fontSize: 26, lineHeight: 1,
-            color: 'var(--text)',
-            letterSpacing: '-0.01em',
+            color: 'var(--text)', letterSpacing: '-0.01em',
           }}>
-            10–12
+            {cond.wind}
             <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text3)', marginLeft: 3 }}>kts</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
@@ -127,7 +151,9 @@ function WeatherPanel() {
               fontSize: 12, fontWeight: 700, letterSpacing: '0.08em',
               color: 'var(--green)',
             }}>SSW</span>
-            <span style={{ fontSize: 11, color: 'var(--text4)' }}>steady</span>
+            <span style={{ fontSize: 11, color: 'var(--text4)' }}>
+              {cond.id === 'stormy' ? 'gusty' : 'steady'}
+            </span>
           </div>
         </div>
       </div>
@@ -135,9 +161,18 @@ function WeatherPanel() {
       {/* Secondary conditions row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 0' }}>
         <CondItem label="Course" value="Course 2" color="var(--yellow)" />
-        <CondItem label="Temp" value="28°C" />
-        <CondItem label="Gusts" value="14 kts" color="var(--yellow)" />
-        <CondItem label="Sky" value="Overcast" />
+        <CondItem label="Temp" value={isSunny ? '32°C' : '28°C'} />
+        <CondItem
+          label="Gusts"
+          value={cond.id === 'stormy' ? '34 kts' : isSunny ? '20 kts' : '14 kts'}
+          color={cond.id === 'stormy' ? 'var(--red)' : 'var(--yellow)'}
+        />
+        <CondItem label="Sky" value={cond.label} color={isSunny ? 'var(--yellow)' : undefined} />
+      </div>
+
+      {/* Click hint */}
+      <div style={{ marginTop: 8, fontSize: 10, color: 'var(--text4)', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif" }}>
+        tap to change conditions
       </div>
 
     </div>
