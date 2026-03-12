@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRole } from '../../context/RoleContext';
 import { IconStop } from '../../components/Icons';
 import LeftNav from '../../components/LeftNav/LeftNav';
@@ -29,21 +29,88 @@ export default function Capture({ activeScreen, onNavigate }: Props) {
   );
 }
 
+const STEPS = [
+  {
+    why: null,
+    whyColor: null,
+    q: "After Race 5 — what was the <strong>one moment</strong> that cost you most? First thing that comes.",
+    prevAnswer: null,
+  },
+  {
+    why: 'Why 1',
+    whyColor: 'var(--text3)',
+    q: "What caused the timing to be off? Your read of the mark, a communication gap, or something else?",
+    prevAnswer: "The tack at mark 2. Way too late — lost about 3 boat lengths.",
+  },
+  {
+    why: 'Why 2',
+    whyColor: 'var(--text3)',
+    q: "Why were you waiting for a call? Is that the agreed protocol, or was the ownership unclear?",
+    prevAnswer: "I was waiting for a call that never came. I had the angle — should have just gone.",
+  },
+  {
+    why: 'Why 3',
+    whyColor: 'var(--red)',
+    q: "That's a clear ownership gap. <strong>Is the decision rule genuinely unclear, or is it clear but not followed?</strong>",
+    prevAnswer: "We never actually decided who owns that call in these conditions. Both of us thought the other person was on it.",
+  },
+  {
+    why: 'Why 4',
+    whyColor: 'var(--red)',
+    q: "When did you <strong>last explicitly agree</strong> on who owns this call? Has there ever been a clear moment, or has it always been assumed?",
+    prevAnswer: "The rule isn't unclear — it just was never enforced. Everyone knew Rasmus should call it.",
+  },
+  {
+    why: 'Why 5',
+    whyColor: 'var(--red)',
+    q: "So the procedure exists but hasn't been enforced. <strong>What would make this non-negotiable before the next race?</strong>",
+    prevAnswer: "We've never actually had a proper conversation about it. It's always been implied.",
+  },
+];
+
 /* ── Athlete view — phone mockup ── */
 function AthleteCapture() {
+  const [step, setStep] = useState(2); // start mid-capture for demo
+  const [phase, setPhase] = useState<'recording' | 'processing' | 'done'>('recording');
+  const [visible, setVisible] = useState(true);
   const [recTime, setRecTime] = useState(6 * 60 + 12);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    const t = setInterval(() => setRecTime(prev => (prev > 0 ? prev - 1 : 0)), 1000);
-    return () => clearInterval(t);
+    timerRef.current = setInterval(() => setRecTime(prev => (prev > 0 ? prev - 1 : 0)), 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, []);
+
+  function handleStop() {
+    if (phase !== 'recording') return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    setPhase('processing');
+
+    // fade out → next step → fade in
+    setTimeout(() => setVisible(false), 400);
+    setTimeout(() => {
+      const next = step + 1;
+      if (next >= STEPS.length) {
+        setPhase('done');
+      } else {
+        setStep(next);
+        setRecTime(60 + Math.floor(Math.random() * 60)); // reset timer
+        setPhase('recording');
+        timerRef.current = setInterval(() => setRecTime(prev => (prev > 0 ? prev - 1 : 0)), 1000);
+      }
+      setVisible(true);
+    }, 900);
+  }
 
   const mm = Math.floor(recTime / 60);
   const ss = String(recTime % 60).padStart(2, '0');
+  const current = STEPS[step];
+  const doneCount = step; // segments done before current
 
   return (
     <div className="s-capture">
       <div className="phone">
+        {/* Status bar */}
         <div className="ph-sb">
           <span className="ph-time">16:42</span>
           <span className="ph-icons">
@@ -53,43 +120,98 @@ function AthleteCapture() {
           </span>
         </div>
 
+        {/* Header */}
         <div className="cap-hdr">
           <div className="cap-row1">
             <div className="cap-wm">Ging<span className="ai">AI</span></div>
             <div className="cap-badge"><div className="rblink" /> POST-RACE · R5</div>
           </div>
           <div className="why-bar">
-            <div className="why-seg done" /><div className="why-seg done" />
-            <div className="why-seg now" /><div className="why-seg" /><div className="why-seg" />
+            {STEPS.map((_, i) => (
+              <div
+                key={i}
+                className={`why-seg${i < doneCount ? ' done' : i === step ? ' now' : ''}`}
+              />
+            ))}
           </div>
-          <div className="why-lbl">Why 3 of 5 · 4/6 sailors done</div>
+          <div className="why-lbl">
+            {current.why ? `${current.why} of ${STEPS.length - 1}` : 'Opening'} · 4/6 sailors done
+          </div>
         </div>
 
-        {/* One question at a time: previous answer for context, then current question */}
-        <div className="cap-convo">
-          <SailorR
-            text="We never actually decided who owns that call in these conditions. Both of us thought the other person was on it."
-            faded
-          />
-          <AiQ
-            why="Why 3"
-            whyColor="var(--red)"
-            recording
-            text="That's a clear ownership gap. <strong>Is the decision rule genuinely unclear, or is it clear but not followed?</strong>"
-          />
-        </div>
+        {/* Conversation — one question at a time */}
+        {phase === 'done' ? (
+          <div className="cap-convo" style={{ justifyContent: 'center', alignItems: 'center', textAlign: 'center', gap: 8 }}>
+            <div style={{ fontSize: 32, color: 'var(--green)', fontFamily: 'Barlow Condensed', fontWeight: 800 }}>Done</div>
+            <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
+              Capture complete. GingAI is synthesising your inputs with the team.
+            </div>
+          </div>
+        ) : (
+          <div
+            className="cap-convo"
+            style={{
+              opacity: visible ? 1 : 0,
+              transition: 'opacity 0.35s ease',
+            }}
+          >
+            {current.prevAnswer && (
+              <SailorR text={current.prevAnswer} faded />
+            )}
 
+            {phase === 'processing' ? (
+              <div className="ai-q">
+                <GingAIAvatar />
+                <div className="ai-q-bub" style={{ color: 'var(--text3)', fontStyle: 'italic' }}>
+                  <ThinkingDots />
+                </div>
+              </div>
+            ) : (
+              <AiQ
+                why={current.why ?? undefined}
+                whyColor={current.whyColor ?? undefined}
+                recording
+                text={current.q}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Footer */}
         <div className="cap-foot">
-          <div className="waveform">
-            {Array.from({ length: 12 }).map((_, i) => <div key={i} className="wv" />)}
-          </div>
-          <button className="rec-btn">
-            <IconStop />
-          </button>
+          {phase === 'recording' && (
+            <div className="waveform">
+              {Array.from({ length: 12 }).map((_, i) => <div key={i} className="wv" />)}
+            </div>
+          )}
+          {phase === 'processing' && (
+            <div style={{ height: 28, display: 'flex', alignItems: 'center', gap: 4 }}>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: 'var(--green)',
+                  animation: `pdot 1.2s ease-in-out ${i * 0.2}s infinite`,
+                }} />
+              ))}
+            </div>
+          )}
+          {phase === 'done' ? (
+            <div style={{ fontSize: 13, color: 'var(--text3)' }}>Uploading…</div>
+          ) : (
+            <button
+              className="rec-btn"
+              onClick={handleStop}
+              style={phase === 'processing' ? { opacity: 0.4, cursor: 'default', background: 'var(--bg3)', boxShadow: 'none', animation: 'none' } : undefined}
+            >
+              <IconStop />
+            </button>
+          )}
           <div className="rec-info">
-            <div className="rec-lbl">Recording</div>
-            <div className="rec-time">{mm}:{ss}</div>
-            <div className="rec-hint">~3 min remaining</div>
+            <div className="rec-lbl" style={phase === 'processing' ? { color: 'var(--green)' } : undefined}>
+              {phase === 'processing' ? 'Analysing…' : 'Recording'}
+            </div>
+            {phase === 'recording' && <div className="rec-time">{mm}:{ss}</div>}
+            {phase === 'recording' && <div className="rec-hint">Tap to stop &amp; advance</div>}
           </div>
         </div>
       </div>
@@ -97,13 +219,44 @@ function AthleteCapture() {
   );
 }
 
+/* ── GingAI brand avatar — matches favicon design ── */
+function GingAIAvatar() {
+  return (
+    <div
+      className="ai-q-ava"
+      style={{ background: '#0D0B08', border: '1.5px solid var(--gb)', position: 'relative', overflow: 'visible' }}
+    >
+      <span style={{
+        fontFamily: "'Barlow Condensed', sans-serif",
+        fontWeight: 800,
+        fontSize: 15,
+        color: 'var(--green)',
+        letterSpacing: '-0.02em',
+        lineHeight: 1,
+      }}>G</span>
+      {/* yellow AI dot */}
+      <span style={{
+        position: 'absolute',
+        top: -2,
+        right: -2,
+        width: 7,
+        height: 7,
+        borderRadius: '50%',
+        background: 'var(--yellow)',
+        border: '1.5px solid var(--bg)',
+      }} />
+    </div>
+  );
+}
+
+function ThinkingDots() {
+  return <span>Analysing your response…</span>;
+}
+
 function AiQ({ text, why, whyColor, recording }: { text: string; why?: string; whyColor?: string; recording?: boolean }) {
   return (
     <div className="ai-q">
-      {/* GingAI "G" logo avatar instead of star */}
-      <div className="ai-q-ava" style={{ fontSize: 14, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.02em' }}>
-        G
-      </div>
+      <GingAIAvatar />
       <div className="ai-q-bub">
         {why && (
           <>
@@ -121,7 +274,7 @@ function AiQ({ text, why, whyColor, recording }: { text: string; why?: string; w
 
 function SailorR({ text, faded }: { text: string; faded?: boolean }) {
   return (
-    <div className="sailor-r" style={faded ? { opacity: 0.45 } : undefined}>
+    <div className="sailor-r" style={faded ? { opacity: 0.4 } : undefined}>
       <div className="sailor-r-ava">R</div>
       <div className="sailor-r-bub">{text}</div>
     </div>
