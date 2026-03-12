@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useRole } from '../../context/RoleContext';
 import { IconStar, IconStop } from '../../components/Icons';
+import LeftNav from '../../components/LeftNav/LeftNav';
+import type { ScreenId } from '../../types';
+
+interface Props {
+  activeScreen: ScreenId;
+  onNavigate: (s: ScreenId) => void;
+}
 
 const SAILOR_CAPTURES = [
   { name: 'Rasmus', role: 'Flight Controller', done: true,  quote: '"Waited for a call. Had the angle. Nobody owns this decision clearly."', focus: 'Tack timing · Flight stability · Offset call' },
@@ -11,10 +18,15 @@ const SAILOR_CAPTURES = [
   { name: 'Lucas',  role: 'Helmsman',           done: false, quote: '', focus: 'Start line bias · Pre-start positioning' },
 ];
 
-export default function Capture() {
+export default function Capture({ activeScreen, onNavigate }: Props) {
   const { role } = useRole();
 
-  return role.id === 'athlete' ? <AthleteCapture /> : <ReadOnlyCapture />;
+  return (
+    <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <LeftNav activeScreen={activeScreen} onNavigate={onNavigate} />
+      {role.id === 'athlete' ? <AthleteCapture /> : <ReadOnlyCapture />}
+    </div>
+  );
 }
 
 /* ── Athlete view — phone mockup ── */

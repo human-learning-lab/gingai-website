@@ -20,7 +20,7 @@ function AppInner() {
       <ProtoBar activeScreen={activeScreen} onNavigate={navigate} />
       <div className="screen-wrap">
         {activeScreen === 'backbone' && <DayBackbone activeScreen={activeScreen} onNavigate={navigate} />}
-        {activeScreen === 'capture'  && <Capture />}
+        {activeScreen === 'capture'  && <Capture activeScreen={activeScreen} onNavigate={navigate} />}
         {activeScreen === 'intel'    && <Intelligence activeScreen={activeScreen} onNavigate={navigate} />}
         {activeScreen === 'debrief'  && <TeamDebrief activeScreen={activeScreen} onNavigate={navigate} />}
       </div>
