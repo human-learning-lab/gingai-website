@@ -853,32 +853,36 @@ body {
   .fp-card { padding: 16px 14px; }
   .card { padding: 14px; }
 
-  /* ── Timeline drawer ── */
-  .tl-drawer {
-    display: flex;
-    flex-direction: column;
-    background: var(--bg2);
-    border-bottom: 1px solid var(--line);
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-  }
-  .tl-drawer.closed { max-height: 0; }
-  .tl-drawer.open   { max-height: 480px; overflow-y: auto; }
+  /* ── Mobile Day Backbone tab layout ── */
+  .mob-backbone { width: 100%; flex-direction: column; }
 
-  /* ── Schedule toggle button ── */
-  .schedule-toggle {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 18px;
-    background: var(--bg2);
+  .mob-bb-tabs {
+    display: flex;
     border-bottom: 1px solid var(--line);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
+    background: var(--bg2);
+    flex-shrink: 0;
   }
-  .schedule-toggle-label {
+  .mob-bb-tab {
+    flex: 1; padding: 13px 10px;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
     color: var(--text3);
+    background: transparent; border: none; cursor: pointer;
+    border-bottom: 2px solid transparent;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.12s, border-color 0.12s;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  .mob-bb-tab.on { color: var(--green); border-bottom-color: var(--green); }
+
+  .mob-bb-tl { overflow-y: auto; flex: 1; }
+  .mob-bb-tl .tl { display: flex !important; flex-direction: column; width: 100%; border-right: none; }
+  .mob-bb-tl .tl-top { display: none; }
+
+  .mob-bb-detail { overflow-y: auto; flex: 1; }
+  .mob-bb-detail .block-view { display: flex; flex-direction: column; }
+  .mob-bb-detail .pane { padding: 14px 18px; }
+  .mob-bb-detail .tabs { padding: 0 18px; }
 
   /* mob-only: hidden on desktop, shown on mobile */
   .mob-only { display: flex !important; flex-direction: column; }
