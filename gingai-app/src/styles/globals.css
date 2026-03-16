@@ -407,6 +407,9 @@ body {
 /* ═══════════════════════════════
    SCREEN 2 — CAPTURE (MOBILE)
 ═══════════════════════════════ */
+.s-capture-wrap {
+  display: flex; flex: 1; overflow: hidden;
+}
 .s-capture {
   flex: 1; display: flex;
   justify-content: center; align-items: center; background: var(--bg);
@@ -757,3 +760,165 @@ body {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 2px; }
+
+/* Bottom nav: desktop hidden, mobile shown via media query */
+.bottom-nav { display: none; }
+
+/* Mobile-only elements hidden on desktop */
+.mob-only { display: none; }
+
+/* ══════════════════════════════
+   MOBILE  (≤ 768px)
+══════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* Body / root layout */
+  html, body, #root { overflow: auto; height: auto; min-height: 100dvh; }
+
+  /* ── ProtoBar ── */
+  #pbar {
+    position: sticky; top: 0; z-index: 100;
+    padding: 0 14px; gap: 8px;
+    justify-content: space-between;
+  }
+  #pbar .sb,
+  #pbar .pb-sep,
+  #pbar .pb-tag,
+  #pbar .pb-sp { display: none; }
+  #pbar .role-pills { margin-left: auto; gap: 5px; }
+  /* On mobile, compress role pills to ava + name only (no role label) */
+  .role-pill .rp-role { display: none; }
+  .role-pill { height: 30px; padding: 0 8px; gap: 5px; }
+  .role-pill .rp-name { font-size: 12px; }
+
+  /* ── Hide desktop sidebars ── */
+  .inav { display: none; }
+  .tl   { display: none; }
+  .srl  { display: none; }
+
+  /* ── Screens stack vertically ── */
+  .screen-wrap { flex-direction: column; overflow: visible; }
+  .s-backbone  { flex-direction: column; overflow: visible; height: auto; }
+  .s-intel     { flex-direction: column; overflow: visible; height: auto; }
+  .s-debrief   { flex-direction: column; overflow: visible; height: auto; }
+
+  /* Main content area scrolls naturally */
+  .main { overflow: visible; height: auto; }
+  .block-view { overflow: visible; height: auto; }
+  .block-view.on { display: flex; }
+
+  /* Tab panes scroll naturally */
+  .pane { overflow: visible; height: auto; }
+  .gen-panel { overflow: visible; height: auto; }
+
+  /* ── Bottom nav spacing ── */
+  .screen-wrap { padding-bottom: 64px; }
+
+  /* ── Bottom nav bar ── */
+  .bottom-nav {
+    display: flex;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 64px;
+    background: var(--bg2);
+    border-top: 1px solid var(--line);
+    z-index: 200;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .bn-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 4px; cursor: pointer;
+    color: var(--text4); transition: color 0.12s;
+    -webkit-tap-highlight-color: transparent;
+    padding: 8px 4px;
+  }
+  .bn-item.on { color: var(--green); }
+  .bn-item.disabled { opacity: 0.25; pointer-events: none; }
+  .bn-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+
+  /* ── Page header — bigger on mobile ── */
+  .main-top { padding: 18px 18px 14px; }
+  .page-title { font-size: 26px; }
+  .tabs { padding: 0 18px; }
+  .pane { padding: 16px 18px; }
+  .gen-panel { padding: 16px 18px; }
+
+  /* ── Touch target sizes ── */
+  .tab { padding: 12px 0; font-size: 14px; }
+  .tl-item { padding: 14px 16px; }
+  .doc-row { padding: 14px 0; }
+  .fp-card { padding: 16px 14px; }
+  .card { padding: 14px; }
+
+  /* ── Timeline drawer ── */
+  .tl-drawer {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+  .tl-drawer.closed { max-height: 0; }
+  .tl-drawer.open   { max-height: 480px; overflow-y: auto; }
+
+  /* ── Schedule toggle button ── */
+  .schedule-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .schedule-toggle-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--text3);
+  }
+
+  /* mob-only: hidden on desktop, shown on mobile */
+  .mob-only { display: flex !important; flex-direction: column; }
+
+  /* ── Capture: full screen on real mobile ── */
+  .s-capture-wrap { overflow: visible; flex-direction: column; }
+  .s-capture { align-items: stretch; padding: 0; background: var(--bg); }
+  .phone {
+    width: 100%; max-height: none; border-radius: 0;
+    border: none; box-shadow: none;
+    height: calc(100dvh - 44px - 64px); /* protobar + bottom nav */
+    flex: 1;
+  }
+  .ph-sb { border-radius: 0; }
+  .cap-readonly { padding: 18px; }
+  .cap-ro-grid { grid-template-columns: 1fr; }
+
+  /* ── Intelligence: left panel becomes top section ── */
+  .s-intel { flex-direction: column; overflow: visible; height: auto; }
+  .intel-left {
+    width: 100%; border-right: none;
+    border-bottom: 1px solid var(--line);
+    max-height: 280px; overflow-y: auto; flex-shrink: 0;
+  }
+  .intel-right { overflow: visible; flex: none; }
+  .ir-scroll { overflow: visible; padding: 16px 18px; }
+
+  /* ── Team debrief ── */
+  .db-wrap { overflow: visible; }
+  .db-body { flex-direction: column; overflow: visible; }
+  .db-main { overflow: visible; padding: 18px; }
+  .db-side { width: 100%; border-left: none; border-top: 1px solid var(--line); overflow: visible; }
+  .db-topbar { flex-wrap: wrap; gap: 10px; padding: 12px 16px; }
+  .agt { width: 100%; order: 3; }
+  .db-btns { order: 2; }
+
+  /* ── Cards fill width ── */
+  .q-grid { grid-template-columns: 1fr; }
+  .d-stats { gap: 20px; }
+
+  /* ── Weather panel ── */
+  .tl-top { display: none; }
+}

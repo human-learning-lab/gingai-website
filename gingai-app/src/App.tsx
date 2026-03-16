@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { RoleProvider, useRole } from './context/RoleContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtoBar from './components/ProtoBar/ProtoBar';
+import BottomNav from './components/BottomNav/BottomNav';
 import DayBackbone from './screens/DayBackbone';
 import Capture from './screens/Capture';
 import Intelligence from './screens/Intelligence';
@@ -25,6 +26,7 @@ function AppInner() {
         {activeScreen === 'intel'    && <Intelligence activeScreen={activeScreen} onNavigate={navigate} />}
         {activeScreen === 'debrief'  && <TeamDebrief activeScreen={activeScreen} onNavigate={navigate} />}
       </div>
+      <BottomNav activeScreen={activeScreen} onNavigate={navigate} />
     </>
   );
 }

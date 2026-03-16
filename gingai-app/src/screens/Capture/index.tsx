@@ -22,7 +22,7 @@ export default function Capture({ activeScreen, onNavigate }: Props) {
   const { role } = useRole();
 
   return (
-    <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+    <div className="s-capture-wrap">
       <LeftNav activeScreen={activeScreen} onNavigate={onNavigate} />
       {role.id === 'athlete' ? <AthleteCapture /> : <ReadOnlyCapture />}
     </div>
