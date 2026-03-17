@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react';
 import { BLOCKS } from '../../data/blocks';
 import type { Block } from '../../types';
-import { useTheme } from '../../context/ThemeContext';
 
 interface Props {
   selectedId: string;
   onSelect: (id: string) => void;
+}
+
+function formatTZero(offset: number): string {
+  const abs = Math.abs(offset);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  if (offset === 0) return 'T–0';
+  if (offset > 0) return `T+${h > 0 ? `${h}h ` : ''}${m > 0 ? `${m}m` : ''}`.trim();
+  return `T–${h > 0 ? `${h}h ` : ''}${m > 0 ? `${m}m` : ''}`.trim();
 }
 
 export default function Timeline({ selectedId, onSelect }: Props) {
@@ -24,10 +32,11 @@ export default function Timeline({ selectedId, onSelect }: Props) {
   return (
     <div className="tl">
       <div className="tl-top">
-        <div className="tl-eyebrow">Race Day 1</div>
-        <div className="tl-day">São Paulo</div>
-        <div className="tl-sub">12 Mar 2026</div>
+        <div className="tl-eyebrow">Race Day 1 · Season 6</div>
+        <div className="tl-day">Rio de Janeiro</div>
+        <div className="tl-sub">Enel Rio SGP · 2026</div>
         <WeatherPanel />
+        <EquipmentPanel />
       </div>
       <div className="tl-list">
         {BLOCKS.map(block => (
@@ -44,42 +53,36 @@ export default function Timeline({ selectedId, onSelect }: Props) {
   );
 }
 
-/* ── Wind direction arrow — rotates to bearing ── */
+/* ── Wind direction arrow ── */
 function WindArrow({ bearing }: { bearing: number }) {
   return (
     <svg
       width="28" height="28" viewBox="0 0 28 28"
       style={{ transform: `rotate(${bearing}deg)`, flexShrink: 0 }}
     >
-      {/* Compass circle */}
       <circle cx="14" cy="14" r="12" fill="none" stroke="var(--line2)" strokeWidth="1" />
-      {/* Arrow shaft */}
       <line x1="14" y1="20" x2="14" y2="8" stroke="var(--green)" strokeWidth="1.5" strokeLinecap="round" />
-      {/* Arrowhead */}
       <polygon points="14,5 11,10 17,10" fill="var(--green)" />
-      {/* Tail dot */}
       <circle cx="14" cy="21" r="1.5" fill="var(--text4)" />
     </svg>
   );
 }
 
 const CONDITIONS = [
-  { id: 'overcast', label: 'Overcast', wind: '10–12', theme: 'dark'  as const },
-  { id: 'sunny',    label: 'Sunny',    wind: '14–18', theme: 'light' as const },
-  { id: 'stormy',   label: 'Storm',    wind: '22–28', theme: 'dark'  as const },
+  { id: 'sunny',    label: 'Sunny',   wind: '14–18' },
+  { id: 'overcast', label: 'Overcast', wind: '10–12' },
+  { id: 'stormy',   label: 'Storm',   wind: '22–28' },
 ];
 
 function WeatherPanel() {
-  const { setTheme } = useTheme();
   const [condIdx, setCondIdx] = useState(0);
+  const [courseConfirmed, setCourseConfirmed] = useState(false);
   const cond = CONDITIONS[condIdx];
   const windBearing = 202;
   const isSunny = cond.id === 'sunny';
 
   function cycle() {
-    const next = (condIdx + 1) % CONDITIONS.length;
-    setCondIdx(next);
-    setTheme(CONDITIONS[next].theme);
+    setCondIdx(prev => (prev + 1) % CONDITIONS.length);
   }
 
   return (
@@ -90,7 +93,7 @@ function WeatherPanel() {
       position: 'relative',
       overflow: 'hidden',
       cursor: 'pointer',
-    }} onClick={cycle} title="Click to change conditions">
+    }} onClick={cycle} title="Tap to change conditions">
 
       {/* Background sky illustration */}
       <svg
@@ -98,14 +101,13 @@ function WeatherPanel() {
         width="202" height="120"
         style={{
           position: 'absolute', top: 0, right: -10,
-          opacity: isSunny ? 0.45 : 0.10,
+          opacity: isSunny ? 0.30 : 0.07,
           pointerEvents: 'none',
           transition: 'opacity 0.4s',
         }}
         aria-hidden
       >
-        {/* Sun */}
-        <circle cx="158" cy="30" r={isSunny ? 30 : 22} fill="#FEDD00" style={{ transition: 'r 0.4s' }} />
+        <circle cx="158" cy="30" r={isSunny ? 30 : 22} fill="#FEDF00" style={{ transition: 'r 0.4s' }} />
         {Array.from({ length: 10 }).map((_, i) => {
           const angle = (i * 36 * Math.PI) / 180;
           const r1 = isSunny ? 34 : 26;
@@ -114,26 +116,22 @@ function WeatherPanel() {
             <line key={i}
               x1={158 + Math.cos(angle) * r1} y1={30 + Math.sin(angle) * r1}
               x2={158 + Math.cos(angle) * r2} y2={30 + Math.sin(angle) * r2}
-              stroke="#FEDD00" strokeWidth="2.5" strokeLinecap="round"
+              stroke="#FEDF00" strokeWidth="2.5" strokeLinecap="round"
             />
           );
         })}
-        {/* Clouds — hidden when sunny */}
         {!isSunny && <>
-          <ellipse cx="110" cy="52" rx="55" ry="22" fill="white" />
-          <ellipse cx="138" cy="44" rx="36" ry="18" fill="white" />
-          <ellipse cx="85"  cy="48" rx="30" ry="16" fill="white" />
-          <ellipse cx="162" cy="54" rx="28" ry="14" fill="white" />
-          <ellipse cx="50"  cy="78" rx="42" ry="16" fill="white" />
-          <ellipse cx="76"  cy="70" rx="28" ry="14" fill="white" />
-          <ellipse cx="28"  cy="74" rx="22" ry="12" fill="white" />
+          <ellipse cx="110" cy="52" rx="55" ry="22" fill="var(--line)" />
+          <ellipse cx="138" cy="44" rx="36" ry="18" fill="var(--line)" />
+          <ellipse cx="85"  cy="48" rx="30" ry="16" fill="var(--line)" />
+          <ellipse cx="162" cy="54" rx="28" ry="14" fill="var(--line)" />
         </>}
-        {/* Rain on storm */}
         {cond.id === 'stormy' && [30, 44, 58, 70, 84, 96].map((x, i) => (
-          <line key={i} x1={x} y1={90} x2={x - 5} y2={110} stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
+          <line key={i} x1={x} y1={90} x2={x - 5} y2={110} stroke="var(--line2)" strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
         ))}
       </svg>
-      {/* Wind — primary stat */}
+
+      {/* Wind */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <WindArrow bearing={windBearing} />
         <div>
@@ -158,9 +156,23 @@ function WeatherPanel() {
         </div>
       </div>
 
-      {/* Secondary conditions row */}
+      {/* Secondary conditions */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 0' }}>
-        <CondItem label="Course" value="Course 2" color="var(--yellow)" />
+        <CondItem
+          label="Course"
+          value={
+            <span style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 3 }}>
+              Course 2
+              <span
+                className={`course-status${courseConfirmed ? ' confirmed' : ''}`}
+                onClick={e => { e.stopPropagation(); setCourseConfirmed(v => !v); }}
+                title="Click to toggle confirmation"
+              >
+                {courseConfirmed ? '✓ Confirmed' : 'TBC'}
+              </span>
+            </span>
+          }
+        />
         <CondItem label="Temp" value={isSunny ? '32°C' : '28°C'} />
         <CondItem
           label="Gusts"
@@ -170,16 +182,14 @@ function WeatherPanel() {
         <CondItem label="Sky" value={cond.label} color={isSunny ? 'var(--yellow)' : undefined} />
       </div>
 
-      {/* Click hint */}
       <div style={{ marginTop: 8, fontSize: 10, color: 'var(--text4)', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif" }}>
         tap to change conditions
       </div>
-
     </div>
   );
 }
 
-function CondItem({ label, value, color }: { label: string; value: string; color?: string }) {
+function CondItem({ label, value, color }: { label: string; value: React.ReactNode; color?: string }) {
   return (
     <div>
       <div style={{
@@ -192,6 +202,42 @@ function CondItem({ label, value, color }: { label: string; value: string; color
         fontSize: 14, fontWeight: 700,
         color: color ?? 'var(--text2)',
       }}>{value}</div>
+    </div>
+  );
+}
+
+/* ── Equipment Configuration Panel ── */
+const EQUIPMENT_DEFAULTS = [
+  { cat: 'Wing', val: '27.5m',      confirmed: false },
+  { cat: 'Dboard', val: 'LAB2',     confirmed: false },
+  { cat: 'Rudder', val: 'LARW2',    confirmed: true  },
+  { cat: 'Jib',    val: 'Light Air', confirmed: false },
+];
+
+function EquipmentPanel() {
+  const [eq, setEq] = useState(EQUIPMENT_DEFAULTS);
+
+  function toggle(i: number) {
+    setEq(prev => prev.map((item, idx) => idx === i ? { ...item, confirmed: !item.confirmed } : item));
+  }
+
+  return (
+    <div className="eq-section">
+      <div className="eq-title">Equipment Config</div>
+      <div className="eq-grid">
+        {eq.map((item, i) => (
+          <div
+            key={item.cat}
+            className={`eq-item${item.confirmed ? ' confirmed' : ''}`}
+            onClick={e => { e.stopPropagation(); toggle(i); }}
+            title="Click to toggle confirmation"
+          >
+            <div className="eq-cat">{item.cat}</div>
+            <div className="eq-val">{item.val}</div>
+            <div className="eq-status">{item.confirmed ? '✓ Confirmed' : 'Predicted'}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -209,9 +255,24 @@ function TimelineItem({ block, selected, countdown, onClick }: {
     selected ? 'sel' : '',
   ].filter(Boolean).join(' ');
 
+  const showTZero = block.status !== 'past' && block.tZeroOffset !== undefined;
+  const isRaceStart = block.tZeroOffset === 0;
+
   return (
     <div className={classes} id={`tl-${block.id}`} onClick={onClick}>
-      <div className="tl-time">{block.time}</div>
+      <div style={{ minWidth: 38, marginTop: 1 }}>
+        <div className="tl-time">{block.time}</div>
+        {showTZero && (
+          <div style={{
+            fontFamily: "'Barlow Condensed', sans-serif",
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+            color: isRaceStart ? 'var(--green)' : 'var(--text4)',
+            marginTop: 2,
+          }}>
+            {formatTZero(block.tZeroOffset!)}
+          </div>
+        )}
+      </div>
       <div className="tl-info">
         <div className="tl-name">{block.name}</div>
         {block.tag && (

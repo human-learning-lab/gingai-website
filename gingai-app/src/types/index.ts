@@ -20,4 +20,6 @@ export interface Block {
   tag: string;
   tagColor?: string;
   status: 'past' | 'now' | 'future';
+  /** Minutes relative to Race 1 (T-0). Negative = before race, 0 = race start, positive = after */
+  tZeroOffset?: number;
 }

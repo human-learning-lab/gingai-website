@@ -11,7 +11,7 @@ interface Props {
 const NAV_ITEMS: { id: ScreenId; label: string; icon: ReactElement }[] = [
   { id: 'backbone', label: 'Day Backbone', icon: <IconCalendar size={13} /> },
   { id: 'capture',  label: 'Capture',      icon: <IconMic size={13} /> },
-  { id: 'intel',    label: 'Intelligence', icon: <IconZap size={13} /> },
+  { id: 'intel',    label: 'Debrief Agenda', icon: <IconZap size={13} /> },
   { id: 'debrief',  label: 'Team Debrief', icon: <IconChat size={13} /> },
 ];
 

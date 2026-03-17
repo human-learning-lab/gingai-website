@@ -9,13 +9,18 @@ interface Props {
   onNavigate: (s: ScreenId) => void;
 }
 
-const SAILOR_CAPTURES = [
-  { name: 'Rasmus', role: 'Flight Controller', done: true,  quote: '"Waited for a call. Had the angle. Nobody owns this decision clearly."', focus: 'Tack timing · Flight stability · Offset call' },
-  { name: 'Tom',    role: 'Wing Trimmer',       done: true,  quote: '"Call was on time. Speed was already lost from the previous leg."', focus: 'Wing trim · Start sequence comms' },
-  { name: 'Ana',    role: 'Grinder',            done: true,  quote: '"Felt the hesitation. Needed someone to commit. Agree with Rasmus."', focus: 'Grinder load · Foil transitions' },
-  { name: 'Bruno',  role: 'Grinder',            done: true,  quote: '"Speed was already down from the gate. Maybe two separate problems."', focus: 'Port gybe timing' },
-  { name: 'Felipe', role: 'Bowman',             done: false, quote: '', focus: 'Bow work · Mark 2 approach' },
-  { name: 'Lucas',  role: 'Helmsman',           done: false, quote: '', focus: 'Start line bias · Pre-start positioning' },
+type ImpactLevel = 'high' | 'medium' | 'low';
+
+const SAILOR_CAPTURES: {
+  name: string; role: string; done: boolean;
+  quote: string; focus: string; impact?: ImpactLevel;
+}[] = [
+  { name: 'Rasmus',  role: 'Flight Controller', done: true,  impact: 'high',   quote: '"Waited for a call. Had the angle. Nobody owns this decision clearly."', focus: 'Tack timing · Flight stability · Offset call' },
+  { name: 'Pietro',  role: 'Wing Trimmer',       done: true,  impact: 'high',   quote: '"Call was on time. Speed was already lost from the previous leg."',      focus: 'Wing trim · Start sequence comms' },
+  { name: 'Mateus',  role: 'Grinder G1',         done: true,  impact: 'medium', quote: '"Felt the hesitation. Needed someone to commit. Agree with Rasmus."',    focus: 'Grinder load · Foil transitions' },
+  { name: 'Marco',   role: 'Grinder G2',         done: true,  impact: 'low',    quote: '"Speed was already down from the gate. Maybe two separate problems."',   focus: 'Port gybe timing' },
+  { name: 'Martine', role: 'Helm / Driver',       done: false, quote: '',                                                                                         focus: 'Boat speed · Pre-start positioning' },
+  { name: 'Paul G.', role: 'Strategist',          done: false, quote: '',                                                                                         focus: 'Start line bias · Tactical calls' },
 ];
 
 export default function Capture({ activeScreen, onNavigate }: Props) {
@@ -311,10 +316,17 @@ function ReadOnlyCapture() {
               <div className="cap-ro-ava" style={s.done ? { background: 'var(--gg)', border: '1px solid var(--gb)', color: 'var(--green)' } : undefined}>
                 {s.name[0]}
               </div>
-              <div>
-                <div className="cap-ro-name">{s.name}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div className="cap-ro-name">{s.name}</div>
+                  {s.done && s.impact && (
+                    <span className={`impact-badge ${s.impact}`}>
+                      {s.impact === 'high' ? '● High' : s.impact === 'medium' ? '● Med' : '● Low'}
+                    </span>
+                  )}
+                </div>
                 <div className="cap-ro-status" style={{ color: s.done ? 'var(--green)' : 'var(--text4)' }}>
-                  {s.done ? 'Capture complete' : 'Pending…'}
+                  {s.done ? `${s.role} · Capture complete` : `${s.role} · Pending…`}
                 </div>
               </div>
             </div>
