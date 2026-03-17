@@ -24,7 +24,7 @@ const AGENDA_ITEMS = [
 
 export default function TeamDebrief({ activeScreen, onNavigate }: Props) {
   const { role } = useRole();
-  const isCoach = role.id === 'coach';
+  const isCoach = role.view === 'coach';
 
   const [currentStage, setCurrentStage] = useState<Stage>(0);
   const [currentTopic, setCurrentTopic] = useState(0);
@@ -128,7 +128,7 @@ export default function TeamDebrief({ activeScreen, onNavigate }: Props) {
 
         <div className="db-body">
           <div className="db-main">
-            {!isCoach && role.id === 'analyst' && (
+            {!isCoach && role.view === 'analyst' && (
               <div className="role-banner analyst" style={{ marginBottom: 20, borderRadius: 3 }}>
                 <IconStar /> Analyst view — full data visible. Debrief controlled by Coach.
               </div>

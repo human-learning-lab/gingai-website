@@ -139,7 +139,7 @@ export default function Intelligence({ activeScreen, onNavigate }: Props) {
           <ClassificationIcons icons={t.icons} />
         </div>
         <div className="ir-scroll">
-          {role.id === 'analyst' && (
+          {role.view === 'analyst' && (
             <div className="role-banner analyst" style={{ marginBottom: 20, borderRadius: 3 }}>
               <IconStar /> Analyst view — full data + root cause enabled
             </div>

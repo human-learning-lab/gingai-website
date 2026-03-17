@@ -1,16 +1,17 @@
 export default function StatusRail() {
   const team = [
-    { init: 'R', name: 'Rasmus', state: 'At tent', dot: 'sd-g' },
-    { init: 'T', name: 'Tom',    state: 'At tent', dot: 'sd-g' },
-    { init: 'A', name: 'Ana',    state: 'At tent', dot: 'sd-g' },
-    { init: 'B', name: 'Bruno',  state: 'En route', dot: 'sd-y', stateColor: 'var(--yellow)' },
-    { init: 'F', name: 'Felipe', state: 'At tent', dot: 'sd-g' },
+    { init: 'MG', name: 'Martine', state: 'At tent',  dot: 'sd-g' },
+    { init: 'RK', name: 'Rasmus',  state: 'At tent',  dot: 'sd-g' },
+    { init: 'PS', name: 'Pietro',  state: 'At tent',  dot: 'sd-g' },
+    { init: 'PG', name: 'Paul G.', state: 'En route', dot: 'sd-y', stateColor: 'var(--yellow)' },
+    { init: 'MI', name: 'Mateus',  state: 'At tent',  dot: 'sd-g' },
+    { init: 'MC', name: 'Marco',   state: 'At tent',  dot: 'sd-g' },
   ];
 
   const actions = [
-    { color: 'var(--red)',    title: 'Mark 2 tack trigger rule', meta: 'Rasmus · from R3' },
-    { color: 'var(--yellow)', title: 'Comms during start sequence', meta: 'Tom · from R4' },
-    { color: 'var(--green)',  title: 'Wing cant SOP <12 kts', meta: 'Ana · due today', last: true },
+    { color: 'var(--red)',    title: 'Mark 2 tack trigger rule',    meta: 'Rasmus · from R3' },
+    { color: 'var(--yellow)', title: 'Comms during start sequence', meta: 'Pietro · from R4' },
+    { color: 'var(--green)',  title: 'Wing cant SOP <12 kts',       meta: 'Mateus · due today', last: true },
   ];
 
   return (

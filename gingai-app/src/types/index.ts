@@ -1,12 +1,15 @@
-export type RoleId = 'athlete' | 'coach' | 'analyst';
+export type RoleId = string;
 export type ScreenId = 'backbone' | 'capture' | 'intel' | 'debrief';
+
+/** view determines which UX mode the person sees */
+export type RoleView = 'sailor' | 'coach' | 'analyst';
 
 export interface Role {
   id: RoleId;
   name: string;
   initial: string;
   label: string;
-  avatarColor?: string;
+  view: RoleView;
   /** Which screens this role can access */
   screens: ScreenId[];
 }

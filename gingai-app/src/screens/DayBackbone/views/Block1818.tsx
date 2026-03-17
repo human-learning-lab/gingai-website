@@ -2,17 +2,17 @@ import { useRole } from '../../../context/RoleContext';
 import { IconStar, IconMic } from '../../../components/Icons';
 
 const SAILORS = [
-  { name: 'Rasmus', init: 'R', focus: 'Tack timing · Flight stability · Offset call' },
-  { name: 'Tom',    init: 'T', focus: 'Wing trim · Start sequence comms' },
-  { name: 'Ana',    init: 'A', focus: 'Grinder load · Foil transitions' },
-  { name: 'Bruno',  init: 'B', focus: 'Port gybe timing' },
-  { name: 'Felipe', init: 'F', focus: 'Bow work · Mark 2 approach' },
-  { name: 'Lucas',  init: 'L', focus: 'Start line bias · Pre-start positioning' },
+  { name: 'Martine', init: 'MG', focus: 'Boat speed · Pre-start positioning' },
+  { name: 'Rasmus',  init: 'RK', focus: 'Tack timing · Flight stability · Offset call' },
+  { name: 'Pietro',  init: 'PS', focus: 'Wing trim · Start sequence comms' },
+  { name: 'Paul G.', init: 'PG', focus: 'Start line bias · Tactical calls' },
+  { name: 'Mateus',  init: 'MI', focus: 'Grinder load · Foil transitions' },
+  { name: 'Marco',   init: 'MC', focus: 'Port gybe timing · Grinder G2 load' },
 ];
 
 export default function Block1818() {
   const { role } = useRole();
-  const isMe = (name: string) => role.id === 'athlete' && name === 'Rasmus';
+  const isMe = (name: string) => role.view === 'sailor' && name === role.name;
 
   return (
     <>

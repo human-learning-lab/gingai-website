@@ -16,16 +16,19 @@ const FOCUS_ATHLETE = [
 ];
 
 const FOCUS_TEAM = [
-  { name: 'Rasmus', role: 'Flight Controller', init: 'R', points: ['Tack at Mark 2 — commit within 3 BL', 'Flight stability entering the zone', 'Gybe call at offset — read fleet first'] },
-  { name: 'Tom',    role: 'Wing Trimmer',       init: 'T', points: ['Wing cant at 78–80° · marginal lift conditions', 'Start sequence comms — two-word calls only'] },
-  { name: 'Ana',    role: 'Grinder',            init: 'A', points: ['Grinder load management · foil transitions', 'Support Rasmus on flight height cues'] },
+  { name: 'Martine', role: 'Helm / Driver',      init: 'MG', points: ['Boat speed — foil height in pre-start zone', 'Start line bias · positioning off the line'] },
+  { name: 'Rasmus',  role: 'Flight Controller',  init: 'RK', points: ['Tack at Mark 2 — commit within 3 BL', 'Flight stability entering the zone', 'Gybe call at offset — read fleet first'] },
+  { name: 'Pietro',  role: 'Wing Trimmer',       init: 'PS', points: ['Wing cant at 78–80° · marginal lift conditions', 'Start sequence comms — two-word calls only'] },
+  { name: 'Mateus',  role: 'Grinder G1',         init: 'MI', points: ['Grinder load management · foil transitions', 'Support Rasmus on flight height cues'] },
+  { name: 'Marco',   role: 'Grinder G2',         init: 'MC', points: ['Port gybe timing · consistent load', 'Communication with Mateus on foil transitions'] },
+  { name: 'Paul G.', role: 'Strategist',         init: 'PG', points: ['Start line bias read · port vs starboard layline', 'Fleet positioning call — offset gybe timing'] },
 ];
 
 const CHAT = [
-  { init: 'M', name: 'Coach Marco', ts: '13:58', ai: false, color: 'var(--text2)', txt: 'Briefing pack is live. Wind reading 9.8–11.2 at the course, SSW, consistent. Read the mark 2 tack analysis before we start.' },
-  { init: 'G', name: 'GingAI',      ts: '14:02', ai: true,  color: 'var(--green)', txt: 'Oracle telemetry + wind data: 10 kts SSW matches the marginal flight window for the Brazil F50. Recommend wing cant at 78–80° for max stability. The tack at mark 2 in similar conditions (R1, Bermuda Day 2) cost 11.3m.' },
-  { init: 'R', name: 'Rasmus',      ts: '14:18', ai: false, color: 'var(--green)', txt: 'Good call on the cant. I want to settle who calls the gybe at the offset today before we go on the water.' },
-  { init: 'T', name: 'Tom',         ts: '14:21', ai: false, color: 'var(--yellow)', txt: "Rasmus owns the offset call. I'll handle mark 2 tack. 3 BL = go, no confirmation?" },
+  { init: 'PB', name: 'Paul B.',  ts: '13:58', ai: false, color: 'var(--text2)', txt: 'Briefing pack is live. Wind reading 9.8–11.2 at the course, SSW, consistent. Read the mark 2 tack analysis before we start.' },
+  { init: 'G',  name: 'GingAI', ts: '14:02', ai: true,  color: 'var(--green)', txt: 'Oracle telemetry + wind data: 10 kts SSW matches the marginal flight window for the Brazil F50. Recommend wing cant at 78–80° for max stability. The tack at mark 2 in similar conditions (R1, Bermuda Day 2) cost 11.3m.' },
+  { init: 'RK', name: 'Rasmus', ts: '14:18', ai: false, color: 'var(--green)', txt: 'Good call on the cant. I want to settle who calls the gybe at the offset today before we go on the water.' },
+  { init: 'PS', name: 'Pietro', ts: '14:21', ai: false, color: 'var(--yellow)', txt: "Rasmus owns the offset call. I'll handle wing cant through the mark. 3 BL = go, no confirmation?" },
 ];
 
 export default function Block1430() {
@@ -44,7 +47,7 @@ export default function Block1430() {
       <div className="tabs">
         <div className={`tab${tab === 'briefing' ? ' on' : ''}`} onClick={() => setTab('briefing')}>Briefing Pack</div>
         <div className={`tab${tab === 'focus' ? ' on' : ''}`} onClick={() => setTab('focus')}>
-          {role.id === 'athlete' ? 'My Focus Points' : 'Focus Points'}
+          {role.view === 'sailor' ? 'My Focus Points' : 'Focus Points'}
         </div>
         <div className={`tab${tab === 'chat' ? ' on' : ''}`} onClick={() => setTab('chat')}>
           Chat <span style={{ color: 'var(--green)', marginLeft: 3, fontSize: 10 }}>3</span>
@@ -114,9 +117,9 @@ export default function Block1430() {
       {/* ── FOCUS POINTS ── */}
       {tab === 'focus' && (
         <div className="pane on">
-          {role.id === 'athlete' ? (
+          {role.view === 'sailor' ? (
             <>
-              <div style={{ marginBottom: 16, fontSize: 12, color: 'var(--text3)' }}>Rasmus · 3 personal focus areas for today</div>
+              <div style={{ marginBottom: 16, fontSize: 12, color: 'var(--text3)' }}>{role.name} · personal focus areas for today</div>
               {FOCUS_ATHLETE.map(fp => (
                 <div className="fp-card" key={fp.n}>
                   <div className="fp-card-num">{fp.n}</div>

@@ -29,7 +29,7 @@ export default function Capture({ activeScreen, onNavigate }: Props) {
   return (
     <div className="s-capture-wrap">
       <LeftNav activeScreen={activeScreen} onNavigate={onNavigate} />
-      {role.id === 'athlete' ? <AthleteCapture /> : <ReadOnlyCapture />}
+      {role.view === 'sailor' ? <AthleteCapture /> : <ReadOnlyCapture />}
     </div>
   );
 }
@@ -277,10 +277,11 @@ function AiQ({ text, why, whyColor, recording }: { text: string; why?: string; w
   );
 }
 
-function SailorR({ text, faded }: { text: string; faded?: boolean }) {
+function SailorR({ text, faded, initial }: { text: string; faded?: boolean; initial?: string }) {
+  const { role } = useRole();
   return (
     <div className="sailor-r" style={faded ? { opacity: 0.4 } : undefined}>
-      <div className="sailor-r-ava">R</div>
+      <div className="sailor-r-ava">{initial ?? role.initial}</div>
       <div className="sailor-r-bub">{text}</div>
     </div>
   );
@@ -298,12 +299,12 @@ function ReadOnlyCapture() {
           Sailor Captures
           <span className="ptag ptag-r" style={{ fontSize: 11 }}>4/6 done</span>
         </div>
-        {role.id === 'coach' && (
+        {role.view === 'coach' && (
           <div style={{ marginTop: 10, fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
             Live synthesis running. GingAI is ranking topics by impact as captures complete.
           </div>
         )}
-        {role.id === 'analyst' && (
+        {role.view === 'analyst' && (
           <div style={{ marginTop: 10, fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
             Showing all sailor inputs. Cross-reference with Oracle telemetry in Intelligence screen.
           </div>
