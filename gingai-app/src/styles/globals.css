@@ -199,8 +199,14 @@ body {
   cursor: pointer; transition: background 0.1s; position: relative;
 }
 .tl-item:hover { background: var(--bg3); }
-.tl-item.past { opacity: 0.35; }
-.tl-item.past:hover { opacity: 0.6; }
+.tl-item.past {
+  opacity: 0.38;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.tl-item.past .tl-time { font-size: 11px; }
+.tl-item.past .tl-name { font-size: 12px; }
+.tl-item.past:hover { opacity: 0.65; }
 .tl-item.now { background: var(--gg); }
 .tl-item.now::before {
   content: ''; position: absolute; left: 0; top: 0; bottom: 0;

@@ -3,7 +3,7 @@ import { useRole } from '../../../context/RoleContext';
 import { IconStar } from '../../../components/Icons';
 
 const DOCS = [
-  { name: 'São Paulo — Race Analysis R1–R4', meta: 'Updated 2h ago · 14 pages', type: 'Data',    badge: 'doc-badge-data' },
+  { name: 'Rio de Janeiro — Race Analysis R1–R4', meta: 'Updated 2h ago · 14 pages', type: 'Data',    badge: 'doc-badge-data' },
   { name: 'Team Golden Rules — Current Season', meta: '12 active rules',          type: 'Memory',  badge: 'doc-badge-memory' },
   { name: 'Video — Mark 2 Tack Comparison (R3 vs Fleet)', meta: '2:34 · Auto-clipped', type: 'Video', badge: 'doc-badge-video' },
   { name: 'Open Action Items — R3/R4 Debrief', meta: '4 open · 2 done',           type: 'Actions', badge: 'doc-badge-actions' },

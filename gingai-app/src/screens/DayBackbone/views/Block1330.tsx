@@ -14,8 +14,8 @@ export default function Block1330() {
         <div className="sec-title">Action Items Logged</div>
         {[
           { color: 'var(--green)', txt: 'Define tack trigger at mark 2 — ownership to Rasmus', meta: 'Logged 13:44 · Owner: Rasmus · Due: today' },
-          { color: 'var(--green)', txt: 'Comms protocol during start sequence — two-word calls only', meta: 'Logged 13:51 · Owner: Tom · Due: today' },
-          { color: 'var(--yellow)', txt: 'Update wing cant SOP for <12 kts conditions', meta: 'Logged 13:58 · Owner: Ana · Due: this week' },
+          { color: 'var(--green)', txt: 'Comms protocol during start sequence — two-word calls only', meta: 'Logged 13:51 · Owner: Pietro · Due: today' },
+          { color: 'var(--yellow)', txt: 'Update wing cant SOP for <12 kts conditions', meta: 'Logged 13:58 · Owner: Mateus · Due: this week' },
           { color: 'var(--yellow)', txt: 'Simulator scenario: replicate R4 pre-start zone entry', meta: 'Logged 14:02 · Owner: Marco · Due: 14:00 sim session', last: true },
         ].map((a, i) => (
           <div className="past-action-row" key={i} style={a.last ? { borderBottom: 'none' } : undefined}>
