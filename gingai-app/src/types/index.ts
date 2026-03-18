@@ -10,6 +10,8 @@ export interface Role {
   initial: string;
   label: string;
   view: RoleView;
+  /** Path to profile photo (relative to public/) */
+  avatar?: string;
   /** Which screens this role can access */
   screens: ScreenId[];
 }

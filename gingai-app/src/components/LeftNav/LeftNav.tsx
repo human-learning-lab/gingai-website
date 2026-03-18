@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { useRole } from '../../context/RoleContext';
 import type { ScreenId } from '../../types';
 import { IconCalendar, IconMic, IconZap, IconChat, IconBook } from '../Icons';
+import Avatar from '../Avatar';
 
 interface Props {
   activeScreen: ScreenId;
@@ -44,12 +45,13 @@ export default function LeftNav({ activeScreen, onNavigate }: Props) {
       </div>
 
       <div className="isp" />
-      <div
-        className="iava"
-        style={{ color: 'var(--green)', borderColor: 'var(--gb)' }}
-        title={`${role.name} · ${role.label}`}
-      >
-        {role.initial}
+      <div title={`${role.name} · ${role.label}`}>
+        <Avatar
+          src={role.avatar}
+          initial={role.initial}
+          size={30}
+          style={{ border: '1.5px solid var(--gb)' }}
+        />
       </div>
     </nav>
   );

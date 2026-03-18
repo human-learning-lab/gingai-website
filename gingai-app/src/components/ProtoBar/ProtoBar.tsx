@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, type ReactElement } from 'react';
 import { useRole, ROLES } from '../../context/RoleContext';
 import type { ScreenId, Role } from '../../types';
 import { IconCalendar, IconMic, IconZap, IconChat } from '../Icons';
+import Avatar from '../Avatar';
 
 interface Props {
   activeScreen: ScreenId;
@@ -48,7 +49,7 @@ function RoleSwitcher({ activeScreen, onNavigate }: { activeScreen: ScreenId; on
   return (
     <div className="role-switcher" ref={ref}>
       <button className="role-switcher-btn" onClick={() => setOpen(v => !v)}>
-        <span className="rp-ava">{role.initial}</span>
+        <Avatar src={role.avatar} initial={role.initial} size={24} />
         <span className="rp-label">
           <span className="rp-name">{role.name}</span>
           <span className="rp-role">{role.label}</span>
@@ -61,7 +62,7 @@ function RoleSwitcher({ activeScreen, onNavigate }: { activeScreen: ScreenId; on
           <div className="rdg-label">Sailing Crew</div>
           {SAILOR_ROLES.map(r => (
             <div key={r.id} className={`role-dropdown-item${role.id === r.id ? ' active' : ''}`} onClick={() => pick(r)}>
-              <span className="rp-ava" style={{ width: 22, height: 22, fontSize: 9 }}>{r.initial}</span>
+              <Avatar src={r.avatar} initial={r.initial} size={30} />
               <span>
                 <span className="rp-name" style={{ fontSize: 13 }}>{r.name}</span>
                 <span className="rp-role" style={{ display: 'block', fontSize: 11 }}>{r.label}</span>
@@ -73,7 +74,7 @@ function RoleSwitcher({ activeScreen, onNavigate }: { activeScreen: ScreenId; on
           <div className="rdg-label">Coaching & Analysis</div>
           {COACHING_ROLES.map(r => (
             <div key={r.id} className={`role-dropdown-item${role.id === r.id ? ' active' : ''}`} onClick={() => pick(r)}>
-              <span className="rp-ava" style={{ width: 22, height: 22, fontSize: 9 }}>{r.initial}</span>
+              <Avatar src={r.avatar} initial={r.initial} size={30} />
               <span>
                 <span className="rp-name" style={{ fontSize: 13 }}>{r.name}</span>
                 <span className="rp-role" style={{ display: 'block', fontSize: 11 }}>{r.label}</span>

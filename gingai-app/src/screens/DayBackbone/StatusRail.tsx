@@ -1,3 +1,14 @@
+import Avatar from '../../components/Avatar';
+
+const TEAM_AVATARS: Record<string, string> = {
+  Martine: '/images/team/martine.png',
+  Rasmus:  '/images/team/rasmus.png',
+  Pietro:  '/images/team/pietro.png',
+  'Paul G.': '/images/team/goodison.png',
+  Mateus:  '/images/team/mateus.png',
+  Marco:   '/images/team/marco.png',
+};
+
 export default function StatusRail() {
   const team = [
     { init: 'MG', name: 'Martine', state: 'At tent',  dot: 'sd-g' },
@@ -20,8 +31,8 @@ export default function StatusRail() {
         <div className="srl-lbl">Team</div>
         {team.map(m => (
           <div className="s-row" key={m.name}>
-            <div className="s-ava">
-              {m.init}
+            <div className="s-ava" style={{ padding: 0, overflow: 'hidden' }}>
+              <Avatar src={TEAM_AVATARS[m.name]} initial={m.init} size={28} />
               <div className={`sdot ${m.dot}`} />
             </div>
             <div>

@@ -2,7 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { useRole } from '../../context/RoleContext';
 import { IconStop } from '../../components/Icons';
 import LeftNav from '../../components/LeftNav/LeftNav';
+import Avatar from '../../components/Avatar';
 import type { ScreenId } from '../../types';
+
+const CAPTURE_AVATARS: Record<string, string> = {
+  Rasmus:  '/images/team/rasmus.png',
+  Pietro:  '/images/team/pietro.png',
+  Mateus:  '/images/team/mateus.png',
+  Marco:   '/images/team/marco.png',
+  Martine: '/images/team/martine.png',
+  'Paul G.': '/images/team/goodison.png',
+};
 
 interface Props {
   activeScreen: ScreenId;
@@ -314,9 +324,12 @@ function ReadOnlyCapture() {
         {SAILOR_CAPTURES.map(s => (
           <div key={s.name} className={`cap-ro-card${s.done ? ' cap-ro-card-done' : ' cap-ro-card-pending'}`}>
             <div className="cap-ro-who">
-              <div className="cap-ro-ava" style={s.done ? { background: 'var(--gg)', border: '1px solid var(--gb)', color: 'var(--green)' } : undefined}>
-                {s.name[0]}
-              </div>
+              <Avatar
+                src={CAPTURE_AVATARS[s.name]}
+                initial={s.name[0]}
+                size={30}
+                style={!CAPTURE_AVATARS[s.name] ? { background: s.done ? 'var(--gg)' : undefined, border: s.done ? '1px solid var(--gb)' : undefined } : { border: s.done ? '1.5px solid var(--gb)' : '1.5px solid var(--line2)' }}
+              />
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div className="cap-ro-name">{s.name}</div>
