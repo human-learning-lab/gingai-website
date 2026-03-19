@@ -76,11 +76,11 @@ function RegatNav() {
           </button>
         ))}
       </div>
-      {regat.photo && (
-        <div className="regat-photo">
+      <div className="regat-photo">
+        {regat.photo && (
           <img src={regat.photo} alt={regat.city} style={{ objectPosition: regat.photoPos }} />
-        </div>
-      )}
+        )}
+      </div>
       <div className="regat-tier2">
         {regat.days.map((d, i) => (
           <button
