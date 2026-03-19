@@ -93,12 +93,12 @@ export const IconAgenda = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 
-/** Two overlapping speech bubbles — group discussion / team debrief */
+/** Two speech bubbles side by side — team debrief / group discussion */
 export const IconDebrief = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    {/* Back bubble (slightly offset) */}
-    <path d="M9 4h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2v3l-3-3H9a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
-    {/* Front bubble */}
-    <path d="M3 10h2v3l3-3h4a2 2 0 0 0 2-2V8" />
+    {/* Large bubble — left */}
+    <path d="M3 5h11a1.5 1.5 0 0 1 1.5 1.5v6A1.5 1.5 0 0 1 14 14H8l-3 3v-3H3a1.5 1.5 0 0 1-1.5-1.5v-6A1.5 1.5 0 0 1 3 5z" />
+    {/* Small bubble — right */}
+    <path d="M16.5 8h3a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-.5v2l-2.5-2h-.5" />
   </svg>
 );
