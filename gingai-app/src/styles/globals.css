@@ -878,9 +878,18 @@ body {
 .regat-tab.past { opacity: 0.55; }
 .regat-tab.past.on { opacity: 1; }
 .regat-photo {
-  height: 64px; background-size: cover; background-position: center;
+  height: 140px; background-size: cover; background-position: center top;
   background-color: var(--line2);
   border-top: 1px solid var(--line);
+  position: relative;
+}
+.regat-photo::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, transparent 40%, rgba(248,249,251,0.7) 100%);
+}
+@media (max-width: 700px) {
+  .regat-photo { height: 100px; }
 }
 .regat-tier2 {
   display: flex; gap: 4px;
