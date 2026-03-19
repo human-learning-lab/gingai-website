@@ -18,19 +18,19 @@ interface Props {
 
 /* ── 2026 SailGP Season Calendar — 13 events ── */
 const REGATTAS = [
-  { id: 'perth',      city: 'Perth',          short: 'Perth',       dates: 'Jan 17–18',    result: 'Past',     photo: '',                              days: ['Day 1', 'Day 2'] },
-  { id: 'auckland',   city: 'Auckland',       short: 'Auckland',    dates: 'Feb 14–15',    result: 'Past',     photo: '/images/boat-auckland.jpg',     days: ['Day 1', 'Day 2'] },
-  { id: 'sydney',     city: 'Sydney',         short: 'Sydney',      dates: 'Feb 28–Mar 1', result: 'Past',     photo: '/images/boat-sydney.jpg',       days: ['Day 1', 'Day 2'] },
-  { id: 'rio',        city: 'Rio de Janeiro', short: 'Rio',         dates: 'Apr 11–12',    result: 'Active',   photo: '/images/boat-rio.jpg',          days: ['Day 1', 'Day 2'] },
-  { id: 'bermuda',    city: 'Bermuda',        short: 'Bermuda',     dates: 'May 9–10',     result: 'Upcoming', photo: '/images/boat-bermuda.jpg',      days: ['Day 1', 'Day 2'] },
-  { id: 'newyork',    city: 'New York',       short: 'New York',    dates: 'May 23–24',    result: 'Upcoming', photo: '/images/boat-newyork.jpg',      days: ['Day 1', 'Day 2'] },
-  { id: 'halifax',    city: 'Halifax',        short: 'Halifax',     dates: 'Jun 13–14',    result: 'Upcoming', photo: '/images/boat-halifax.jpg',      days: ['Day 1', 'Day 2'] },
-  { id: 'portsmouth', city: 'Portsmouth',     short: 'Portsmouth',  dates: 'Jul 18–19',    result: 'Upcoming', photo: '/images/boat-portsmouth.jpg',   days: ['Day 1', 'Day 2'] },
-  { id: 'sassnitz',   city: 'Sassnitz',       short: 'Sassnitz',    dates: 'Aug 8–9',      result: 'Upcoming', photo: '',                              days: ['Day 1', 'Day 2'] },
-  { id: 'valencia',   city: 'Valencia',       short: 'Valencia',    dates: 'Sep 5–6',      result: 'Upcoming', photo: '',                              days: ['Day 1', 'Day 2'] },
-  { id: 'geneva',     city: 'Geneva',         short: 'Geneva',      dates: 'Sep 26–27',    result: 'Upcoming', photo: '',                              days: ['Day 1', 'Day 2'] },
-  { id: 'dubai',      city: 'Dubai',          short: 'Dubai',       dates: 'Nov 14–15',    result: 'Upcoming', photo: '',                              days: ['Day 1', 'Day 2'] },
-  { id: 'abudhabi',   city: 'Abu Dhabi',      short: 'Grand Final', dates: 'Dec 5–6',      result: 'Upcoming', photo: '',                              days: ['Day 1', 'Day 2'] },
+  { id: 'perth',      city: 'Perth',          short: 'Perth',       dates: 'Jan 17–18',    result: 'Past',     photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+  { id: 'auckland',   city: 'Auckland',       short: 'Auckland',    dates: 'Feb 14–15',    result: 'Past',     photo: '/images/boat-auckland.jpg',     photoPos: 'center 60%',   days: ['Day 1', 'Day 2'] },
+  { id: 'sydney',     city: 'Sydney',         short: 'Sydney',      dates: 'Feb 28–Mar 1', result: 'Past',     photo: '/images/boat-sydney.jpg',       photoPos: 'center 40%',   days: ['Day 1', 'Day 2'] },
+  { id: 'rio',        city: 'Rio de Janeiro', short: 'Rio',         dates: 'Apr 11–12',    result: 'Active',   photo: '/images/boat-rio.jpg',          photoPos: 'center 70%',   days: ['Day 1', 'Day 2'] },
+  { id: 'bermuda',    city: 'Bermuda',        short: 'Bermuda',     dates: 'May 9–10',     result: 'Upcoming', photo: '/images/boat-bermuda.jpg',      photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
+  { id: 'newyork',    city: 'New York',       short: 'New York',    dates: 'May 23–24',    result: 'Upcoming', photo: '/images/boat-newyork.jpg',      photoPos: 'center 70%',   days: ['Day 1', 'Day 2'] },
+  { id: 'halifax',    city: 'Halifax',        short: 'Halifax',     dates: 'Jun 13–14',    result: 'Upcoming', photo: '/images/boat-halifax.jpg',      photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
+  { id: 'portsmouth', city: 'Portsmouth',     short: 'Portsmouth',  dates: 'Jul 18–19',    result: 'Upcoming', photo: '/images/boat-portsmouth.jpg',   photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
+  { id: 'sassnitz',   city: 'Sassnitz',       short: 'Sassnitz',    dates: 'Aug 8–9',      result: 'Upcoming', photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+  { id: 'valencia',   city: 'Valencia',       short: 'Valencia',    dates: 'Sep 5–6',      result: 'Upcoming', photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+  { id: 'geneva',     city: 'Geneva',         short: 'Geneva',      dates: 'Sep 26–27',    result: 'Upcoming', photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+  { id: 'dubai',      city: 'Dubai',          short: 'Dubai',       dates: 'Nov 14–15',    result: 'Upcoming', photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+  { id: 'abudhabi',   city: 'Abu Dhabi',      short: 'Grand Final', dates: 'Dec 5–6',      result: 'Upcoming', photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 ];
 
 const CANNED_RESPONSES: Record<string, { answer: string; source: string }> = {
@@ -77,7 +77,9 @@ function RegatNav() {
         ))}
       </div>
       {regat.photo && (
-        <div className="regat-photo" style={{ backgroundImage: `url(${regat.photo})` }} />
+        <div className="regat-photo">
+          <img src={regat.photo} alt={regat.city} style={{ objectPosition: regat.photoPos }} />
+        </div>
       )}
       <div className="regat-tier2">
         {regat.days.map((d, i) => (
