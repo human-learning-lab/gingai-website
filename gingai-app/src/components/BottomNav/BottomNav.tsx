@@ -1,6 +1,6 @@
 import { useRole } from '../../context/RoleContext';
 import type { ScreenId } from '../../types';
-import { IconCalendar, IconMic, IconZap, IconChat } from '../Icons';
+import { IconCalendar, IconMic, IconAgenda, IconDebrief } from '../Icons';
 
 interface Props {
   activeScreen: ScreenId;
@@ -10,8 +10,8 @@ interface Props {
 const NAV_ITEMS: { id: ScreenId; label: string; icon: React.ReactElement }[] = [
   { id: 'backbone', label: 'Schedule', icon: <IconCalendar size={22} /> },
   { id: 'capture',  label: 'Capture',  icon: <IconMic size={22} /> },
-  { id: 'intel',    label: 'Agenda',   icon: <IconZap size={22} /> },
-  { id: 'debrief',  label: 'Debrief',  icon: <IconChat size={22} /> },
+  { id: 'intel',    label: 'Agenda',   icon: <IconAgenda size={22} /> },
+  { id: 'debrief',  label: 'Debrief',  icon: <IconDebrief size={22} /> },
 ];
 
 export default function BottomNav({ activeScreen, onNavigate }: Props) {

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type ReactElement } from 'react';
 import { useRole, ROLES } from '../../context/RoleContext';
 import type { ScreenId, Role } from '../../types';
-import { IconCalendar, IconMic, IconZap, IconChat } from '../Icons';
+import { IconCalendar, IconMic, IconAgenda, IconDebrief } from '../Icons';
 import Avatar from '../Avatar';
 
 interface Props {
@@ -12,8 +12,8 @@ interface Props {
 const NAV_ITEMS: { id: ScreenId; label: string; icon: ReactElement }[] = [
   { id: 'backbone', label: 'Day Backbone',   icon: <IconCalendar size={13} /> },
   { id: 'capture',  label: 'Capture',        icon: <IconMic size={13} /> },
-  { id: 'intel',    label: 'Debrief Agenda', icon: <IconZap size={13} /> },
-  { id: 'debrief',  label: 'Team Debrief',   icon: <IconChat size={13} /> },
+  { id: 'intel',    label: 'Debrief Agenda', icon: <IconAgenda size={13} /> },
+  { id: 'debrief',  label: 'Team Debrief',   icon: <IconDebrief size={13} /> },
 ];
 
 const SAILOR_ROLES  = ROLES.filter(r => r.view === 'sailor');

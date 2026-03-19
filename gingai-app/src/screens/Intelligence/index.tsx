@@ -164,9 +164,14 @@ export default function Intelligence({ activeScreen, onNavigate }: Props) {
               <div><div className="d-val" style={{ color: 'var(--yellow)' }}>23s</div><div className="d-lbl">Tack duration (target: 18s)</div></div>
               <div><div className="d-val" style={{ color: 'var(--red)' }}>3 BL</div><div className="d-lbl">Lost vs fleet median</div></div>
             </div>
-            <div className="vid-row">
-              <div className="vid-play"><IconPlay /></div>
-              <div>
+            <div className="vid-row" style={{ alignItems: 'flex-start', gap: 12 }}>
+              <div className="vid-thumb-wrap" style={{ position: 'relative', flexShrink: 0, width: 96, height: 54, borderRadius: 4, overflow: 'hidden', background: 'var(--line2)' }}>
+                <img src="/images/thumbnail.jpg" alt="Video preview" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <div className="vid-play" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.35)' }}>
+                  <IconPlay />
+                </div>
+              </div>
+              <div style={{ paddingTop: 4 }}>
                 <div className="vid-name">Mark 2 tack — Race 5 · VMG overlay · auto-clipped</div>
                 <div className="vid-dur">0:34</div>
               </div>

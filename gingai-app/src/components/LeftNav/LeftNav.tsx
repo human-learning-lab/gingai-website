@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { useRole } from '../../context/RoleContext';
 import type { ScreenId } from '../../types';
-import { IconCalendar, IconMic, IconZap, IconChat, IconBook } from '../Icons';
+import { IconCalendar, IconMic, IconAgenda, IconDebrief, IconBook } from '../Icons';
 import Avatar from '../Avatar';
 
 interface Props {
@@ -12,8 +12,8 @@ interface Props {
 const NAV_ITEMS: { id: ScreenId; title: string; icon: ReactElement }[] = [
   { id: 'backbone', title: 'Day Backbone', icon: <IconCalendar /> },
   { id: 'capture',  title: 'Capture',      icon: <IconMic /> },
-  { id: 'intel',    title: 'Intelligence', icon: <IconZap /> },
-  { id: 'debrief',  title: 'Team Debrief', icon: <IconChat /> },
+  { id: 'intel',    title: 'Debrief Agenda', icon: <IconAgenda /> },
+  { id: 'debrief',  title: 'Team Debrief',   icon: <IconDebrief /> },
 ];
 
 export default function LeftNav({ activeScreen, onNavigate }: Props) {

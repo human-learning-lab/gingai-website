@@ -35,10 +35,15 @@ export default function TeamDebrief({ activeScreen, onNavigate }: Props) {
   ]);
 
   const canAdvanceStage = currentStage < 3;
+  const canPrevStage    = currentStage > 0;
   const canNextTopic = currentStage >= 2 && assignedActions.length > 0;
 
   function advanceStage() {
     if (canAdvanceStage) setCurrentStage(s => (s + 1) as Stage);
+  }
+
+  function prevStage() {
+    if (canPrevStage) setCurrentStage(s => (s - 1) as Stage);
   }
 
   function addAction() {
@@ -115,14 +120,27 @@ export default function TeamDebrief({ activeScreen, onNavigate }: Props) {
               </div>
             </div>
           ))}
-          {isCoach && currentStage < 3 && (
-            <button
-              className="db-btn go"
-              style={{ marginLeft: 16, flexShrink: 0, height: 26, fontSize: 11 }}
-              onClick={advanceStage}
-            >
-              → Next Stage
-            </button>
+          {isCoach && (
+            <div style={{ display: 'flex', gap: 6, marginLeft: 16, flexShrink: 0 }}>
+              <button
+                className="db-btn"
+                style={{ height: 26, fontSize: 11 }}
+                onClick={prevStage}
+                disabled={!canPrevStage}
+                title="Go back to previous stage"
+              >
+                ← Prev
+              </button>
+              {currentStage < 3 && (
+                <button
+                  className="db-btn go"
+                  style={{ height: 26, fontSize: 11 }}
+                  onClick={advanceStage}
+                >
+                  → Next Stage
+                </button>
+              )}
+            </div>
           )}
         </div>
 

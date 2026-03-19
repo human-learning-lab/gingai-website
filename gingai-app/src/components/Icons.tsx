@@ -75,3 +75,30 @@ export const IconCheck = () => (
     <polyline points="2 6 5 9 10 3"/>
   </svg>
 );
+
+/** Checklist / structured agenda — three lines with check dots + AI star */
+export const IconAgenda = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    {/* Document outline */}
+    <rect x="3" y="3" width="15" height="18" rx="2" />
+    {/* Three lines with bullet dots */}
+    <circle cx="7" cy="9"  r="1" fill="currentColor" stroke="none" />
+    <line x1="10" y1="9"  x2="15" y2="9" />
+    <circle cx="7" cy="13" r="1" fill="currentColor" stroke="none" />
+    <line x1="10" y1="13" x2="15" y2="13" />
+    <circle cx="7" cy="17" r="1" fill="currentColor" stroke="none" />
+    <line x1="10" y1="17" x2="13" y2="17" />
+    {/* Small 4-point star in top-right corner — AI indicator */}
+    <path d="M19 2 l0.6 1.4 1.4 0.6 -1.4 0.6 -0.6 1.4 -0.6-1.4 -1.4-0.6 1.4-0.6z" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+/** Two overlapping speech bubbles — group discussion / team debrief */
+export const IconDebrief = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    {/* Back bubble (slightly offset) */}
+    <path d="M9 4h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2v3l-3-3H9a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
+    {/* Front bubble */}
+    <path d="M3 10h2v3l3-3h4a2 2 0 0 0 2-2V8" />
+  </svg>
+);

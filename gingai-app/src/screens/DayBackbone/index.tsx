@@ -4,6 +4,8 @@ import Timeline from '../../components/Timeline/Timeline';
 import Block1430 from './views/Block1430';
 import Block1330 from './views/Block1330';
 import Block1818 from './views/Block1818';
+import Block1500 from './views/Block1500';
+import Block1550 from './views/Block1550';
 import BlockGeneric from './views/BlockGeneric';
 import StatusRail from './StatusRail';
 import type { ScreenId } from '../../types';
@@ -14,17 +16,21 @@ interface Props {
   onNavigate: (s: ScreenId) => void;
 }
 
-/* ── 2026 SailGP Season Calendar ── */
+/* ── 2026 SailGP Season Calendar — 13 events ── */
 const REGATTAS = [
-  { id: 'rio',       city: 'Rio de Janeiro', short: 'Rio',       result: 'Upcoming',  days: ['Day 1', 'Day 2', 'Day 3'] },
-  { id: 'bermuda',   city: 'Bermuda',        short: 'Bermuda',   result: 'Upcoming',  days: ['Day 1', 'Day 2'] },
-  { id: 'newyork',   city: 'New York',       short: 'New York',  result: 'Upcoming',  days: ['Day 1', 'Day 2'] },
-  { id: 'halifax',   city: 'Halifax',        short: 'Halifax',   result: 'Upcoming',  days: ['Day 1', 'Day 2'] },
-  { id: 'portsmouth',city: 'Portsmouth',     short: 'Portsmouth',result: 'Upcoming',  days: ['Day 1', 'Day 2'] },
-  { id: 'sassnitz',  city: 'Sassnitz',       short: 'Sassnitz',  result: 'Upcoming',  days: ['Day 1', 'Day 2'] },
-  { id: 'tropez',    city: 'Saint-Tropez',   short: 'St-Tropez', result: 'Upcoming',  days: ['Day 1', 'Day 2'] },
-  { id: 'dubai',     city: 'Dubai',          short: 'Dubai',     result: 'Upcoming',  days: ['Day 1', 'Day 2'] },
-  { id: 'abudhabi',  city: 'Abu Dhabi',      short: 'Grand Final',result: 'Upcoming', days: ['Day 1', 'Day 2'] },
+  { id: 'perth',      city: 'Perth',          short: 'Perth',       dates: 'Jan 17–18',    result: 'Past',     photo: '',                              days: ['Day 1', 'Day 2'] },
+  { id: 'auckland',   city: 'Auckland',       short: 'Auckland',    dates: 'Feb 14–15',    result: 'Past',     photo: '/images/boat-auckland.jpg',     days: ['Day 1', 'Day 2'] },
+  { id: 'sydney',     city: 'Sydney',         short: 'Sydney',      dates: 'Feb 28–Mar 1', result: 'Past',     photo: '/images/boat-sydney.jpg',       days: ['Day 1', 'Day 2'] },
+  { id: 'rio',        city: 'Rio de Janeiro', short: 'Rio',         dates: 'Apr 11–12',    result: 'Active',   photo: '/images/boat-rio.jpg',          days: ['Day 1', 'Day 2'] },
+  { id: 'bermuda',    city: 'Bermuda',        short: 'Bermuda',     dates: 'May 9–10',     result: 'Upcoming', photo: '',                              days: ['Day 1', 'Day 2'] },
+  { id: 'newyork',    city: 'New York',       short: 'New York',    dates: 'May 23–24',    result: 'Upcoming', photo: '',                              days: ['Day 1', 'Day 2'] },
+  { id: 'halifax',    city: 'Halifax',        short: 'Halifax',     dates: 'Jun 13–14',    result: 'Upcoming', photo: '',                              days: ['Day 1', 'Day 2'] },
+  { id: 'portsmouth', city: 'Portsmouth',     short: 'Portsmouth',  dates: 'Jul 18–19',    result: 'Upcoming', photo: '',                              days: ['Day 1', 'Day 2'] },
+  { id: 'sassnitz',   city: 'Sassnitz',       short: 'Sassnitz',    dates: 'Aug 8–9',      result: 'Upcoming', photo: '',                              days: ['Day 1', 'Day 2'] },
+  { id: 'valencia',   city: 'Valencia',       short: 'Valencia',    dates: 'Sep 5–6',      result: 'Upcoming', photo: '',                              days: ['Day 1', 'Day 2'] },
+  { id: 'geneva',     city: 'Geneva',         short: 'Geneva',      dates: 'Sep 26–27',    result: 'Upcoming', photo: '',                              days: ['Day 1', 'Day 2'] },
+  { id: 'dubai',      city: 'Dubai',          short: 'Dubai',       dates: 'Nov 14–15',    result: 'Upcoming', photo: '',                              days: ['Day 1', 'Day 2'] },
+  { id: 'abudhabi',   city: 'Abu Dhabi',      short: 'Grand Final', dates: 'Dec 5–6',      result: 'Upcoming', photo: '',                              days: ['Day 1', 'Day 2'] },
 ];
 
 const CANNED_RESPONSES: Record<string, { answer: string; source: string }> = {
@@ -62,14 +68,17 @@ function RegatNav() {
         {REGATTAS.map(r => (
           <button
             key={r.id}
-            className={`regat-tab${activeRegat === r.id ? ' on' : ''}`}
+            className={`regat-tab${activeRegat === r.id ? ' on' : ''}${r.result === 'Past' ? ' past' : ''}`}
             onClick={() => { setActiveRegat(r.id); setActiveDay(0); }}
           >
             <div className="regat-tab-city">{r.short}</div>
-            <div className="regat-tab-result">{r.result}</div>
+            <div className="regat-tab-result">{r.dates}</div>
           </button>
         ))}
       </div>
+      {regat.photo && (
+        <div className="regat-photo" style={{ backgroundImage: `url(${regat.photo})` }} />
+      )}
       <div className="regat-tier2">
         {regat.days.map((d, i) => (
           <button
@@ -85,17 +94,25 @@ function RegatNav() {
   );
 }
 
+const ASK_SUGGESTIONS = [
+  "When did we last sail in similar conditions?",
+  "What did we decide about tack timing at mark 2?",
+  "What's the plan for today?",
+];
+
 function AskMeBar() {
   const [query, setQuery] = useState('');
   const [response, setResponse] = useState<{ answer: string; source: string } | null>(null);
   const [thinking, setThinking] = useState(false);
 
-  function submit() {
-    if (!query.trim()) return;
+  function submit(q?: string) {
+    const text = (q ?? query).trim();
+    if (!text) return;
+    if (q) setQuery(q);
     setThinking(true);
     setResponse(null);
     setTimeout(() => {
-      setResponse(getResponse(query));
+      setResponse(getResponse(text));
       setThinking(false);
     }, 900);
   }
@@ -121,11 +138,16 @@ function AskMeBar() {
             <line x1="8" y1="13" x2="8" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
         </button>
-        <button className="ask-bar-send" onClick={submit} aria-label="Send">
+        <button className="ask-bar-send" onClick={() => submit()} aria-label="Send">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M7 12V2M3 6l4-4 4 4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
+      </div>
+      <div className="ask-chips">
+        {ASK_SUGGESTIONS.map(s => (
+          <button key={s} className="ask-chip" onClick={() => submit(s)}>{s}</button>
+        ))}
       </div>
       {thinking && (
         <div className="ask-response" style={{ color: 'var(--text3)', fontStyle: 'italic' }}>
@@ -160,6 +182,8 @@ export default function DayBackbone({ activeScreen, onNavigate }: Props) {
       {panel === '1430' && <Block1430 />}
       {panel === '1330' && <Block1330 />}
       {panel === '1818' && <Block1818 />}
+      {panel === '1500' && <Block1500 />}
+      {panel === '1550' && <Block1550 />}
       {(panel === 'past' || panel === 'future') && <BlockGeneric selectedId={selectedId} />}
     </>
   );
