@@ -77,9 +77,18 @@ function RegatNav() {
         ))}
       </div>
       <div className="regat-photo">
-        {regat.photo && (
-          <img src={regat.photo} alt={regat.city} style={{ objectPosition: regat.photoPos }} />
-        )}
+        {REGATTAS.filter(r => r.photo).map(r => (
+          <img
+            key={r.id}
+            src={r.photo}
+            alt={r.city}
+            style={{
+              objectPosition: r.photoPos,
+              opacity: r.id === activeRegat ? 1 : 0,
+              transition: 'opacity 0.25s ease',
+            }}
+          />
+        ))}
       </div>
       <div className="regat-tier2">
         {regat.days.map((d, i) => (
