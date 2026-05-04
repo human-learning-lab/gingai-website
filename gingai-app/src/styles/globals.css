@@ -671,7 +671,7 @@ body {
 .db-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .db-section { padding: 20px 0; border-top: 1px solid var(--line); }
 .db-sec-lbl { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 12px; }
-.db-side { width: 226px; border-left: 1px solid var(--line); overflow-y: auto; flex-shrink: 0; }
+.db-side { width: 272px; border-left: 1px solid var(--line); overflow-y: auto; flex-shrink: 0; background: var(--bg2); }
 .dbs-sec { padding: 14px 16px; border-bottom: 1px solid var(--line); }
 .dbs-lbl { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text4); margin-bottom: 10px; }
 .dba-row { display: flex; align-items: flex-start; gap: 9px; padding: 8px 0; }
@@ -1373,23 +1373,35 @@ body {
   50%       { opacity: 0.4; transform: scale(0.75); }
 }
 
-/* Transcript wrap */
+/* Transcript outer wrap — light bg with padding so the dark card is contained */
 .dbd-transcript-wrap {
   flex: 1; display: flex; flex-direction: column;
-  overflow: hidden; border-right: 1px solid var(--line);
+  overflow: hidden; padding: 20px 24px;
+  background: var(--bg); gap: 0;
 }
+
+/* Card shell around header + scroll area */
+.dbd-transcript-card {
+  flex: 1; display: flex; flex-direction: column;
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--line2);
+  box-shadow: 0 2px 12px rgba(10,22,40,0.10);
+}
+
 .dbd-transcript-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 22px 9px; border-bottom: 1px solid var(--line);
-  background: var(--bg2); flex-shrink: 0;
+  padding: 9px 16px 8px;
+  background: rgba(10,22,40,0.92); flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
 }
+.dbd-transcript-header .dbs-lbl { color: rgba(255,255,255,0.45); }
 
 /* Live badge */
 .dbd-live-badge {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 9px; font-weight: 700; letter-spacing: 0.2em;
   padding: 2px 7px; border-radius: 3px;
-  background: var(--rg); border: 1px solid var(--rb); color: var(--red);
+  background: rgba(232,87,74,0.18); border: 1px solid rgba(232,87,74,0.4); color: var(--red);
   animation: dbd-badge-blink 1.6s ease-in-out infinite;
 }
 @keyframes dbd-badge-blink {
@@ -1400,7 +1412,7 @@ body {
 /* Transcript scroll area */
 .dbd-transcript {
   flex: 1; overflow-y: auto;
-  padding: 24px 28px; background: var(--navy);
+  padding: 20px 22px; background: var(--navy);
 }
 
 /* Empty / listening states */

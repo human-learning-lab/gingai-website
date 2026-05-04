@@ -111,10 +111,11 @@ export default function TeamDebrief({
 
           {/* Transcript window */}
           <div className="dbd-transcript-wrap">
-            <div className="dbd-transcript-header">
-              <span className="dbs-lbl" style={{ margin: 0 }}>Live Transcription</span>
-              {recording && <span className="dbd-live-badge">LIVE</span>}
-            </div>
+            <div className="dbd-transcript-card">
+              <div className="dbd-transcript-header">
+                <span className="dbs-lbl" style={{ margin: 0 }}>Live Transcription</span>
+                {recording && <span className="dbd-live-badge">LIVE</span>}
+              </div>
 
             <div className="dbd-transcript" ref={scrollRef}>
               {lines.length === 0 && !interim && !recording && (
@@ -131,6 +132,7 @@ export default function TeamDebrief({
               {interim && (
                 <p className="dbd-line dbd-interim">{interim}</p>
               )}
+            </div>
             </div>
           </div>
 
