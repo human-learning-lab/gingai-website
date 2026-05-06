@@ -288,7 +288,7 @@ body {
 .tab:hover { color: var(--text2); }
 .tab.on { color: var(--text); border-bottom-color: var(--green); }
 
-.pane { display: none; padding: 24px 28px; overflow-y: auto; flex: 1; }
+.pane { display: none; padding: 24px 28px; overflow-y: auto; flex: 1; min-height: 0; }
 .pane.on { display: block; }
 
 .gen-panel { padding: 32px 28px; overflow-y: auto; flex: 1; font-size: 14px; }
