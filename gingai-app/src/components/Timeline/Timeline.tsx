@@ -33,8 +33,8 @@ export default function Timeline({ selectedId, onSelect }: Props) {
     <div className="tl">
       <div className="tl-top">
         <div className="tl-eyebrow">Race Day 1 · Season 6</div>
-        <div className="tl-day">Rio de Janeiro</div>
-        <div className="tl-sub">Enel Rio SGP · 2026</div>
+        <div className="tl-day">Bermuda</div>
+        <div className="tl-sub">Bermuda SailGP · 2026</div>
         <WeatherPanel />
         <EquipmentPanel />
       </div>

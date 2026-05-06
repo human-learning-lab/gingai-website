@@ -43,8 +43,8 @@ const CANNED_RESPONSES: Record<string, { answer: string; source: string }> = {
     source: 'Source: Auckland Sim Brief · Day 2 · Season 5',
   },
   plan: {
-    answer: 'Today is Race Day 1, Rio de Janeiro. Key milestones: Brief the Day (now, 14:30), Warm Up at 15:00, Dock Off at 16:20. Race 1 (R5) starts at 17:38 (T–0). Equipment predicted: 27.5m wing, LAB2 daggerboards. Course 2 pending RC confirmation.',
-    source: 'Source: Rio 2026 · Day 1 schedule',
+    answer: 'Today is Race Day 1, Bermuda. Key milestones: Brief the Day (now, 14:30), Warm Up at 15:00, Dock Off at 16:20. Race 1 (R5) starts at 17:38 (T–0). Equipment predicted: 27.5m wing, LAB2 daggerboards. Course 2 pending RC confirmation.',
+    source: 'Source: Bermuda 2026 · Day 1 schedule',
   },
 };
 

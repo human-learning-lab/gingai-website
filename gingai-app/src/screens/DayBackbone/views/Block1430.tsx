@@ -3,7 +3,7 @@ import { useRole } from '../../../context/RoleContext';
 import { IconStar } from '../../../components/Icons';
 
 const DOCS = [
-  { name: 'Rio de Janeiro — Race Analysis R1–R4', meta: 'Updated 2h ago · 14 pages', type: 'Data',    badge: 'doc-badge-data' },
+  { name: 'Bermuda — Race Analysis R1–R4', meta: 'Updated 2h ago · 14 pages', type: 'Data',    badge: 'doc-badge-data' },
   { name: 'Team Golden Rules — Current Season', meta: '12 active rules',          type: 'Memory',  badge: 'doc-badge-memory' },
   { name: 'Video — Mark 2 Tack Comparison (R3 vs Fleet)', meta: '2:34 · Auto-clipped', type: 'Video', badge: 'doc-badge-video' },
   { name: 'Open Action Items — R3/R4 Debrief', meta: '4 open · 2 done',           type: 'Actions', badge: 'doc-badge-actions' },
@@ -59,20 +59,16 @@ export default function Block1430() {
         <div className="pane on" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
           {/* Conditions card */}
-          <div className="card" style={{ display: 'flex', gap: 0, padding: 0, overflow: 'hidden' }}>
+          <div className="card conditions-card">
             {[
               { label: 'Wind', val: '10–12', unit: 'kts', color: 'var(--text)' },
               { label: 'Direction', val: 'SSW', unit: 'steady', color: 'var(--text2)' },
               { label: 'Course', val: 'Course 2', unit: 'Mark A upwind', color: 'var(--yellow)' },
             ].map((c, i) => (
-              <div key={i} style={{
-                flex: 1, padding: '16px 18px',
-                borderRight: i < 2 ? '1px solid var(--line)' : 'none',
-                display: 'flex', flexDirection: 'column', justifyContent: 'center',
-              }}>
-                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 6 }}>{c.label}</div>
-                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 24, fontWeight: 800, lineHeight: 1, color: c.color }}>{c.val}</div>
-                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>{c.unit}</div>
+              <div key={i} className={`conditions-cell${i < 2 ? ' conditions-cell-border' : ''}`}>
+                <div className="conditions-label">{c.label}</div>
+                <div className="conditions-val" style={{ color: c.color }}>{c.val}</div>
+                <div className="conditions-unit">{c.unit}</div>
               </div>
             ))}
           </div>
@@ -104,7 +100,7 @@ export default function Block1430() {
             </div>
             <div className="ai-body">
               10 knot SSW favors early commitment at mark 2 — teams tacking within 3 boat lengths gain ~12m on average.
-              Based on R3 data, Brazil's tack timing was 5.2s behind the fleet median. At 10 kts with current wing
+              Based on R3 data, Bermuda's tack timing was 5.2s behind the fleet median. At 10 kts with current wing
               configuration (80° cant), foil lift margin is tight — conservative gybe decisions recommended at the offset
               mark. Two open items from yesterday's debrief are directly relevant today:{' '}
               <strong style={{ color: 'var(--text)' }}>decision trigger for mark 2 tack</strong>, and{' '}
