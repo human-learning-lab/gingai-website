@@ -12,14 +12,6 @@ interface Props {
   onRecordingChange?: (recording: boolean) => void;
 }
 
-const SPEAKER_DATA = [
-  { initials: 'R',  name: 'Rasmus',   pct: 34 },
-  { initials: 'P',  name: 'Pietro',   pct: 22 },
-  { initials: 'Mt', name: 'Mateus',   pct: 18 },
-  { initials: 'Mc', name: 'Marco',    pct: 13 },
-  { initials: 'Ma', name: 'Martine',  pct:  8 },
-  { initials: 'PG', name: 'Paul G.',  pct:  5 },
-];
 
 
 
@@ -145,18 +137,7 @@ export default function TeamDebrief({
             <div className="dbs-sec">
               <div className="dbs-lbl">Talking Time</div>
               <div className="dbd-graph-card">
-                {SPEAKER_DATA.map(s => (
-                  <div key={s.initials} className="dbd-bar-row">
-                    <div className="dbd-bar-label">
-                      <div className="eg-ava">{s.initials}</div>
-                      <span className="dbd-bar-name">{s.name}</span>
-                    </div>
-                    <div className="dbd-bar">
-                      <div className="dbd-bar-fill" style={{ width: `${s.pct}%` }} />
-                    </div>
-                    <div className="dbd-bar-pct">{s.pct}%</div>
-                  </div>
-                ))}
+                <div className="dbd-placeholder-note">No data yet</div>
               </div>
             </div>
 
@@ -196,7 +177,7 @@ export default function TeamDebrief({
                     </div>
                   </>
                 ) : (
-                  <div className="dbd-placeholder-note">Ingen data ennå</div>
+                  <div className="dbd-placeholder-note">No data yet</div>
                 )}
               </div>
             </div>
@@ -210,7 +191,7 @@ export default function TeamDebrief({
                     ? topics.map(t => (
                         <span key={t} className="dbd-topic-tag">{t}</span>
                       ))
-                    : <span className="dbd-placeholder-note">Ingen topics ennå</span>
+                    : <span className="dbd-placeholder-note">No topics yet</span>
                   }
                 </div>
                 <div className="dbd-placeholder-note">Detected from transcript</div>
