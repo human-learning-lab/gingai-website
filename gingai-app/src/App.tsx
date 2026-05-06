@@ -13,7 +13,7 @@ import type { ScreenId } from './types';
 function AppInner() {
   const { role } = useRole();
   const [activeScreen, setActiveScreen] = useState<ScreenId>('backbone');
-  const { lines, topics, connect, disconnect, reset } = useTranscript();
+  const { lines, topics, sentiment, connect, disconnect, reset } = useTranscript();
 
   function navigate(s: ScreenId) {
     if (role.screens.includes(s)) setActiveScreen(s);
@@ -41,6 +41,7 @@ function AppInner() {
             onNavigate={navigate}
             transcriptLines={lines}
             topics={topics}
+            sentimentPts={sentiment}
             onRecordingChange={handleRecordingChange}
           />
         )}

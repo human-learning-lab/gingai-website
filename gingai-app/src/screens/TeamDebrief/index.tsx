@@ -8,6 +8,7 @@ interface Props {
   transcriptLines?: string[];
   interimText?: string;
   topics?: string[];
+  sentimentPts?: number[];
   onRecordingChange?: (recording: boolean) => void;
 }
 
@@ -20,7 +21,7 @@ const SPEAKER_DATA = [
   { initials: 'PG', name: 'Paul G.',  pct:  5 },
 ];
 
-const SENTIMENT_PTS = [38, 44, 42, 55, 52, 63, 60, 68, 65, 72];
+const FALLBACK_SENTIMENT = [38, 44, 42, 55, 52, 63, 60, 68, 65, 72];
 
 const FALLBACK_TOPICS = ['Tack timing', 'Gybe comms', 'Flight zone', 'Pre-start'];
 
@@ -30,6 +31,7 @@ export default function TeamDebrief({
   transcriptLines,
   interimText,
   topics,
+  sentimentPts,
   onRecordingChange,
 }: Props) {
   const [recording, setRecording] = useState(false);
@@ -71,8 +73,9 @@ export default function TeamDebrief({
   // SVG polyline points for sentiment graph
   const SVG_W = 200;
   const SVG_H = 56;
-  const sentPts = SENTIMENT_PTS.map((v, i) => {
-    const x = (i / (SENTIMENT_PTS.length - 1)) * SVG_W;
+  const activeSentiment = (sentimentPts && sentimentPts.length > 1) ? sentimentPts : FALLBACK_SENTIMENT;
+  const sentPts = activeSentiment.map((v, i) => {
+    const x = (i / (activeSentiment.length - 1)) * SVG_W;
     const y = SVG_H - (v / 100) * SVG_H;
     return `${x},${y}`;
   }).join(' ');

@@ -5,11 +5,13 @@ const WS_URL = 'ws://localhost:8000/Transcript';
 interface TranscriptMessage {
   text: string;
   category?: string;
+  sentiment?: number;
 }
 
 export function useTranscript() {
-  const [lines, setLines]   = useState<string[]>([]);
-  const [topics, setTopics] = useState<string[]>([]);
+  const [lines, setLines]         = useState<string[]>([]);
+  const [topics, setTopics]       = useState<string[]>([]);
+  const [sentiment, setSentiment] = useState<number[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
 
   const connect = useCallback(() => {
@@ -29,6 +31,9 @@ export function useTranscript() {
             prev.includes(msg.category!) ? prev : [...prev, msg.category!]
           );
         }
+        if (msg.sentiment !== undefined) {
+          setSentiment(prev => [...prev, msg.sentiment!]);
+        }
       } catch {
         // ignore malformed messages
       }
@@ -46,11 +51,12 @@ export function useTranscript() {
   const reset = useCallback(() => {
     setLines([]);
     setTopics([]);
+    setSentiment([]);
   }, []);
 
   useEffect(() => {
     return () => { wsRef.current?.close(); };
   }, []);
 
-  return { lines, topics, connect, disconnect, reset };
+  return { lines, topics, sentiment, connect, disconnect, reset };
 }
