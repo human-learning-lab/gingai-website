@@ -21,9 +21,7 @@ const SPEAKER_DATA = [
   { initials: 'PG', name: 'Paul G.',  pct:  5 },
 ];
 
-const FALLBACK_SENTIMENT = [38, 44, 42, 55, 52, 63, 60, 68, 65, 72];
 
-const FALLBACK_TOPICS = ['Tack timing', 'Gybe comms', 'Flight zone', 'Pre-start'];
 
 export default function TeamDebrief({
   activeScreen,
@@ -73,7 +71,7 @@ export default function TeamDebrief({
   // SVG polyline points for sentiment graph
   const SVG_W = 200;
   const SVG_H = 56;
-  const activeSentiment = (sentimentPts && sentimentPts.length > 1) ? sentimentPts : FALLBACK_SENTIMENT;
+  const activeSentiment = sentimentPts && sentimentPts.length > 1 ? sentimentPts : [];
   const sentPts = activeSentiment.map((v, i) => {
     const x = (i / (activeSentiment.length - 1)) * SVG_W;
     const y = SVG_H - (v / 100) * SVG_H;
@@ -166,34 +164,40 @@ export default function TeamDebrief({
             <div className="dbs-sec">
               <div className="dbs-lbl">Sentiment Trend</div>
               <div className="dbd-graph-card">
-                <svg
-                  viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-                  className="dbd-svg"
-                  preserveAspectRatio="none"
-                >
-                  <defs>
-                    <linearGradient id="sent-grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%"   stopColor="var(--green)" stopOpacity="0.20" />
-                      <stop offset="100%" stopColor="var(--green)" stopOpacity="0"    />
-                    </linearGradient>
-                  </defs>
-                  <polygon
-                    points={`0,${SVG_H} ${sentPts} ${SVG_W},${SVG_H}`}
-                    fill="url(#sent-grad)"
-                  />
-                  <polyline
-                    points={sentPts}
-                    fill="none"
-                    stroke="var(--green)"
-                    strokeWidth="1.5"
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="dbd-sentiment-labels">
-                  <span>Start</span>
-                  <span>Now</span>
-                </div>
+                {activeSentiment.length > 1 ? (
+                  <>
+                    <svg
+                      viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+                      className="dbd-svg"
+                      preserveAspectRatio="none"
+                    >
+                      <defs>
+                        <linearGradient id="sent-grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%"   stopColor="var(--green)" stopOpacity="0.20" />
+                          <stop offset="100%" stopColor="var(--green)" stopOpacity="0"    />
+                        </linearGradient>
+                      </defs>
+                      <polygon
+                        points={`0,${SVG_H} ${sentPts} ${SVG_W},${SVG_H}`}
+                        fill="url(#sent-grad)"
+                      />
+                      <polyline
+                        points={sentPts}
+                        fill="none"
+                        stroke="var(--green)"
+                        strokeWidth="1.5"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="dbd-sentiment-labels">
+                      <span>Start</span>
+                      <span>Now</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="dbd-placeholder-note">Ingen data ennå</div>
+                )}
               </div>
             </div>
 
@@ -202,9 +206,12 @@ export default function TeamDebrief({
               <div className="dbs-lbl">Topics Detected</div>
               <div className="dbd-graph-card">
                 <div className="dbd-topics">
-                  {(topics && topics.length > 0 ? topics : FALLBACK_TOPICS).map(t => (
-                    <span key={t} className="dbd-topic-tag">{t}</span>
-                  ))}
+                  {topics && topics.length > 0
+                    ? topics.map(t => (
+                        <span key={t} className="dbd-topic-tag">{t}</span>
+                      ))
+                    : <span className="dbd-placeholder-note">Ingen topics ennå</span>
+                  }
                 </div>
                 <div className="dbd-placeholder-note">Detected from transcript</div>
               </div>

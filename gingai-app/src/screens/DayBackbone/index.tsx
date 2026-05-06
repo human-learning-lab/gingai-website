@@ -21,8 +21,8 @@ const REGATTAS = [
   { id: 'perth',      city: 'Perth',          short: 'Perth',       dates: 'Jan 17–18',    result: 'Past',     photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
   { id: 'auckland',   city: 'Auckland',       short: 'Auckland',    dates: 'Feb 14–15',    result: 'Past',     photo: '/images/boat-auckland.jpg',     photoPos: 'center 60%',   days: ['Day 1', 'Day 2'] },
   { id: 'sydney',     city: 'Sydney',         short: 'Sydney',      dates: 'Feb 28–Mar 1', result: 'Past',     photo: '/images/boat-sydney.jpg',       photoPos: 'center 40%',   days: ['Day 1', 'Day 2'] },
-  { id: 'rio',        city: 'Rio de Janeiro', short: 'Rio',         dates: 'Apr 11–12',    result: 'Active',   photo: '/images/boat-rio.jpg',          photoPos: 'center 70%',   days: ['Day 1', 'Day 2'] },
-  { id: 'bermuda',    city: 'Bermuda',        short: 'Bermuda',     dates: 'May 9–10',     result: 'Upcoming', photo: '/images/boat-bermuda.jpg',      photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
+  { id: 'rio',        city: 'Rio de Janeiro', short: 'Rio',         dates: 'Apr 11–12',    result: 'Past',     photo: '/images/boat-rio.jpg',          photoPos: 'center 70%',   days: ['Day 1', 'Day 2'] },
+  { id: 'bermuda',    city: 'Bermuda',        short: 'Bermuda',     dates: 'May 9–10',     result: 'Active',   photo: '/images/boat-bermuda.jpg',      photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
   { id: 'newyork',    city: 'New York',       short: 'New York',    dates: 'May 23–24',    result: 'Upcoming', photo: '/images/boat-newyork.jpg',      photoPos: 'center 70%',   days: ['Day 1', 'Day 2'] },
   { id: 'halifax',    city: 'Halifax',        short: 'Halifax',     dates: 'Jun 13–14',    result: 'Upcoming', photo: '/images/boat-halifax.jpg',      photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
   { id: 'portsmouth', city: 'Portsmouth',     short: 'Portsmouth',  dates: 'Jul 18–19',    result: 'Upcoming', photo: '/images/boat-portsmouth.jpg',   photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
@@ -56,7 +56,7 @@ function getResponse(q: string): { answer: string; source: string } {
 }
 
 function RegatNav() {
-  const [activeRegat, setActiveRegat] = useState('rio');
+  const [activeRegat, setActiveRegat] = useState('bermuda');
   const [activeDay, setActiveDay] = useState(0);
 
   const regat = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[0];
