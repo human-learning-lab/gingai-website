@@ -59,16 +59,20 @@ export default function Block1430() {
         <div className="pane on" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
           {/* Conditions card */}
-          <div className="card conditions-card">
+          <div className="card" style={{ display: 'flex', flexWrap: 'wrap', gap: 0, padding: 0, overflow: 'hidden' }}>
             {[
-              { label: 'Wind', val: '10–12', unit: 'kts', color: 'var(--text)' },
-              { label: 'Direction', val: 'SSW', unit: 'steady', color: 'var(--text2)' },
-              { label: 'Course', val: 'Course 2', unit: 'Mark A upwind', color: 'var(--yellow)' },
+              { label: 'Wind',      val: '10–12',    unit: 'kts',          color: 'var(--text)'   },
+              { label: 'Direction', val: 'SSW',      unit: 'steady',       color: 'var(--text2)'  },
+              { label: 'Course',    val: 'Course 2', unit: 'Mark A upwind', color: 'var(--yellow)' },
             ].map((c, i) => (
-              <div key={i} className={`conditions-cell${i < 2 ? ' conditions-cell-border' : ''}`}>
-                <div className="conditions-label">{c.label}</div>
-                <div className="conditions-val" style={{ color: c.color }}>{c.val}</div>
-                <div className="conditions-unit">{c.unit}</div>
+              <div key={i} style={{
+                flex: '1 1 80px', minWidth: 0, padding: '12px 14px',
+                borderRight: i < 2 ? '1px solid var(--line)' : 'none',
+                display: 'flex', flexDirection: 'column', justifyContent: 'center',
+              }}>
+                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 5 }}>{c.label}</div>
+                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 'clamp(16px, 2.5vw, 24px)', fontWeight: 800, lineHeight: 1, color: c.color }}>{c.val}</div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>{c.unit}</div>
               </div>
             ))}
           </div>

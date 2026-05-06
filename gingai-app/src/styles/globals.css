@@ -720,34 +720,6 @@ body {
 .card-y { border-left: 3px solid var(--yellow); }
 .card-r { border-left: 3px solid var(--red); }
 
-/* Conditions card */
-.conditions-card {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0;
-  padding: 0;
-  overflow: hidden;
-}
-.conditions-cell {
-  flex: 1 1 80px;
-  min-width: 0;
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-.conditions-cell-border { border-right: 1px solid var(--line); }
-.conditions-label {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 9px; font-weight: 700; letter-spacing: 0.18em;
-  text-transform: uppercase; color: var(--text4); margin-bottom: 5px;
-}
-.conditions-val {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(16px, 2.5vw, 24px);
-  font-weight: 800; line-height: 1;
-}
-.conditions-unit { font-size: 11px; color: var(--text3); margin-top: 3px; }
 
 .card-label {
   font-family: 'Barlow Condensed', sans-serif;
