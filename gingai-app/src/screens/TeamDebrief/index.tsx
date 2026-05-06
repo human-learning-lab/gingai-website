@@ -5,11 +5,9 @@ import type { ScreenId } from '../../types';
 interface Props {
   activeScreen: ScreenId;
   onNavigate: (s: ScreenId) => void;
-  /** Viktor plugs in final transcript lines from here */
   transcriptLines?: string[];
-  /** Viktor plugs in the current in-progress (interim) text */
   interimText?: string;
-  /** Fires when the record button is toggled */
+  topics?: string[];
   onRecordingChange?: (recording: boolean) => void;
 }
 
@@ -24,11 +22,14 @@ const SPEAKER_DATA = [
 
 const SENTIMENT_PTS = [38, 44, 42, 55, 52, 63, 60, 68, 65, 72];
 
+const FALLBACK_TOPICS = ['Tack timing', 'Gybe comms', 'Flight zone', 'Pre-start'];
+
 export default function TeamDebrief({
   activeScreen,
   onNavigate,
   transcriptLines,
   interimText,
+  topics,
   onRecordingChange,
 }: Props) {
   const [recording, setRecording] = useState(false);
@@ -198,10 +199,9 @@ export default function TeamDebrief({
               <div className="dbs-lbl">Topics Detected</div>
               <div className="dbd-graph-card">
                 <div className="dbd-topics">
-                  <span className="dbd-topic-tag">Tack timing</span>
-                  <span className="dbd-topic-tag dbd-topic-y">Gybe comms</span>
-                  <span className="dbd-topic-tag">Flight zone</span>
-                  <span className="dbd-topic-tag dbd-topic-dim">Pre-start</span>
+                  {(topics && topics.length > 0 ? topics : FALLBACK_TOPICS).map(t => (
+                    <span key={t} className="dbd-topic-tag">{t}</span>
+                  ))}
                 </div>
                 <div className="dbd-placeholder-note">Detected from transcript</div>
               </div>
