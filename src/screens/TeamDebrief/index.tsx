@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import LeftNav from '../../components/LeftNav/LeftNav';
 import type { ScreenId } from '../../types';
+import startAudioStreaming from '../../audioStream'
 
 interface Props {
 	activeScreen: ScreenId;
@@ -33,12 +34,22 @@ export default function TeamDebrief({
 }: Props) {
 	const [recording, setRecording] = useState(false);
 	const [elapsed, setElapsed] = useState(0);
-	const [internalLines] = useState<string[]>([]);
-	const [internalInterim] = useState('');
+	const [internalLines, setLines] = useState<string[]>([]);
+	const [internalInterim, setInterim] = useState('');
 	const scrollRef = useRef<HTMLDivElement>(null);
 
 	const lines   = transcriptLines ?? internalLines;
 	const interim = interimText    ?? internalInterim;
+
+	// Websocket connection to Transcription Service
+	const wsRef = useRef(null);
+	// Audio stream and context
+	const streamRef = useRef(null);
+	const audioContextRef = useRef(null);
+	// Source and AudioworkLet
+	const workletRef = useRef(null);
+	const sourceRef = useRef(null);
+
 
 	// Session timer
 	useEffect(() => {
@@ -54,7 +65,45 @@ export default function TeamDebrief({
 		}
 	}, [lines, interim]);
 
+
+	async function start_transcript(){
+		const {
+			ws,
+			stream,
+			audioContext
+		} = await startAudioStreaming();
+
+		wsRef.current = ws;
+		streamRef.current = stream;
+		audioContextRef.current = audioContext;
+
+		ws.onmessage = (e) => {
+			interimText = e.data['text'];
+
+		};
+	}
+
+	function stop_transcript(){
+		console.log("Stopping Recording");
+		wsRef.current?.close();
+		streamRef.current?.getTracks().forEach((t) => t.stop());
+		audioContextRef.current?.close();
+		workletRef.current?.disconnect();
+		sourceRef.current?.disconnect();
+
+		wsRef.current = null;
+		workletRef.current = null;
+		sourceRef.current = null;
+		streamRef.current = null;
+		audioContextRef.current = null;
+	}
+
+
 	function toggleRecording() {
+		if (!recording)
+			start_transcript();
+		else
+			stop_transcript();
 		const next = !recording;
 		setRecording(next);
 		if (!next) setElapsed(0);
@@ -129,9 +178,6 @@ export default function TeamDebrief({
 		{lines.map((line, i) => (
 			<p key={i} className="dbd-line">{line}</p>
 		))}
-		{interim && (
-			<p className="dbd-line dbd-interim">{interim}</p>
-		)}
 		</div>
 		</div>
 		</div>
