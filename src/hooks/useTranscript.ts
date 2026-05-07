@@ -17,9 +17,6 @@ export function useTranscript() {
 	// Audio stream and context
 	const streamRef = useRef(null);
 	const audioContextRef = useRef(null);
-	// Source and AudioworkLet
-	const workletRef = useRef(null);
-	const sourceRef = useRef(null);
 
 	const connect = useCallback(async () => {
 		if (wsRef.current) return;
@@ -30,6 +27,8 @@ export function useTranscript() {
 			audioContext
 		} = await startAudioStreaming();
 		wsRef.current = ws;
+		streamRef.current = stream;
+		audioContextRef.current = audioContext;
 
 		ws.onmessage = (e) => {
 			try {
@@ -58,12 +57,8 @@ export function useTranscript() {
 		wsRef.current?.close();
 		streamRef.current?.getTracks().forEach((t) => t.stop());
 		audioContextRef.current?.close();
-		workletRef.current?.disconnect();
-		sourceRef.current?.disconnect();
 
 		wsRef.current = null;
-		workletRef.current = null;
-		sourceRef.current = null;
 		streamRef.current = null;
 		audioContextRef.current = null;
 	}, []);
