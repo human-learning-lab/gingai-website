@@ -1,3 +1,5 @@
+import workletUrl from './audio-processor.js?url'
+
 export default async function startAudioStreaming() {
 
 	// Create websocket
@@ -18,9 +20,7 @@ export default async function startAudioStreaming() {
 	})
 
 	// Load worklet
-	await audioContext.audioWorklet.addModule(
-		"/src/audio-processor.js"
-	)
+	await audioContext.audioWorklet.addModule(workletUrl)
 
 	// Create source
 	const source =
