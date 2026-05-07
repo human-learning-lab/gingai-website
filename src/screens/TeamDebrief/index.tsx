@@ -1,55 +1,37 @@
 import { useState, useEffect, useRef } from 'react';
 import LeftNav from '../../components/LeftNav/LeftNav';
 import type { ScreenId } from '../../types';
-import startAudioStreaming from '../../audioStream'
 
 interface Props {
 	activeScreen: ScreenId;
 	onNavigate: (s: ScreenId) => void;
-	/** Viktor plugs in final transcript lines from here */
 	transcriptLines?: string[];
-	/** Viktor plugs in the current in-progress (interim) text */
 	interimText?: string;
-	/** Fires when the record button is toggled */
+	topics?: string[];
+	sentimentPts?: number[];
 	onRecordingChange?: (recording: boolean) => void;
 }
 
-const SPEAKER_DATA = [
-	{ initials: 'R',  name: 'Rasmus',   pct: 34 },
-	{ initials: 'P',  name: 'Pietro',   pct: 22 },
-	{ initials: 'Mt', name: 'Mateus',   pct: 18 },
-	{ initials: 'Mc', name: 'Marco',    pct: 13 },
-	{ initials: 'Ma', name: 'Martine',  pct:  8 },
-	{ initials: 'PG', name: 'Paul G.',  pct:  5 },
-];
 
-const SENTIMENT_PTS = [38, 44, 42, 55, 52, 63, 60, 68, 65, 72];
+
 
 export default function TeamDebrief({
 	activeScreen,
 	onNavigate,
 	transcriptLines,
 	interimText,
+	topics,
+	sentimentPts,
 	onRecordingChange,
 }: Props) {
 	const [recording, setRecording] = useState(false);
 	const [elapsed, setElapsed] = useState(0);
-	const [internalLines, setLines] = useState<string[]>([]);
-	const [internalInterim, setInterim] = useState('');
+	const [internalLines] = useState<string[]>([]);
+	const [internalInterim] = useState('');
 	const scrollRef = useRef<HTMLDivElement>(null);
 
 	const lines   = transcriptLines ?? internalLines;
 	const interim = interimText    ?? internalInterim;
-
-	// Websocket connection to Transcription Service
-	const wsRef = useRef(null);
-	// Audio stream and context
-	const streamRef = useRef(null);
-	const audioContextRef = useRef(null);
-	// Source and AudioworkLet
-	const workletRef = useRef(null);
-	const sourceRef = useRef(null);
-
 
 	// Session timer
 	useEffect(() => {
@@ -65,45 +47,7 @@ export default function TeamDebrief({
 		}
 	}, [lines, interim]);
 
-
-	async function start_transcript(){
-		const {
-			ws,
-			stream,
-			audioContext
-		} = await startAudioStreaming();
-
-		wsRef.current = ws;
-		streamRef.current = stream;
-		audioContextRef.current = audioContext;
-
-		ws.onmessage = (e) => {
-			interimText = e.data['text'];
-
-		};
-	}
-
-	function stop_transcript(){
-		console.log("Stopping Recording");
-		wsRef.current?.close();
-		streamRef.current?.getTracks().forEach((t) => t.stop());
-		audioContextRef.current?.close();
-		workletRef.current?.disconnect();
-		sourceRef.current?.disconnect();
-
-		wsRef.current = null;
-		workletRef.current = null;
-		sourceRef.current = null;
-		streamRef.current = null;
-		audioContextRef.current = null;
-	}
-
-
 	function toggleRecording() {
-		if (!recording)
-			start_transcript();
-		else
-			stop_transcript();
 		const next = !recording;
 		setRecording(next);
 		if (!next) setElapsed(0);
@@ -119,8 +63,9 @@ export default function TeamDebrief({
 	// SVG polyline points for sentiment graph
 	const SVG_W = 200;
 	const SVG_H = 56;
-	const sentPts = SENTIMENT_PTS.map((v, i) => {
-		const x = (i / (SENTIMENT_PTS.length - 1)) * SVG_W;
+	const activeSentiment = sentimentPts && sentimentPts.length > 1 ? sentimentPts : [];
+	const sentPts = activeSentiment.map((v, i) => {
+		const x = (i / (activeSentiment.length - 1)) * SVG_W;
 		const y = SVG_H - (v / 100) * SVG_H;
 		return `${x},${y}`;
 	}).join(' ');
@@ -178,6 +123,9 @@ export default function TeamDebrief({
 		{lines.map((line, i) => (
 			<p key={i} className="dbd-line">{line}</p>
 		))}
+		{interim && (
+			<p className="dbd-line dbd-interim">{interim}</p>
+		)}
 		</div>
 		</div>
 		</div>
@@ -189,18 +137,7 @@ export default function TeamDebrief({
 		<div className="dbs-sec">
 		<div className="dbs-lbl">Talking Time</div>
 		<div className="dbd-graph-card">
-		{SPEAKER_DATA.map(s => (
-			<div key={s.initials} className="dbd-bar-row">
-			<div className="dbd-bar-label">
-			<div className="eg-ava">{s.initials}</div>
-			<span className="dbd-bar-name">{s.name}</span>
-			</div>
-			<div className="dbd-bar">
-			<div className="dbd-bar-fill" style={{ width: `${s.pct}%` }} />
-			</div>
-			<div className="dbd-bar-pct">{s.pct}%</div>
-			</div>
-		))}
+		<div className="dbd-placeholder-note">No data yet</div>
 		</div>
 		</div>
 
@@ -208,34 +145,40 @@ export default function TeamDebrief({
 		<div className="dbs-sec">
 		<div className="dbs-lbl">Sentiment Trend</div>
 		<div className="dbd-graph-card">
-		<svg
-		viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-		className="dbd-svg"
-		preserveAspectRatio="none"
-		>
-		<defs>
-		<linearGradient id="sent-grad" x1="0" y1="0" x2="0" y2="1">
-		<stop offset="0%"   stopColor="var(--green)" stopOpacity="0.20" />
-		<stop offset="100%" stopColor="var(--green)" stopOpacity="0"    />
-		</linearGradient>
-		</defs>
-		<polygon
-		points={`0,${SVG_H} ${sentPts} ${SVG_W},${SVG_H}`}
-		fill="url(#sent-grad)"
-		/>
-		<polyline
-		points={sentPts}
-		fill="none"
-		stroke="var(--green)"
-		strokeWidth="1.5"
-		strokeLinejoin="round"
-		strokeLinecap="round"
-		/>
-		</svg>
-		<div className="dbd-sentiment-labels">
-		<span>Start</span>
-		<span>Now</span>
-		</div>
+		{activeSentiment.length > 1 ? (
+			<>
+			<svg
+			viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+			className="dbd-svg"
+			preserveAspectRatio="none"
+			>
+			<defs>
+			<linearGradient id="sent-grad" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0%"   stopColor="var(--green)" stopOpacity="0.20" />
+			<stop offset="100%" stopColor="var(--green)" stopOpacity="0"    />
+			</linearGradient>
+			</defs>
+			<polygon
+			points={`0,${SVG_H} ${sentPts} ${SVG_W},${SVG_H}`}
+			fill="url(#sent-grad)"
+			/>
+			<polyline
+			points={sentPts}
+			fill="none"
+			stroke="var(--green)"
+			strokeWidth="1.5"
+			strokeLinejoin="round"
+			strokeLinecap="round"
+			/>
+			</svg>
+			<div className="dbd-sentiment-labels">
+			<span>Start</span>
+			<span>Now</span>
+			</div>
+			</>
+		) : (
+		<div className="dbd-placeholder-note">No data yet</div>
+		)}
 		</div>
 		</div>
 
@@ -244,10 +187,12 @@ export default function TeamDebrief({
 		<div className="dbs-lbl">Topics Detected</div>
 		<div className="dbd-graph-card">
 		<div className="dbd-topics">
-		<span className="dbd-topic-tag">Tack timing</span>
-		<span className="dbd-topic-tag dbd-topic-y">Gybe comms</span>
-		<span className="dbd-topic-tag">Flight zone</span>
-		<span className="dbd-topic-tag dbd-topic-dim">Pre-start</span>
+		{topics && topics.length > 0
+			? topics.map(t => (
+				<span key={t} className="dbd-topic-tag">{t}</span>
+			))
+				: <span className="dbd-placeholder-note">No topics yet</span>
+		}
 		</div>
 		<div className="dbd-placeholder-note">Detected from transcript</div>
 		</div>
