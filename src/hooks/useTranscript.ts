@@ -13,10 +13,10 @@ export function useTranscript() {
 	const [topics, setTopics]       = useState<string[]>([]);
 	const [sentiment, setSentiment] = useState<number[]>([]);
 	// Websocket connection to Transcription Service
-	const wsRef = useRef(null);
+	const wsRef = useRef(WebSocket);
 	// Audio stream and context
-	const streamRef = useRef(null);
-	const audioContextRef = useRef(null);
+	const streamRef = useRef(MediaStream);
+	const audioContextRef = useRef(AudioContext);
 
 	const connect = useCallback(async () => {
 		if (wsRef.current) return;
