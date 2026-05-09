@@ -4,7 +4,7 @@ export default async function startAudioStreaming() {
 
 	// Create websocket
 	const ws = new WebSocket(
-		"wss://https://wriggly-tutu-groin.ngrok-free.dev/transcribe"
+		"wss://wriggly-tutu-groin.ngrok-free.dev/transcribe"
 	)
 
 	ws.binaryType = "arraybuffer"
