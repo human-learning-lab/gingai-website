@@ -4,7 +4,7 @@ export default async function startAudioStreaming() {
 
 	// Create websocket
 	const ws = new WebSocket(
-		"wss://transcription-api-742926686826.europe-north1.run.app/transcribe"
+		"wss://34.32.231.145:8080/transcribe"
 	)
 
 	ws.binaryType = "arraybuffer"
