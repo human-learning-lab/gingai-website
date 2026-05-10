@@ -103,7 +103,7 @@ export default function TeamDebrief({
 		<div className="dbd-subtitle">Post R5/R6/R7 · 6 sailors · Coach: Paul Brotherson</div>
 		</div>
 
-		<button onClick={saveTranscript}>Save</button>
+		<button onClick={saveTranscript}><img width="25" height="25" src="https://img.icons8.com/ios/50/save--v1.png" alt="save--v1"/></button>
 		<div className="dbd-controls">
 		<div className={`dbd-timer${recording ? ' active' : ''}`}>
 		{formatElapsed(elapsed)}
