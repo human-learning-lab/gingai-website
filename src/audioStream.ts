@@ -1,4 +1,5 @@
 import workletUrl from './audio-processor.js?url'
+import { MicVAD } from "@ricky0123/vad-web";
 
 export default async function startAudioStreaming() {
 
@@ -33,16 +34,21 @@ export default async function startAudioStreaming() {
 			"audio-processor"
 	)
 
-	// Receive PCM chunks from worklet
-	workletNode.port.onmessage = (event) => {
+	const vad = await MicVAD.new({
+		onSpeechStart: () => {
+			workletNode.port.onmessage = (event) => {
+				if (ws.readyState === WebSocket.OPEN){
+					const pcm16 = event.data
+					ws.send(pcm16.buffer)
+				}
+			}
 
-		if (ws.readyState === WebSocket.OPEN) {
-
-			const pcm16 = event.data
-
-			ws.send(pcm16.buffer)
+		},
+		onSpeechEnd: (audio) => {
+			workletNode.port.onmessage = (event) => {}
 		}
-	}
+	});
+
 
 	source.connect(workletNode)
 

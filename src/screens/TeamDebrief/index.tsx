@@ -60,6 +60,24 @@ export default function TeamDebrief({
 		return `${m}:${sec}`;
 	}
 
+	function saveTranscript(){
+		const text = document.getElementById("dbd-transcript").innerText;
+
+		const blob = new Blob([text], { type: "text/plain"});
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = "content.txt";
+
+		// Trigger download
+		document.body.appendChild(a);
+		a.click();
+
+		// Cleanup
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	}
+
 	// SVG polyline points for sentiment graph
 	const SVG_W = 200;
 	const SVG_H = 56;
@@ -85,6 +103,7 @@ export default function TeamDebrief({
 		<div className="dbd-subtitle">Post R5/R6/R7 · 6 sailors · Coach: Paul Brotherson</div>
 		</div>
 
+		<button onClick={saveTranscript}>Save</button>
 		<div className="dbd-controls">
 		<div className={`dbd-timer${recording ? ' active' : ''}`}>
 		{formatElapsed(elapsed)}
@@ -98,6 +117,9 @@ export default function TeamDebrief({
 		{recording ? 'Stop' : 'Record'}
 		</button>
 		</div>
+		</div>
+
+		<div>
 		</div>
 
 		{/* ── Body ── */}
