@@ -49,6 +49,7 @@ export default async function startAudioStreaming() {
 		}
 	});
 
+	vad.start();
 
 	source.connect(workletNode)
 
