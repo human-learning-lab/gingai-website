@@ -61,7 +61,7 @@ export default function TeamDebrief({
 	}
 
 	function saveTranscript(){
-		const text = document.getElementById("dbd-transcript").innerText;
+		const text = lines.join("\n");
 
 		const blob = new Blob([text], { type: "text/plain"});
 		const url = URL.createObjectURL(blob);

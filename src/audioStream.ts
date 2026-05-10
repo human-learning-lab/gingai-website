@@ -44,8 +44,8 @@ export default async function startAudioStreaming() {
 			}
 
 		},
-		onSpeechEnd: (audio) => {
-			workletNode.port.onmessage = (event) => {}
+		onSpeechEnd: () => {
+			workletNode.port.onmessage = () => {}
 		}
 	});
 
