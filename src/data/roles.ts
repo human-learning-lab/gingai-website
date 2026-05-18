@@ -16,6 +16,8 @@ export const ROLES: Role[] = [
   { id: 'nico',    name: 'Nico',    initial: 'N',  label: 'Analyst',           view: 'analyst', screens: [...ALL_SCREENS] },
   // ── Developer ─────────────────────────────────────────────────
   { id: 'emilie',  name: 'Emilie',  initial: 'EM', label: 'Developer',         view: 'developer', screens: [...ALL_SCREENS] },
+  { id: 'viktor',  name: 'Viktor',  initial: 'VK', label: 'Developer',         view: 'developer', screens: [...ALL_SCREENS] },
+  { id: 'christian', name: 'Christian', initial: 'CH', label: 'Team Member',   view: 'analyst',   screens: [...ALL_SCREENS] },
 ];
 
 export const DEFAULT_ROLE = ROLES.find(r => r.id === 'rasmus')!;
