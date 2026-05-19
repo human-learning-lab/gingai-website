@@ -26,11 +26,11 @@ const FOCUS_TEAM = [
   { name: 'Paul G.', role: 'Strategist',         init: 'PG', points: ['Start line bias read · port vs starboard layline', 'Fleet positioning call — offset gybe timing'] },
 ];
 
-const CHAT = [
+const INITIAL_CHAT: ChatMessage[] = [
   { init: 'PB', name: 'Paul B.',  ts: '13:58', ai: false, color: 'var(--text2)', txt: 'Briefing pack is live. Wind reading 9.8–11.2 at the course, SSW, consistent. Read the mark 2 tack analysis before we start.' },
-  { init: 'G',  name: 'GingAI', ts: '14:02', ai: true,  color: 'var(--green)', txt: 'Oracle telemetry + wind data: 10 kts SSW matches the marginal flight window for the Brazil F50. Recommend wing cant at 78–80° for max stability. The tack at mark 2 in similar conditions (R1, Bermuda Day 2) cost 11.3m.' },
-  { init: 'RK', name: 'Rasmus', ts: '14:18', ai: false, color: 'var(--green)', txt: 'Good call on the cant. I want to settle who calls the gybe at the offset today before we go on the water.' },
-  { init: 'PS', name: 'Pietro', ts: '14:21', ai: false, color: 'var(--yellow)', txt: "Rasmus owns the offset call. I'll handle wing cant through the mark. 3 BL = go, no confirmation?" },
+  { init: 'G',  name: 'GingAI',  ts: '14:02', ai: true,  color: 'var(--green)', txt: 'Oracle telemetry + wind data: 10 kts SSW matches the marginal flight window for the Brazil F50. Recommend wing cant at 78–80° for max stability. The tack at mark 2 in similar conditions (R1, Bermuda Day 2) cost 11.3m.' },
+  { init: 'RK', name: 'Rasmus',  ts: '14:18', ai: false, color: 'var(--green)', txt: 'Good call on the cant. I want to settle who calls the gybe at the offset today before we go on the water.' },
+  { init: 'PS', name: 'Pietro',  ts: '14:21', ai: false, color: 'var(--yellow)', txt: "Rasmus owns the offset call. I'll handle wing cant through the mark. 3 BL = go, no confirmation?" },
 ];
 
 export default function Block1430() {
@@ -163,12 +163,12 @@ export default function Block1430() {
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div className="card-label" style={{ marginBottom: 0 }}>14:30 · Contextual Thread</div>
-              <div style={{ fontSize: 11, color: 'var(--text4)' }}>4 messages</div>
+              <div style={{ fontSize: 11, color: 'var(--text4)' }}>{INITIAL_CHAT.length} messages</div>
             </div>
-            {CHAT.map((m, i) => (
+            {INITIAL_CHAT.map((m, i) => (
               <div key={i} style={{
                 display: 'flex', gap: 12, padding: '14px 16px',
-                borderBottom: i < CHAT.length - 1 ? '1px solid var(--line)' : 'none',
+                borderBottom: i < INITIAL_CHAT.length - 1 ? '1px solid var(--line)' : 'none',
                 background: m.ai ? 'var(--gg)' : 'transparent',
               }}>
                 <div className="msg-ava" style={{ color: m.color, background: m.ai ? 'var(--bg2)' : undefined, borderColor: m.ai ? 'var(--gb)' : undefined, flexShrink: 0 }}>
