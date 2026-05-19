@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import LeftNav from '@/components/LeftNav/LeftNav';
 import Timeline from '@/components/Timeline/Timeline';
 import Block1430 from './views/Block1430';
@@ -28,26 +28,57 @@ const REGATTAS = [
   { id: 'abudhabi',   city: 'Abu Dhabi',      short: 'Grand Final', dates: 'Dec 5–6',      result: 'Upcoming', photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 ];
 
-const CANNED_RESPONSES: Record<string, { answer: string; source: string }> = {
-  default: {
-    answer: 'Based on team records from Bermuda and Auckland, the most common issue flagged in post-race captures was tack decision ownership — specifically who calls in marginal upwind conditions. This came up 4 times across the last 6 regattas.',
-    source: 'Sources: Bermuda Debrief D2, Auckland R3 capture, Saint-Tropez R7 — Season 5',
-  },
-  rudder: {
-    answer: 'Last confirmed rudder angle discussion: Rasmus and Horacio discussed 3.2° vs 3.5° exit angle on tacks with LAB2s during the Auckland simulator session, Day 2. Decision leaned 3.2° for light air. No formal protocol update recorded yet.',
-    source: 'Source: Auckland Sim Brief · Day 2 · Season 5',
-  },
-  plan: {
-    answer: 'Today is Race Day 1, Bermuda. Key milestones: Brief the Day (now, 14:30), Warm Up at 15:00, Dock Off at 16:20. Race 1 (R5) starts at 17:38 (T–0). Equipment predicted: 27.5m wing, LAB2 daggerboards. Course 2 pending RC confirmation.',
-    source: 'Source: Bermuda 2026 · Day 1 schedule',
-  },
-};
+const AGENT_BASE = 'https://adk-default-service-name-742926686826.europe-north1.run.app';
+const APP_NAME = 'gingai';
 
-function getResponse(q: string): { answer: string; source: string } {
-  const lower = q.toLowerCase();
-  if (lower.includes('rudder') || lower.includes('angle') || lower.includes('horacio')) return CANNED_RESPONSES.rudder;
-  if (lower.includes('plan') || lower.includes('today') || lower.includes('schedule')) return CANNED_RESPONSES.plan;
-  return CANNED_RESPONSES.default;
+async function ensureSession(userId: string, sessionId: string) {
+  await fetch(`${AGENT_BASE}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+}
+
+async function* streamAgentResponse(userId: string, sessionId: string, text: string): AsyncGenerator<string> {
+  const res = await fetch(`${AGENT_BASE}/run_sse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    body: JSON.stringify({
+      appName: APP_NAME,
+      userId,
+      sessionId,
+      newMessage: { role: 'user', parts: [{ text }] },
+      streaming: true,
+    }),
+  });
+
+  const reader = res.body?.getReader();
+  if (!reader) return;
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if (!raw || raw === '[DONE]') continue;
+      try {
+        const event = JSON.parse(raw);
+        if (event.error) throw new Error(event.error);
+        const parts = event?.content?.parts ?? [];
+        for (const part of parts) {
+          if (typeof part.text === 'string' && part.text) yield part.text;
+        }
+      } catch {
+        // skip non-JSON lines
+      }
+    }
+  }
 }
 
 function DemoBadge() {
@@ -119,20 +150,37 @@ const ASK_SUGGESTIONS = [
 
 function AskMeBar() {
   const [query, setQuery] = useState('');
-  const [response, setResponse] = useState<{ answer: string; source: string } | null>(null);
+  const [answer, setAnswer] = useState('');
   const [thinking, setThinking] = useState(false);
+  const sessionReady = useRef(false);
+  const sessionId = useRef(`ask-session-${Date.now()}`);
+  const userId = 'user-1';
 
-  function submit(q?: string) {
+  const submit = useCallback(async (q?: string) => {
     const text = (q ?? query).trim();
-    if (!text) return;
+    if (!text || thinking) return;
     if (q) setQuery(q);
     setThinking(true);
-    setResponse(null);
-    setTimeout(() => {
-      setResponse(getResponse(text));
+    setAnswer('');
+
+    try {
+      if (!sessionReady.current) {
+        await ensureSession(userId, sessionId.current);
+        sessionReady.current = true;
+      }
+
+      let accumulated = '';
+      for await (const chunk of streamAgentResponse(userId, sessionId.current, text)) {
+        accumulated += chunk;
+        setAnswer(accumulated);
+      }
+      if (!accumulated) setAnswer('No response from GingAI — please try again.');
+    } catch {
+      setAnswer('Could not reach GingAI. Check that the agent is running.');
+    } finally {
       setThinking(false);
-    }, 900);
-  }
+    }
+  }, [query, thinking]);
 
   function handleKey(e: React.KeyboardEvent) {
     if (e.key === 'Enter') submit();
@@ -142,9 +190,8 @@ function AskMeBar() {
     <div className="ask-bar-wrap">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-          Ask Team Memory
+          Ask GingAI
         </div>
-        <DemoBadge />
       </div>
       <div className="ask-bar">
         <input
@@ -153,6 +200,7 @@ function AskMeBar() {
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={handleKey}
+          disabled={thinking}
         />
         <button className="ask-bar-mic" title="Voice input" aria-label="Voice input">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -161,26 +209,46 @@ function AskMeBar() {
             <line x1="8" y1="13" x2="8" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
         </button>
-        <button className="ask-bar-send" onClick={() => submit()} aria-label="Send">
+        <button className="ask-bar-send" onClick={() => submit()} aria-label="Send" disabled={thinking}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M7 12V2M3 6l4-4 4 4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       </div>
-      <div className="ask-chips">
-        {ASK_SUGGESTIONS.map(s => (
-          <button key={s} className="ask-chip" onClick={() => submit(s)}>{s}</button>
-        ))}
-      </div>
-      {thinking && (
-        <div className="ask-response" style={{ color: 'var(--text3)', fontStyle: 'italic' }}>
-          Searching team memory…
+      {!thinking && !answer && (
+        <div className="ask-chips">
+          {ASK_SUGGESTIONS.map(s => (
+            <button key={s} className="ask-chip" onClick={() => submit(s)}>{s}</button>
+          ))}
         </div>
       )}
-      {response && (
-        <div className="ask-response">
-          {response.answer}
-          <div className="ask-response-src">{response.source}</div>
+      {(thinking || answer) && (
+        <div className="ask-response" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 7,
+            padding: '8px 14px', borderBottom: '1px solid var(--gb)',
+            background: 'rgba(0,155,58,0.06)',
+          }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="var(--green)">
+              <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+            </svg>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              GingAI
+            </span>
+            {thinking && (
+              <span style={{ marginLeft: 'auto', display: 'flex', gap: 3, alignItems: 'center' }}>
+                {[0, 1, 2].map(i => (
+                  <span key={i} style={{
+                    width: 5, height: 5, borderRadius: '50%', background: 'var(--green)',
+                    opacity: 0.4, animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+                  }} />
+                ))}
+              </span>
+            )}
+          </div>
+          <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+            {answer || <span style={{ color: 'var(--text4)', fontStyle: 'italic' }}>Searching team memory…</span>}
+          </div>
         </div>
       )}
     </div>

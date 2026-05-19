@@ -1,70 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useRole } from '@/context/RoleContext';
 import { IconStar } from '@/components/Icons';
-
-const AGENT_BASE = 'https://adk-default-service-name-742926686826.europe-north1.run.app';
-const APP_NAME = 'gingai';
-
-type ChatMessage = {
-  init: string;
-  name: string;
-  ts: string;
-  ai: boolean;
-  color: string;
-  txt: string;
-};
-
-async function ensureSession(userId: string, sessionId: string) {
-  await fetch(`${AGENT_BASE}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-  });
-}
-
-async function* streamAgentResponse(userId: string, sessionId: string, text: string): AsyncGenerator<string> {
-  const res = await fetch(`${AGENT_BASE}/run_sse`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-    body: JSON.stringify({
-      appName: APP_NAME,
-      userId,
-      sessionId,
-      newMessage: { role: 'user', parts: [{ text }] },
-      streaming: true,
-    }),
-  });
-
-  const reader = res.body?.getReader();
-  if (!reader) return;
-  const decoder = new TextDecoder();
-  let buffer = '';
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? '';
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue;
-      const raw = line.slice(6).trim();
-      if (!raw || raw === '[DONE]') continue;
-      try {
-        const event = JSON.parse(raw);
-        if (event.error) throw new Error(event.error);
-        const parts = event?.content?.parts ?? [];
-        for (const part of parts) {
-          if (typeof part.text === 'string' && part.text) yield part.text;
-        }
-      } catch {
-        // non-JSON or empty lines — skip
-      }
-    }
-  }
-}
 
 const DOCS = [
   { name: 'Bermuda — Race Analysis R1–R4', meta: 'Updated 2h ago · 14 pages', type: 'Data',    badge: 'doc-badge-data' },
@@ -98,68 +36,6 @@ const INITIAL_CHAT: ChatMessage[] = [
 export default function Block1430() {
   const [tab, setTab] = useState<'briefing' | 'focus' | 'chat'>('briefing');
   const { role } = useRole();
-
-  const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_CHAT);
-  const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
-  const sessionReady = useRef(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const sessionId = useRef(`session-${Date.now()}`);
-  const userId = 'user-1';
-
-  const scrollToBottom = useCallback(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, []);
-
-  useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
-
-  const sendMessage = useCallback(async () => {
-    const text = input.trim();
-    if (!text || sending) return;
-    setInput('');
-    setSending(true);
-
-    const now = new Date().toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
-    const userMsg: ChatMessage = { init: 'DU', name: 'Du', ts: now, ai: false, color: 'var(--text2)', txt: text };
-    setMessages(prev => [...prev, userMsg]);
-
-    try {
-      if (!sessionReady.current) {
-        await ensureSession(userId, sessionId.current);
-        sessionReady.current = true;
-      }
-
-      const aiMsg: ChatMessage = { init: 'G', name: 'GingAI', ts: now, ai: true, color: 'var(--green)', txt: '' };
-      setMessages(prev => [...prev, aiMsg]);
-
-      let accumulated = '';
-      for await (const chunk of streamAgentResponse(userId, sessionId.current, text)) {
-        accumulated += chunk;
-        setMessages(prev => {
-          const updated = [...prev];
-          updated[updated.length - 1] = { ...aiMsg, txt: accumulated };
-          return updated;
-        });
-      }
-
-      if (!accumulated) {
-        setMessages(prev => {
-          const updated = [...prev];
-          updated[updated.length - 1] = { ...aiMsg, txt: '(Ingen svar fra agenten)' };
-          return updated;
-        });
-      }
-    } catch {
-      setMessages(prev => {
-        const updated = [...prev];
-        updated[updated.length - 1] = { ...prev[prev.length - 1], txt: 'Kunne ikke nå GingAI — prøv igjen.' };
-        return updated;
-      });
-    } finally {
-      setSending(false);
-    }
-  }, [input, sending]);
 
   return (
     <>
@@ -283,64 +159,30 @@ export default function Block1430() {
       )}
 
       {tab === 'chat' && (
-        <div className="pane on" style={{ display: 'flex', flexDirection: 'column', gap: 0, height: '100%' }}>
-          <div className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <div className="pane on">
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div className="card-label" style={{ marginBottom: 0 }}>14:30 · Contextual Thread</div>
-              <div style={{ fontSize: 11, color: 'var(--text4)' }}>{messages.length} meldinger</div>
+              <div style={{ fontSize: 11, color: 'var(--text4)' }}>{INITIAL_CHAT.length} messages</div>
             </div>
-
-            <div ref={scrollRef} style={{ overflowY: 'auto', flex: 1 }}>
-              {messages.map((m, i) => (
-                <div key={i} style={{
-                  display: 'flex', gap: 12, padding: '14px 16px',
-                  borderBottom: i < messages.length - 1 ? '1px solid var(--line)' : 'none',
-                  background: m.ai ? 'var(--gg)' : 'transparent',
-                }}>
-                  <div className="msg-ava" style={{ color: m.color, background: m.ai ? 'var(--bg2)' : undefined, borderColor: m.ai ? 'var(--gb)' : undefined, flexShrink: 0 }}>
-                    {m.ai ? <IconStar size={11} /> : m.init}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 4 }}>
-                      <span className="msg-who" style={{ color: m.ai ? 'var(--green)' : undefined }}>{m.name}</span>
-                      <span className="msg-ts">{m.ts}</span>
-                    </div>
-                    <div className="msg-txt" style={{ whiteSpace: 'pre-wrap' }}>
-                      {m.txt || (m.ai && sending ? <span style={{ color: 'var(--text4)' }}>GingAI skriver…</span> : '')}
-                    </div>
-                  </div>
+            {INITIAL_CHAT.map((m, i) => (
+              <div key={i} style={{
+                display: 'flex', gap: 12, padding: '14px 16px',
+                borderBottom: i < INITIAL_CHAT.length - 1 ? '1px solid var(--line)' : 'none',
+                background: m.ai ? 'var(--gg)' : 'transparent',
+              }}>
+                <div className="msg-ava" style={{ color: m.color, background: m.ai ? 'var(--bg2)' : undefined, borderColor: m.ai ? 'var(--gb)' : undefined, flexShrink: 0 }}>
+                  {m.ai ? <IconStar size={11} /> : m.init}
                 </div>
-              ))}
-            </div>
-
-            <div style={{ padding: '10px 12px', borderTop: '1px solid var(--line)', display: 'flex', gap: 8, flexShrink: 0, background: 'var(--bg2)' }}>
-              <input
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                placeholder="Spør GingAI…"
-                disabled={sending}
-                style={{
-                  flex: 1, background: 'var(--bg)', border: '1px solid var(--line2)',
-                  borderRadius: 8, padding: '8px 12px', fontSize: 14,
-                  color: 'var(--text)', outline: 'none', fontFamily: 'inherit',
-                  opacity: sending ? 0.6 : 1,
-                }}
-              />
-              <button
-                onClick={sendMessage}
-                disabled={sending || !input.trim()}
-                style={{
-                  background: sending || !input.trim() ? 'var(--bg3)' : 'var(--green)',
-                  color: sending || !input.trim() ? 'var(--text4)' : '#fff',
-                  border: 'none', borderRadius: 8, padding: '8px 14px',
-                  fontSize: 13, fontWeight: 600, cursor: sending || !input.trim() ? 'default' : 'pointer',
-                  fontFamily: 'inherit', transition: 'background 0.15s',
-                }}
-              >
-                {sending ? '…' : 'Send'}
-              </button>
-            </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 4 }}>
+                    <span className="msg-who" style={{ color: m.ai ? 'var(--green)' : undefined }}>{m.name}</span>
+                    <span className="msg-ts">{m.ts}</span>
+                  </div>
+                  <div className="msg-txt">{m.txt}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
