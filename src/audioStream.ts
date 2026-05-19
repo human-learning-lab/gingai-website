@@ -1,4 +1,3 @@
-const workletUrl = '/audio-processor.js'
 import { MicVAD } from "@ricky0123/vad-web";
 
 export default async function startAudioStreaming() {
@@ -21,7 +20,7 @@ export default async function startAudioStreaming() {
 	})
 
 	// Load worklet
-	await audioContext.audioWorklet.addModule(workletUrl)
+	await audioContext.audioWorklet.addModule('/audio-processor.js')
 
 	// Create source
 	const source =
