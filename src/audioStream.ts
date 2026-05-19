@@ -1,4 +1,4 @@
-import workletUrl from './audio-processor.js?url'
+import workletUrl from 'src/audio-processor.js?url'
 import { MicVAD } from "@ricky0123/vad-web";
 
 export default async function startAudioStreaming() {
