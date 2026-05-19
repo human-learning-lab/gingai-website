@@ -1,3 +1,5 @@
+'use client';
+
 const EXERCISES = [
   { name: 'Lacrosse Ball — Foot',         vid: '1gAVanUJVtQ', url: 'https://youtu.be/1gAVanUJVtQ' },
   { name: 'Calf Foam Roll',               vid: 'zn1tcngoD8U', url: 'https://youtu.be/zn1tcngoD8U' },

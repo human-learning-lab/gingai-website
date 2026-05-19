@@ -1,3 +1,5 @@
+'use client';
+
 export default function Block1330() {
   return (
     <>
@@ -18,7 +20,7 @@ export default function Block1330() {
           { color: 'var(--yellow)', txt: 'Update wing cant SOP for <12 kts conditions', meta: 'Logged 13:58 · Owner: Mateus · Due: this week' },
           { color: 'var(--yellow)', txt: 'Simulator scenario: replicate R4 pre-start zone entry', meta: 'Logged 14:02 · Owner: Marco · Due: 14:00 sim session', last: true },
         ].map((a, i) => (
-          <div className="past-action-row" key={i} style={a.last ? { borderBottom: 'none' } : undefined}>
+          <div className="past-action-row" key={i} style={(a as { last?: boolean }).last ? { borderBottom: 'none' } : undefined}>
             <div className="pa-dot" style={{ background: a.color }} />
             <div>
               <div className="pa-txt">{a.txt}</div>
@@ -28,8 +30,8 @@ export default function Block1330() {
         ))}
         <div className="sec-title" style={{ marginTop: 24 }}>Golden Rules Promoted</div>
         <div className="ai-body">
-          Rule #11 — "Gybe call at offset: read fleet first. 'Hold' or 'Go' — two options only." was promoted from
-          this session's discussion. Now active in the briefing library.
+          Rule #11 — &ldquo;Gybe call at offset: read fleet first. &lsquo;Hold&rsquo; or &lsquo;Go&rsquo; — two options only.&rdquo; was promoted from
+          this session&apos;s discussion. Now active in the briefing library.
         </div>
       </div>
     </>

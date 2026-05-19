@@ -1,11 +1,9 @@
-import { useRole } from '../../context/RoleContext';
-import type { ScreenId } from '../../types';
-import { IconCalendar, IconMic, IconAgenda, IconDebrief } from '../Icons';
+'use client';
 
-interface Props {
-  activeScreen: ScreenId;
-  onNavigate: (s: ScreenId) => void;
-}
+import { usePathname, useRouter } from 'next/navigation';
+import { useRole } from '@/context/RoleContext';
+import type { ScreenId } from '@/types';
+import { IconCalendar, IconMic, IconAgenda, IconDebrief } from '@/components/Icons';
 
 const NAV_ITEMS: { id: ScreenId; label: string; icon: React.ReactElement }[] = [
   { id: 'backbone', label: 'Schedule', icon: <IconCalendar size={22} /> },
@@ -14,8 +12,12 @@ const NAV_ITEMS: { id: ScreenId; label: string; icon: React.ReactElement }[] = [
   { id: 'debrief',  label: 'Debrief',  icon: <IconDebrief size={22} /> },
 ];
 
-export default function BottomNav({ activeScreen, onNavigate }: Props) {
+export default function BottomNav() {
+  const pathname = usePathname();
+  const router = useRouter();
   const { canAccess } = useRole();
+
+  const activeScreen = (pathname.replace('/', '') as ScreenId) || 'backbone';
 
   return (
     <nav className="bottom-nav">
@@ -25,7 +27,7 @@ export default function BottomNav({ activeScreen, onNavigate }: Props) {
           <div
             key={item.id}
             className={`bn-item${activeScreen === item.id ? ' on' : ''}${!accessible ? ' disabled' : ''}`}
-            onClick={() => accessible && onNavigate(item.id)}
+            onClick={() => accessible && router.push('/' + item.id)}
           >
             {item.icon}
             <span className="bn-label">{item.label}</span>

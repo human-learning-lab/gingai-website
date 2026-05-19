@@ -7,7 +7,6 @@ interface AvatarProps {
   alt?: string;
 }
 
-/** Shows a profile photo if src is provided, otherwise falls back to initials circle */
 export default function Avatar({ src, initial, size = 28, className, style, alt }: AvatarProps) {
   const base: React.CSSProperties = {
     width: size,
@@ -29,7 +28,6 @@ export default function Avatar({ src, initial, size = 28, className, style, alt 
         style={base}
         className={className}
         onError={e => {
-          // fall back to initials if image fails to load
           const el = e.currentTarget;
           el.style.display = 'none';
           const sibling = el.nextElementSibling as HTMLElement | null;

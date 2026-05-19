@@ -1,4 +1,6 @@
-import Avatar from '../../components/Avatar';
+'use client';
+
+import Avatar from '@/components/Avatar';
 
 const TEAM_AVATARS: Record<string, string> = {
   Martine: '/images/team/martine.png',
@@ -8,6 +10,17 @@ const TEAM_AVATARS: Record<string, string> = {
   Mateus:  '/images/team/mateus.png',
   Marco:   '/images/team/marco.png',
 };
+
+function DemoBadge() {
+  return (
+    <span style={{
+      fontFamily: "'Barlow Condensed', sans-serif",
+      fontSize: 9, fontWeight: 700, letterSpacing: '0.14em',
+      textTransform: 'uppercase', padding: '2px 6px', borderRadius: 3,
+      background: 'var(--yg)', border: '1px solid var(--yb)', color: 'var(--yellow)',
+    }}>DEMO</span>
+  );
+}
 
 export default function StatusRail() {
   const team = [
@@ -28,7 +41,10 @@ export default function StatusRail() {
   return (
     <div className="srl">
       <div className="srl-sec">
-        <div className="srl-lbl">Team</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div className="srl-lbl" style={{ marginBottom: 0 }}>Team</div>
+          <DemoBadge />
+        </div>
         {team.map(m => (
           <div className="s-row" key={m.name}>
             <div className="s-ava" style={{ padding: 0, overflow: 'hidden' }}>
@@ -48,7 +64,10 @@ export default function StatusRail() {
         <div style={{ fontSize: 14, fontWeight: 500 }}>Warm Up</div>
       </div>
       <div className="srl-sec">
-        <div className="srl-lbl">Open Items</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div className="srl-lbl" style={{ marginBottom: 0 }}>Open Items</div>
+          <DemoBadge />
+        </div>
         {actions.map((a, i) => (
           <div className="ac-row" key={i} style={a.last ? { borderBottom: 'none' } : undefined}>
             <div className="ac-title">

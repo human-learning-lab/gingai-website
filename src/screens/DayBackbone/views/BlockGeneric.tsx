@@ -1,8 +1,8 @@
-import { BLOCKS } from '../../../data/blocks';
+'use client';
 
-interface Props {
-  selectedId: string;
-}
+import { BLOCKS } from '@/data/blocks';
+
+interface Props { selectedId: string; }
 
 export default function BlockGeneric({ selectedId }: Props) {
   const block = BLOCKS.find(b => b.id === selectedId);

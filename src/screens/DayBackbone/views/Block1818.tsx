@@ -1,5 +1,7 @@
-import { useRole } from '../../../context/RoleContext';
-import { IconStar, IconMic } from '../../../components/Icons';
+'use client';
+
+import { useRole } from '@/context/RoleContext';
+import { IconStar, IconMic } from '@/components/Icons';
 
 const SAILORS = [
   { name: 'Martine', init: 'MG', focus: 'Boat speed · Pre-start positioning' },
@@ -12,7 +14,7 @@ const SAILORS = [
 
 export default function Block1818() {
   const { role } = useRole();
-  const isMe = (name: string) => role.view === 'sailor' && name === role.name;
+  const isMe = (name: string) => role?.view === 'sailor' && name === role.name;
 
   return (
     <>
@@ -24,8 +26,6 @@ export default function Block1818() {
       </div>
 
       <div className="gen-panel" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-
-        {/* How it works card */}
         <div className="card card-r" style={{ marginBottom: 12 }}>
           <div className="card-label" style={{ color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 5 }}>
             <IconMic size={10} /> How Capture works
@@ -34,15 +34,10 @@ export default function Block1818() {
             Activates automatically at dock-in after R7. Each sailor receives an AI voice interview on their phone —
             5–8 min structured reflection guided by the 5 Whys method. Results are synthesised in real-time as sailors complete.
           </div>
-
-          {/* 5 Whys progress visual */}
           <div style={{ display: 'flex', gap: 6, marginTop: 14 }}>
             {['Opening', 'Why 1', 'Why 2', 'Why 3', 'Why 4', 'Why 5'].map((label, i) => (
               <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-                <div style={{
-                  height: 3, borderRadius: 2, marginBottom: 5,
-                  background: 'var(--line2)',
-                }} />
+                <div style={{ height: 3, borderRadius: 2, marginBottom: 5, background: 'var(--line2)' }} />
                 <div style={{ fontSize: 9, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                   {label}
                 </div>
@@ -51,7 +46,6 @@ export default function Block1818() {
           </div>
         </div>
 
-        {/* Sailor status grid */}
         <div className="card" style={{ marginBottom: 12 }}>
           <div className="card-label">Sailor Status · 6 scheduled</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, margin: '0 -18px -18px', borderTop: '1px solid var(--line)' }}>
@@ -85,18 +79,16 @@ export default function Block1818() {
           </div>
         </div>
 
-        {/* GingAI pre-load card */}
         <div className="card card-g">
           <div className="card-label" style={{ color: 'var(--green)', display: 'flex', alignItems: 'center', gap: 5 }}>
             <IconStar /> GingAI · Pre-loaded Context
           </div>
           <div className="ai-body">
-            Opening question anchored to each sailor's individual brief from today's Prime session.
+            Opening question anchored to each sailor&apos;s individual brief from today&apos;s Prime session.
             AI will cross-reference live responses with Oracle telemetry in real-time to surface
             data-backed follow-up questions.
           </div>
         </div>
-
       </div>
     </>
   );

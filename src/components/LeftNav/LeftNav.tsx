@@ -1,23 +1,27 @@
-import type { ReactElement } from 'react';
-import { useRole } from '../../context/RoleContext';
-import type { ScreenId } from '../../types';
-import { IconCalendar, IconMic, IconAgenda, IconDebrief, IconBook } from '../Icons';
-import Avatar from '../Avatar';
+'use client';
 
-interface Props {
-  activeScreen: ScreenId;
-  onNavigate: (s: ScreenId) => void;
-}
+import { usePathname, useRouter } from 'next/navigation';
+import { useRole } from '@/context/RoleContext';
+import { useUser } from '@clerk/nextjs';
+import type { ScreenId } from '@/types';
+import { IconCalendar, IconMic, IconAgenda, IconDebrief, IconBook } from '@/components/Icons';
 
-const NAV_ITEMS: { id: ScreenId; title: string; icon: ReactElement }[] = [
-  { id: 'backbone', title: 'Day Backbone', icon: <IconCalendar /> },
-  { id: 'capture',  title: 'Capture',      icon: <IconMic /> },
+const NAV_ITEMS: { id: ScreenId; title: string; icon: React.ReactElement }[] = [
+  { id: 'backbone', title: 'Day Backbone',   icon: <IconCalendar /> },
+  { id: 'capture',  title: 'Capture',        icon: <IconMic /> },
   { id: 'intel',    title: 'Debrief Agenda', icon: <IconAgenda /> },
   { id: 'debrief',  title: 'Team Debrief',   icon: <IconDebrief /> },
 ];
 
-export default function LeftNav({ activeScreen, onNavigate }: Props) {
-  const { role, canAccess } = useRole();
+export default function LeftNav() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { canAccess } = useRole();
+  const { user } = useUser();
+
+  const activeScreen = (pathname.replace('/', '') as ScreenId) || 'backbone';
+  const imgUrl = user?.imageUrl;
+  const initial = user?.firstName?.[0]?.toUpperCase() ?? '?';
 
   return (
     <nav className="inav">
@@ -30,28 +34,24 @@ export default function LeftNav({ activeScreen, onNavigate }: Props) {
             key={item.id}
             className={`ii${activeScreen === item.id ? ' on' : ''}${!accessible ? ' disabled' : ''}`}
             title={item.title}
-            onClick={() => accessible && onNavigate(item.id)}
+            onClick={() => accessible && router.push('/' + item.id)}
           >
             {item.icon}
           </div>
         );
       })}
 
-      <div
-        className="ii disabled"
-        title="Memory"
-      >
+      <div className="ii disabled" title="Memory">
         <IconBook />
       </div>
 
       <div className="isp" />
-      <div title={`${role.name} · ${role.label}`}>
-        <Avatar
-          src={role.avatar}
-          initial={role.initial}
-          size={30}
-          style={{ border: '1.5px solid var(--gb)' }}
-        />
+      <div className="iava" title={user?.firstName ?? 'You'}>
+        {imgUrl ? (
+          <img src={imgUrl} alt={initial} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+        ) : (
+          initial
+        )}
       </div>
     </nav>
   );

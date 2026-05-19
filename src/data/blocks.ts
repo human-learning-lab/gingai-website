@@ -1,6 +1,5 @@
-import type { Block } from '../types';
+import type { Block } from '@/types';
 
-// Race 1 (R5) starts at 17:38 = T-0. tZeroOffset = minutes before(-)/after(+) T-0
 export const BLOCKS: Block[] = [
   { id: '1320', time: '13:20', name: 'All Team — Tent',      panel: 'past',   tag: '',         tagColor: '',              status: 'past',   tZeroOffset: -258 },
   { id: '1330', time: '13:30', name: 'Debrief & Sim Brief',  panel: '1330',   tag: 'Learn',    tagColor: 'var(--text3)',   status: 'past',   tZeroOffset: -248 },
