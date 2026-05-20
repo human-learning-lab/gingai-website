@@ -25,20 +25,18 @@ export const DEFAULT_ROLE = ROLES.find(r => r.id === 'rasmus')!;
 // Maps known email addresses to a roleId.
 // Anyone from @sailgpbra.com who is NOT listed here gets 'christian' (analyst, all screens).
 export const EMAIL_ROLE_MAP: Record<string, string> = {
-  'martine@sailgpbra.com':   'martine',
-  'rasmus@sailgpbra.com':    'rasmus',
-  'pietro@sailgpbra.com':    'pietro',
-  'paul.g@sailgpbra.com':    'paul-g',
-  'goodison@sailgpbra.com':  'paul-g',
-  'mateus@sailgpbra.com':    'mateus',
-  'marco@sailgpbra.com':     'marco',
-  'paul.b@sailgpbra.com':    'paul-b',
-  'brotherton@sailgpbra.com':'paul-b',
-  'richard@sailgpbra.com':   'richard',
-  'nico@sailgpbra.com':      'nico',
-  'emilie@sailgpbra.com':    'emilie',
-  'viktor@sailgpbra.com':    'viktor',
-  'christian@sailgpbra.com': 'christian',
+  // Sailing crew
+  'mgrael@sailgpbra.com':       'martine',
+  'rkostner@sailgpbra.com':     'rasmus',
+  'pgoodison@sailgpbra.com':    'paul-g',
+  'misaac@sailgpbra.com':       'mateus',
+  'marcograel@sailgpbra.com':   'marco',
+  // Coaching & analysis
+  'rmason@sailgpbra.com':       'richard',
+  'ncarabelli@sailgpbra.com':   'nico',
+  // Developers
+  'emilie@sailgpbra.com':       'emilie',
+  'viktor@sailgpbra.com':       'viktor',
 };
 
 export const SAILGP_DOMAIN = 'sailgpbra.com';
