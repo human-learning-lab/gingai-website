@@ -4,13 +4,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useRole } from '@/context/RoleContext';
 import { useUser } from '@clerk/nextjs';
 import type { ScreenId } from '@/types';
-import { IconCalendar, IconMic, IconAgenda, IconDebrief, IconBook } from '@/components/Icons';
+import { IconCalendar, IconMic, IconAgenda, IconDebrief, IconBook, IconTranscript } from '@/components/Icons';
 
 const NAV_ITEMS: { id: ScreenId; title: string; icon: React.ReactElement }[] = [
-  { id: 'backbone', title: 'Day Backbone',   icon: <IconCalendar /> },
-  { id: 'capture',  title: 'Capture',        icon: <IconMic /> },
-  { id: 'intel',    title: 'Debrief Agenda', icon: <IconAgenda /> },
-  { id: 'debrief',  title: 'Team Debrief',   icon: <IconDebrief /> },
+  { id: 'backbone',    title: 'Day Backbone',   icon: <IconCalendar /> },
+  { id: 'capture',     title: 'Capture',        icon: <IconMic /> },
+  { id: 'intel',       title: 'Debrief Agenda', icon: <IconAgenda /> },
+  { id: 'debrief',     title: 'Team Debrief',   icon: <IconDebrief /> },
+  { id: 'transcripts', title: 'Transcripts',    icon: <IconTranscript /> },
 ];
 
 export default function LeftNav() {
@@ -41,7 +42,7 @@ export default function LeftNav() {
         );
       })}
 
-      <div className="ii disabled" title="Memory">
+      <div className="ii disabled" title="Memory" style={{ display: 'none' }}>
         <IconBook />
       </div>
 
