@@ -5,13 +5,14 @@ import { useClerk, useUser } from '@clerk/nextjs';
 import { useState, useRef, useEffect } from 'react';
 import { useRole } from '@/context/RoleContext';
 import type { ScreenId } from '@/types';
-import { IconCalendar, IconMic, IconAgenda, IconDebrief } from '@/components/Icons';
+import { IconCalendar, IconMic, IconAgenda, IconDebrief, IconTranscript } from '@/components/Icons';
 
 const NAV_ITEMS: { id: ScreenId; label: string; icon: React.ReactElement }[] = [
-  { id: 'backbone', label: 'Day Backbone',   icon: <IconCalendar size={13} /> },
-  { id: 'capture',  label: 'Capture',        icon: <IconMic size={13} /> },
-  { id: 'intel',    label: 'Debrief Agenda', icon: <IconAgenda size={13} /> },
-  { id: 'debrief',  label: 'Team Debrief',   icon: <IconDebrief size={13} /> },
+  { id: 'backbone',    label: 'Day Backbone',   icon: <IconCalendar size={13} /> },
+  { id: 'capture',     label: 'Capture',        icon: <IconMic size={13} /> },
+  { id: 'intel',       label: 'Debrief Agenda', icon: <IconAgenda size={13} /> },
+  { id: 'debrief',     label: 'Team Debrief',   icon: <IconDebrief size={13} /> },
+  { id: 'transcripts', label: 'Transcripts',    icon: <IconTranscript size={13} /> },
 ];
 
 function UserChip() {
