@@ -28,7 +28,7 @@ const REGATTAS = [
 	{ id: 'abudhabi',   city: 'Abu Dhabi',      short: 'Grand Final', dates: 'Dec 5–6',      result: 'Upcoming', photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 ];
 
-const AGENT_BASE = 'https://adk-default-service-name-742926686826.europe-north1.run.app';
+const AGENT_BASE = 'https://ginga-742926686826.us-central1.run.app';
 const APP_NAME = 'gingai';
 
 async function ensureSession(userId: string, sessionId: string) {
@@ -40,7 +40,7 @@ async function ensureSession(userId: string, sessionId: string) {
 }
 
 async function* streamAgentResponse(userId: string, sessionId: string, text: string): AsyncGenerator<string> {
-	const res = await fetch(`${AGENT_BASE}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}/run_sse`, {
+	const res = await fetch(`${AGENT_BASE}/run_sse`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
 		body: JSON.stringify({
