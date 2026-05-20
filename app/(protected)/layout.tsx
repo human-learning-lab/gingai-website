@@ -1,7 +1,7 @@
 import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import ProtectedShell from './ProtectedShell';
-import { EMAIL_ROLE_MAP, SAILGP_DOMAIN, DOMAIN_DEFAULT_ROLE } from '@/data/roles';
+import { EMAIL_ROLE_MAP, ALLOWED_DOMAINS } from '@/data/roles';
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await auth();
@@ -20,8 +20,8 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         ?.toLowerCase();
 
       if (email) {
-        const roleId = EMAIL_ROLE_MAP[email]
-          ?? (email.endsWith(`@${SAILGP_DOMAIN}`) ? DOMAIN_DEFAULT_ROLE : undefined);
+        const domain = email.split('@')[1];
+        const roleId = EMAIL_ROLE_MAP[email] ?? ALLOWED_DOMAINS[domain];
 
         if (roleId) {
           const client = await clerkClient();

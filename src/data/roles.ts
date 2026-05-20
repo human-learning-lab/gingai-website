@@ -39,5 +39,7 @@ export const EMAIL_ROLE_MAP: Record<string, string> = {
   'viktor@sailgpbra.com':       'viktor',
 };
 
-export const SAILGP_DOMAIN = 'sailgpbra.com';
-export const DOMAIN_DEFAULT_ROLE = 'christian'; // analyst view, all screens
+export const ALLOWED_DOMAINS: Record<string, string> = {
+  'sailgpbra.com': 'christian',  // analyst, all screens
+  'hulelab.com':   'emilie',     // developer, all screens
+};
