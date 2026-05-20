@@ -28,7 +28,7 @@ const REGATTAS = [
 	{ id: 'abudhabi',   city: 'Abu Dhabi',      short: 'Grand Final', dates: 'Dec 5–6',      result: 'Upcoming', photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 ];
 
-const AGENT_BASE = 'https://ginga-742926686826.us-central1.run.app';
+const AGENT_BASE = "/api/agent"
 const APP_NAME = 'gingai';
 
 async function ensureSession(userId: string, sessionId: string) {
