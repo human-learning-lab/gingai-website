@@ -54,7 +54,7 @@ async function fetchAgentResponse(userId: string, sessionId: string, text: strin
 	});
 
 	const reader = res.body?.getReader();
-	if (!reader) return;
+	if (!reader) return '';
 	const decoder = new TextDecoder();
 	let buffer = '';
 	let fullText = '';
