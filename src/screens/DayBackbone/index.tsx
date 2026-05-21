@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import LeftNav from '@/components/LeftNav/LeftNav';
 import Timeline from '@/components/Timeline/Timeline';
 import Block1430 from './views/Block1430';
 import Block1330 from './views/Block1330';
@@ -11,23 +10,38 @@ import Block1500 from './views/Block1500';
 import Block1550 from './views/Block1550';
 import BlockGeneric from './views/BlockGeneric';
 import StatusRail from './StatusRail';
-import { BLOCKS } from '@/data/blocks';
+import { getBlocks } from '@/data/blocks';
 
 const REGATTAS = [
-	{ id: 'perth',      city: 'Perth',          short: 'Perth',       dates: 'Jan 17–18',    result: 'Past',     photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
-	{ id: 'auckland',   city: 'Auckland',       short: 'Auckland',    dates: 'Feb 14–15',    result: 'Past',     photo: '/images/boat-auckland.jpg',     photoPos: 'center 60%',   days: ['Day 1', 'Day 2'] },
-	{ id: 'sydney',     city: 'Sydney',         short: 'Sydney',      dates: 'Feb 28–Mar 1', result: 'Past',     photo: '/images/boat-sydney.jpg',       photoPos: 'center 40%',   days: ['Day 1', 'Day 2'] },
-	{ id: 'rio',        city: 'Rio de Janeiro', short: 'Rio',         dates: 'Apr 11–12',    result: 'Past',     photo: '/images/boat-rio.jpg',          photoPos: 'center 70%',   days: ['Day 1', 'Day 2'] },
-	{ id: 'bermuda',    city: 'Bermuda',        short: 'Bermuda',     dates: 'May 9–10',     result: 'Active',   photo: '/images/boat-bermuda.jpg',      photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
-	{ id: 'newyork',    city: 'New York',       short: 'New York',    dates: 'May 23–24',    result: 'Upcoming', photo: '/images/boat-newyork.jpg',      photoPos: 'center 70%',   days: ['Day 1', 'Day 2'] },
-	{ id: 'halifax',    city: 'Halifax',        short: 'Halifax',     dates: 'Jun 13–14',    result: 'Upcoming', photo: '/images/boat-halifax.jpg',      photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
-	{ id: 'portsmouth', city: 'Portsmouth',     short: 'Portsmouth',  dates: 'Jul 18–19',    result: 'Upcoming', photo: '/images/boat-portsmouth.jpg',   photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
-	{ id: 'sassnitz',   city: 'Sassnitz',       short: 'Sassnitz',    dates: 'Aug 8–9',      result: 'Upcoming', photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
-	{ id: 'valencia',   city: 'Valencia',       short: 'Valencia',    dates: 'Sep 5–6',      result: 'Upcoming', photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
-	{ id: 'geneva',     city: 'Geneva',         short: 'Geneva',      dates: 'Sep 26–27',    result: 'Upcoming', photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
-	{ id: 'dubai',      city: 'Dubai',          short: 'Dubai',       dates: 'Nov 14–15',    result: 'Upcoming', photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
-	{ id: 'abudhabi',   city: 'Abu Dhabi',      short: 'Grand Final', dates: 'Dec 5–6',      result: 'Upcoming', photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+	{ id: 'perth',      city: 'Perth',          short: 'Perth',       dates: 'Jan 17–18',    start: '2026-01-17', end: '2026-01-18', lat: -31.95,  lon: 115.86,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+	{ id: 'auckland',   city: 'Auckland',       short: 'Auckland',    dates: 'Feb 14–15',    start: '2026-02-14', end: '2026-02-15', lat: -36.85,  lon: 174.76,  photo: '/images/boat-auckland.jpg',     photoPos: 'center 60%',   days: ['Day 1', 'Day 2'] },
+	{ id: 'sydney',     city: 'Sydney',         short: 'Sydney',      dates: 'Feb 28–Mar 1', start: '2026-02-28', end: '2026-03-01', lat: -33.87,  lon: 151.21,  photo: '/images/boat-sydney.jpg',       photoPos: 'center 40%',   days: ['Day 1', 'Day 2'] },
+	{ id: 'rio',        city: 'Rio de Janeiro', short: 'Rio',         dates: 'Apr 11–12',    start: '2026-04-11', end: '2026-04-12', lat: -22.91,  lon: -43.17,  photo: '/images/boat-rio.jpg',          photoPos: 'center 70%',   days: ['Day 1', 'Day 2'] },
+	{ id: 'bermuda',    city: 'Bermuda',        short: 'Bermuda',     dates: 'May 9–10',     start: '2026-05-09', end: '2026-05-10', lat:  32.30,  lon: -64.78,  photo: '/images/boat-bermuda.jpg',      photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
+	{ id: 'newyork',    city: 'New York',       short: 'New York',    dates: 'May 23–24',    start: '2026-05-23', end: '2026-05-24', lat:  40.65,  lon: -74.02,  photo: '/images/boat-newyork.jpg',      photoPos: 'center 70%',   days: ['Day 1', 'Day 2'] },
+	{ id: 'halifax',    city: 'Halifax',        short: 'Halifax',     dates: 'Jun 13–14',    start: '2026-06-13', end: '2026-06-14', lat:  44.65,  lon: -63.58,  photo: '/images/boat-halifax.jpg',      photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
+	{ id: 'portsmouth', city: 'Portsmouth',     short: 'Portsmouth',  dates: 'Jul 18–19',    start: '2026-07-18', end: '2026-07-19', lat:  50.80,  lon:  -1.08,  photo: '/images/boat-portsmouth.jpg',   photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
+	{ id: 'sassnitz',   city: 'Sassnitz',       short: 'Sassnitz',    dates: 'Aug 8–9',      start: '2026-08-08', end: '2026-08-09', lat:  54.52,  lon:  13.64,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+	{ id: 'valencia',   city: 'Valencia',       short: 'Valencia',    dates: 'Sep 5–6',      start: '2026-09-05', end: '2026-09-06', lat:  39.47,  lon:  -0.38,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+	{ id: 'geneva',     city: 'Geneva',         short: 'Geneva',      dates: 'Sep 26–27',    start: '2026-09-26', end: '2026-09-27', lat:  46.20,  lon:   6.14,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+	{ id: 'dubai',      city: 'Dubai',          short: 'Dubai',       dates: 'Nov 14–15',    start: '2026-11-14', end: '2026-11-15', lat:  25.08,  lon:  55.13,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+	{ id: 'abudhabi',   city: 'Abu Dhabi',      short: 'Grand Final', dates: 'Dec 5–6',      start: '2026-12-05', end: '2026-12-06', lat:  24.47,  lon:  54.37,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 ];
+
+function getRegatResult(start: string, end: string): 'Past' | 'Active' | 'Upcoming' {
+	const today = new Date(); today.setHours(0, 0, 0, 0);
+	const s = new Date(start); const e = new Date(end); e.setHours(23, 59, 59, 999);
+	if (today > e) return 'Past';
+	if (today >= s) return 'Active';
+	return 'Upcoming';
+}
+
+function getDefaultRegat(): string {
+	const active = REGATTAS.find(r => getRegatResult(r.start, r.end) === 'Active');
+	if (active) return active.id;
+	const next = REGATTAS.find(r => getRegatResult(r.start, r.end) === 'Upcoming');
+	return next?.id ?? REGATTAS[REGATTAS.length - 1].id;
+}
 
 const AGENT_BASE = "/api/agent"
 const APP_NAME = 'gingai';
@@ -93,26 +107,49 @@ function DemoBadge() {
 	);
 }
 
-function RegatNav() {
-	const [activeRegat, setActiveRegat] = useState('bermuda');
+function RegatNav({ activeRegat, setActiveRegat }: { activeRegat: string; setActiveRegat: (id: string) => void }) {
 	const [activeDay, setActiveDay] = useState(0);
+	const tier1Ref = useRef<HTMLDivElement>(null);
 
 	const regat = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[0];
+	const result = getRegatResult(regat.start, regat.end);
+
+	useEffect(() => {
+		const container = tier1Ref.current;
+		if (!container) return;
+		const activeBtn = container.querySelector<HTMLElement>('.regat-tab.on');
+		if (!activeBtn) return;
+		const containerRect = container.getBoundingClientRect();
+		const btnRect = activeBtn.getBoundingClientRect();
+		const scrollLeft = container.scrollLeft + btnRect.left - containerRect.left - (containerRect.width / 2) + (btnRect.width / 2);
+		container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+	}, [activeRegat]);
 
 	return (
 		<div className="regat-nav">
-		<div className="regat-header">SailGP 2026 — Season 6</div>
-		<div className="regat-tier1">
-		{REGATTAS.map(r => (
-			<button
-			key={r.id}
-			className={`regat-tab${activeRegat === r.id ? ' on' : ''}${r.result === 'Past' ? ' past' : ''}`}
-			onClick={() => { setActiveRegat(r.id); setActiveDay(0); }}
-			>
-			<div className="regat-tab-city">{r.short}</div>
-			<div className="regat-tab-result">{r.dates}</div>
-			</button>
-		))}
+		<div className="regat-header">
+			SailGP 2026 — Season 6
+			{result === 'Active' && (
+				<span style={{ marginLeft: 10, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--green)', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif" }}>● Live</span>
+			)}
+			{result === 'Upcoming' && (
+				<span style={{ marginLeft: 10, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--yellow)', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif" }}>Next up</span>
+			)}
+		</div>
+		<div className="regat-tier1" ref={tier1Ref}>
+		{REGATTAS.map(r => {
+			const res = getRegatResult(r.start, r.end);
+			return (
+				<button
+				key={r.id}
+				className={`regat-tab${activeRegat === r.id ? ' on' : ''}${res === 'Past' ? ' past' : ''}`}
+				onClick={() => { setActiveRegat(r.id); setActiveDay(0); }}
+				>
+				<div className="regat-tab-city">{r.short}</div>
+				<div className="regat-tab-result">{r.dates}</div>
+				</button>
+			);
+		})}
 		</div>
 		<div className="regat-photo">
 		{REGATTAS.filter(r => r.photo).map(r => (
@@ -191,66 +228,50 @@ function AskMeBar() {
 
 	return (
 		<div className="ask-bar-wrap">
-		<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-		<div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-		Ask GingAI
-		</div>
-		</div>
 		<div className="ask-bar">
+		<div className="ask-bar-logo">
+			<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+				<path d="M7 1L8.2 5.8L13 7L8.2 8.2L7 13L5.8 8.2L1 7L5.8 5.8L7 1Z" fill="var(--green)" opacity="0.85"/>
+			</svg>
+		</div>
 		<input
 		type="text"
-		placeholder="Just ask me"
+		placeholder="Ask anything…"
 		value={query}
 		onChange={e => setQuery(e.target.value)}
 		onKeyDown={handleKey}
 		disabled={thinking}
 		/>
-		<button className="ask-bar-mic" title="Voice input" aria-label="Voice input">
-		<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-		<rect x="5" y="1" width="6" height="9" rx="3" fill="currentColor" />
-		<path d="M3 8a5 5 0 0 0 10 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-		<line x1="8" y1="13" x2="8" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-		</svg>
-		</button>
-		<button className="ask-bar-send" onClick={() => submit()} aria-label="Send" disabled={thinking}>
-		<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-		<path d="M7 12V2M3 6l4-4 4 4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-		</svg>
-		</button>
-		</div>
-		{!thinking && !answer && (
-			<div className="ask-chips">
-			{ASK_SUGGESTIONS.map(s => (
-				<button key={s} className="ask-chip" onClick={() => submit(s)}>{s}</button>
+		{thinking ? (
+			<div style={{ display: 'flex', gap: 3, alignItems: 'center', padding: '0 14px' }}>
+			{[0, 1, 2].map(i => (
+				<span key={i} style={{
+					width: 4, height: 4, borderRadius: '50%', background: 'var(--green)',
+					display: 'inline-block',
+					animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+				}} />
 			))}
 			</div>
-		)}
-		{(thinking || answer) && (
-			<div className="ask-response" style={{ padding: 0, overflow: 'hidden' }}>
-			<div style={{
-				display: 'flex', alignItems: 'center', gap: 7,
-				padding: '8px 14px', borderBottom: '1px solid var(--gb)',
-				background: 'rgba(0,155,58,0.06)',
-			}}>
-			<svg width="11" height="11" viewBox="0 0 24 24" fill="var(--green)">
-			<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+		) : (
+			<button
+				className="ask-bar-send"
+				onClick={() => submit()}
+				aria-label="Send"
+				style={{ color: query.trim() ? 'var(--green)' : 'var(--line2)' }}
+			>
+			<svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+			<path d="M6.5 11V2M3 5.5l3.5-3.5 3.5 3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
 			</svg>
-			<span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-			GingAI
-			</span>
-			{thinking && (
-				<span style={{ marginLeft: 'auto', display: 'flex', gap: 3, alignItems: 'center' }}>
-				{[0, 1, 2].map(i => (
-					<span key={i} style={{
-						width: 5, height: 5, borderRadius: '50%', background: 'var(--green)',
-						opacity: 0.4, animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-					}} />
-				))}
-				</span>
-			)}
+			</button>
+		)}
+		</div>
+		{answer && (
+			<div className="ask-response">
+			<div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--green)', fontFamily: "'Barlow Condensed', sans-serif", marginBottom: 8 }}>
+				GingAI
 			</div>
-			<div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-			{answer || <span style={{ color: 'var(--text4)', fontStyle: 'italic' }}>Searching team memory…</span>}
+			<div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
+				{answer}
 			</div>
 			</div>
 		)}
@@ -258,72 +279,82 @@ function AskMeBar() {
 	);
 }
 
-export default function DayBackbone() {
-	const nowBlock = BLOCKS.find(b => b.status === 'now');
-	const [selectedId, setSelectedId] = useState(nowBlock?.id ?? '1430');
-	const [mobTab, setMobTab] = useState<'schedule' | 'now'>('schedule');
-
-	const selected = BLOCKS.find(b => b.id === selectedId);
-	const panel = selected?.panel ?? 'future';
-
-	function handleMobSelect(id: string) {
-		setSelectedId(id);
-		setMobTab('now');
-	}
-
-	const blockContent = (
+function blockContentForPanel(panel: string, selectedId: string) {
+	return (
 		<>
-		{panel === '1430' && <Block1430 />}
-		{panel === '1330' && <Block1330 />}
-		{panel === '1818' && <Block1818 />}
-		{panel === '1500' && <Block1500 />}
-		{panel === '1550' && <Block1550 />}
+		{panel === '1430' && <Block1430 data={null} />}
+		{panel === '1330' && <Block1330 data={null} />}
+		{panel === '1818' && <Block1818 data={null} />}
+		{panel === '1500' && <Block1500 data={null} />}
+		{panel === '1550' && <Block1550 data={null} />}
 		{(panel === 'past' || panel === 'future') && <BlockGeneric selectedId={selectedId} />}
 		</>
 	);
+}
+
+export default function DayBackbone() {
+	const blocks = getBlocks();
+	const nowBlock = blocks.find(b => b.status === 'now');
+	const [selectedId, setSelectedId] = useState(nowBlock?.id ?? blocks[0]?.id ?? '1430');
+	const userSelectedRef = useRef(false);
+	const [activeRegat, setActiveRegat] = useState(getDefaultRegat);
+	const activeVenue = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[5];
+
+	// Follow the live "now" block automatically unless the user has manually selected one
+	useEffect(() => {
+		if (userSelectedRef.current) return;
+		const interval = setInterval(() => {
+			const live = getBlocks().find(b => b.status === 'now');
+			if (live) setSelectedId(live.id);
+		}, 30_000);
+		return () => clearInterval(interval);
+	}, []);
+
+	// Also sync immediately whenever blocks change (e.g. on mount after hydration)
+	useEffect(() => {
+		if (userSelectedRef.current) return;
+		const live = getBlocks().find(b => b.status === 'now');
+		if (live) setSelectedId(live.id);
+	}, []);
+
+	function handleSelect(id: string) {
+		userSelectedRef.current = true;
+		setSelectedId(id);
+	}
+
+	const selected = blocks.find(b => b.id === selectedId);
+	const panel = selected?.panel ?? 'future';
+	const blockContent = blockContentForPanel(panel, selectedId);
+
+	function renderMobExpanded(blockId: string) {
+		const b = blocks.find(bl => bl.id === blockId);
+		if (!b) return null;
+		return blockContentForPanel(b.panel, blockId);
+	}
 
 	return (
 		<div className="s-backbone">
-		<LeftNav />
 
-		{/* Mobile layout */}
-		<div className="mob-only mob-backbone">
-		<div className="mob-bb-tabs">
-		<button
-		className={`mob-bb-tab${mobTab === 'schedule' ? ' on' : ''}`}
-		onClick={() => setMobTab('schedule')}
-		>
-		Schedule
-		</button>
-		<button
-		className={`mob-bb-tab${mobTab === 'now' ? ' on' : ''}`}
-		onClick={() => setMobTab('now')}
-		>
-		{selected ? `${selected.time} · ${selected.name}` : 'Now'}
-		</button>
-		</div>
-
-		{mobTab === 'schedule' && (
-			<div className="mob-bb-tl">
-			<Timeline selectedId={selectedId} onSelect={handleMobSelect} />
-			</div>
-		)}
-
-		{mobTab === 'now' && (
-			<div className="mob-bb-detail">
-			{blockContent}
-			</div>
-		)}
-		</div>
-
-		{/* Desktop layout */}
-		<Timeline selectedId={selectedId} onSelect={setSelectedId} />
-
-		<div className="main">
-		<RegatNav />
+	{/* Mobile layout — inline expansion, no tabs */}
+	<div className="mob-only mob-backbone">
+	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} />
+	<div style={{ padding: '0 0 4px' }}>
 		<AskMeBar />
+	</div>
+	<div className="mob-bb-tl">
+		<Timeline selectedId={selectedId} onSelect={handleSelect} renderExpanded={renderMobExpanded} />
+	</div>
+	</div>
+
+	{/* Desktop layout */}
+	<div className="desk-only" style={{ display: 'contents' }}>
+	<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} />
+	<div className="main">
+	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} />
 		<div className="block-view on">
 		{blockContent}
+		</div>
+		<AskMeBar />
 		</div>
 		</div>
 

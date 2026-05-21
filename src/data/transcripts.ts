@@ -3,8 +3,11 @@ export type TranscriptLine = {
   text: string;
 };
 
+export type TranscriptSource = 'race' | 'capture' | 'debrief' | 'upload';
+
 export type Transcript = {
   id: string;
+  source: TranscriptSource;
   regatta: string;
   race: string;
   team: string;
@@ -21,6 +24,7 @@ export function getTranscripts(): Transcript[] {
 const TRANSCRIPTS: Transcript[] = [
   {
     id: 'perth-r1-gbr',
+    source: 'race',
     regatta: 'Perth',
     race: 'R1',
     team: 'GBR',
@@ -36,6 +40,7 @@ const TRANSCRIPTS: Transcript[] = [
   },
   {
     id: 'perth-r2-gbr',
+    source: 'race',
     regatta: 'Perth',
     race: 'R2',
     team: 'GBR',
@@ -49,6 +54,7 @@ const TRANSCRIPTS: Transcript[] = [
   },
   {
     id: 'perth-r1-aus',
+    source: 'race',
     regatta: 'Perth',
     race: 'R1',
     team: 'AUS',
@@ -63,6 +69,7 @@ const TRANSCRIPTS: Transcript[] = [
   },
   {
     id: 'auckland-r1-nzl',
+    source: 'race',
     regatta: 'Auckland',
     race: 'R1',
     team: 'NZL',
@@ -77,6 +84,7 @@ const TRANSCRIPTS: Transcript[] = [
   },
   {
     id: 'auckland-r2-nzl',
+    source: 'race',
     regatta: 'Auckland',
     race: 'R2',
     team: 'NZL',
@@ -90,6 +98,7 @@ const TRANSCRIPTS: Transcript[] = [
   },
   {
     id: 'auckland-r1-fra',
+    source: 'race',
     regatta: 'Auckland',
     race: 'R1',
     team: 'FRA',
@@ -103,6 +112,7 @@ const TRANSCRIPTS: Transcript[] = [
   },
   {
     id: 'sydney-r1-usa',
+    source: 'race',
     regatta: 'Sydney',
     race: 'R1',
     team: 'USA',
@@ -117,6 +127,7 @@ const TRANSCRIPTS: Transcript[] = [
   },
   {
     id: 'rio-r1-bra',
+    source: 'race',
     regatta: 'Rio',
     race: 'R1',
     team: 'BRA',
@@ -130,6 +141,7 @@ const TRANSCRIPTS: Transcript[] = [
   },
   {
     id: 'rio-r2-bra',
+    source: 'race',
     regatta: 'Rio',
     race: 'R2',
     team: 'BRA',
@@ -143,6 +155,7 @@ const TRANSCRIPTS: Transcript[] = [
   },
   {
     id: 'rio-r1-sui',
+    source: 'race',
     regatta: 'Rio',
     race: 'R1',
     team: 'SUI',

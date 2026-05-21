@@ -1,12 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { BLOCKS } from '@/data/blocks';
+import { useState, useEffect, useRef } from 'react';
+import { getBlocks } from '@/data/blocks';
 import type { Block } from '@/types';
 
 interface Props {
   selectedId: string;
   onSelect: (id: string) => void;
+  renderExpanded?: (blockId: string) => React.ReactNode;
+  venueLat?: number;
+  venueLon?: number;
+  venueCity?: string;
 }
 
 function formatTZero(offset: number): string {
@@ -29,37 +33,85 @@ function DemoBadge() {
   );
 }
 
-export default function Timeline({ selectedId, onSelect }: Props) {
-  const [countdown, setCountdown] = useState(23 * 60 + 18);
+function useNow(intervalMs = 10000): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), intervalMs);
+    return () => clearInterval(t);
+  }, [intervalMs]);
+  return now;
+}
+
+function secsUntil(targetTime: string, now: Date): number {
+  const [h, m] = targetTime.split(':').map(Number);
+  const target = new Date(now);
+  target.setHours(h, m, 0, 0);
+  return Math.max(0, Math.floor((target.getTime() - now.getTime()) / 1000));
+}
+
+export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity }: Props) {
+  const now = useNow();
+  const blocks = getBlocks(now);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const tZeroBlock = blocks.find(b => b.tZeroOffset === 0);
+  const [secsToTZero, setSecsToTZero] = useState(() =>
+    tZeroBlock ? secsUntil(tZeroBlock.time, now) : 0
+  );
 
   useEffect(() => {
     const t = setInterval(() => {
-      setCountdown(prev => (prev > 0 ? prev - 1 : 0));
+      if (tZeroBlock) setSecsToTZero(secsUntil(tZeroBlock.time, new Date()));
     }, 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [tZeroBlock]);
 
-  const mm = String(Math.floor(countdown / 60)).padStart(2, '0');
-  const ss = String(countdown % 60).padStart(2, '0');
+  // Scroll "now" block into view on mount and whenever it changes
+  useEffect(() => {
+    const nowBlock = blocks.find(b => b.status === 'now');
+    if (!nowBlock || !listRef.current) return;
+    const el = listRef.current.querySelector(`#tl-${nowBlock.id}`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blocks.find(b => b.status === 'now')?.id]);
+
+  const totalSecs = secsToTZero;
+  const hh = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
+  const mm = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
+  const ss = String(totalSecs % 60).padStart(2, '0');
+  const countdownStr = `${hh}:${mm}:${ss}`;
 
   return (
     <div className="tl">
       <div className="tl-top">
         <div className="tl-eyebrow">Race Day 1 · Season 6</div>
-        <div className="tl-day">Bermuda</div>
-        <div className="tl-sub">Bermuda SailGP · 2026</div>
-        <WeatherPanel />
+        <div className="tl-day">{venueCity ?? 'Event'}</div>
+        <div className="tl-sub">{venueCity ? `${venueCity} SailGP · 2026` : 'SailGP · 2026'}</div>
+        <WeatherPanel lat={venueLat} lon={venueLon} city={venueCity} />
         <EquipmentPanel />
       </div>
-      <div className="tl-list">
-        {BLOCKS.map(block => (
-          <TimelineItem
-            key={block.id}
-            block={block}
-            selected={selectedId === block.id}
-            countdown={`00:${mm}:${ss}`}
-            onClick={() => onSelect(block.id)}
-          />
+      <div className="tl-list" ref={listRef}>
+        {blocks.map(block => (
+          <div key={block.id}>
+            <TimelineItem
+              block={block}
+              selected={selectedId === block.id}
+              countdown={countdownStr}
+              onClick={() => onSelect(block.id)}
+            />
+            {renderExpanded && selectedId === block.id && (
+              <div style={{
+                borderLeft: '2px solid var(--green)',
+                marginLeft: 12,
+                marginBottom: 4,
+                background: 'var(--bg2)',
+                borderRadius: '0 8px 8px 0',
+                overflow: 'hidden',
+              }}>
+                {renderExpanded(block.id)}
+              </div>
+            )}
+          </div>
         ))}
       </div>
     </div>
@@ -80,125 +132,99 @@ function WindArrow({ bearing }: { bearing: number }) {
   );
 }
 
-const CONDITIONS = [
-  { id: 'sunny',    label: 'Sunny',   wind: '14–18' },
-  { id: 'overcast', label: 'Overcast', wind: '10–12' },
-  { id: 'stormy',   label: 'Storm',   wind: '22–28' },
-];
+interface WeatherData {
+  wind: number;
+  gusts: number;
+  bearing: number;
+  temp: number;
+  sky: string;
+}
 
-function WeatherPanel() {
-  const [condIdx, setCondIdx] = useState(0);
-  const [courseConfirmed, setCourseConfirmed] = useState(false);
-  const cond = CONDITIONS[condIdx];
-  const windBearing = 202;
-  const isSunny = cond.id === 'sunny';
+function bearingToCardinal(deg: number): string {
+  const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return dirs[Math.round(deg / 22.5) % 16];
+}
 
-  function cycle() {
-    setCondIdx(prev => (prev + 1) % CONDITIONS.length);
-  }
+function wmoToSky(code: number): string {
+  if (code === 0) return 'Clear';
+  if (code <= 3) return 'Partly cloudy';
+  if (code <= 48) return 'Overcast';
+  if (code <= 67) return 'Rain';
+  if (code <= 77) return 'Snow';
+  if (code <= 82) return 'Showers';
+  return 'Thunderstorm';
+}
+
+function WeatherPanel({ lat, lon, city }: { lat?: number; lon?: number; city?: string }) {
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [fetching, setFetching] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState('');
+
+  useEffect(() => {
+    if (!lat || !lon) return;
+    let cancelled = false;
+    setFetching(true);
+    fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+      `&current=wind_speed_10m,wind_gusts_10m,wind_direction_10m,temperature_2m,weather_code` +
+      `&wind_speed_unit=kn&timezone=auto`
+    )
+      .then(r => r.json())
+      .then(d => {
+        if (cancelled) return;
+        const c = d.current;
+        setWeather({
+          wind:    Math.round(c.wind_speed_10m),
+          gusts:   Math.round(c.wind_gusts_10m),
+          bearing: Math.round(c.wind_direction_10m),
+          temp:    Math.round(c.temperature_2m),
+          sky:     wmoToSky(c.weather_code),
+        });
+        setUpdatedAt(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setFetching(false); });
+    return () => { cancelled = true; };
+  }, [lat, lon]);
 
   return (
-    <div style={{
-      marginTop: 14, paddingTop: 12,
-      borderTop: '1px solid var(--line)',
-      position: 'relative', overflow: 'hidden', cursor: 'pointer',
-    }} onClick={cycle} title="Tap to change conditions">
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div style={{
-          fontFamily: "'Barlow Condensed', sans-serif",
-          fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
-          textTransform: 'uppercase', color: 'var(--text4)',
-        }}>Conditions</div>
-        <DemoBadge />
-      </div>
-
-      <svg
-        viewBox="0 0 202 120"
-        width="202" height="120"
-        style={{
-          position: 'absolute', top: 0, right: -10,
-          opacity: isSunny ? 0.30 : 0.07,
-          pointerEvents: 'none', transition: 'opacity 0.4s',
-        }}
-        aria-hidden
-      >
-        <circle cx="158" cy="30" r={isSunny ? 30 : 22} fill="#FEDF00" style={{ transition: 'r 0.4s' }} />
-        {Array.from({ length: 10 }).map((_, i) => {
-          const angle = (i * 36 * Math.PI) / 180;
-          const r1 = isSunny ? 34 : 26;
-          const r2 = isSunny ? 44 : 34;
-          return (
-            <line key={i}
-              x1={158 + Math.cos(angle) * r1} y1={30 + Math.sin(angle) * r1}
-              x2={158 + Math.cos(angle) * r2} y2={30 + Math.sin(angle) * r2}
-              stroke="#FEDF00" strokeWidth="2.5" strokeLinecap="round"
-            />
-          );
-        })}
-        {!isSunny && <>
-          <ellipse cx="110" cy="52" rx="55" ry="22" fill="var(--line)" />
-          <ellipse cx="138" cy="44" rx="36" ry="18" fill="var(--line)" />
-          <ellipse cx="85"  cy="48" rx="30" ry="16" fill="var(--line)" />
-          <ellipse cx="162" cy="54" rx="28" ry="14" fill="var(--line)" />
-        </>}
-        {cond.id === 'stormy' && [30, 44, 58, 70, 84, 96].map((x, i) => (
-          <line key={i} x1={x} y1={90} x2={x - 5} y2={110} stroke="var(--line2)" strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
-        ))}
-      </svg>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        <WindArrow bearing={windBearing} />
-        <div>
-          <div style={{
-            fontFamily: "'Barlow Condensed', sans-serif",
-            fontWeight: 800, fontSize: 26, lineHeight: 1,
-            color: 'var(--text)', letterSpacing: '-0.01em',
-          }}>
-            {cond.wind}
-            <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text3)', marginLeft: 3 }}>kts</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            <span style={{
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontSize: 12, fontWeight: 700, letterSpacing: '0.08em',
-              color: 'var(--green)',
-            }}>SSW</span>
-            <span style={{ fontSize: 11, color: 'var(--text4)' }}>
-              {cond.id === 'stormy' ? 'gusty' : 'steady'}
-            </span>
-          </div>
+    <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)', transition: 'opacity 0.3s', opacity: fetching ? 0.5 : 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)' }}>
+          Conditions · {city ?? 'Venue'}
         </div>
+        {updatedAt && <div style={{ fontSize: 10, color: 'var(--text4)' }}>Updated {updatedAt}</div>}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 0' }}>
-        <CondItem
-          label="Course"
-          value={
-            <span style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 3 }}>
-              Course 2
-              <span
-                className={`course-status${courseConfirmed ? ' confirmed' : ''}`}
-                onClick={e => { e.stopPropagation(); setCourseConfirmed(v => !v); }}
-                title="Click to toggle confirmation"
-              >
-                {courseConfirmed ? '✓ Confirmed' : 'TBC'}
-              </span>
-            </span>
-          }
-        />
-        <CondItem label="Temp" value={isSunny ? '32°C' : '28°C'} />
-        <CondItem
-          label="Gusts"
-          value={cond.id === 'stormy' ? '34 kts' : isSunny ? '20 kts' : '14 kts'}
-          color={cond.id === 'stormy' ? 'var(--red)' : 'var(--yellow)'}
-        />
-        <CondItem label="Sky" value={cond.label} color={isSunny ? 'var(--yellow)' : undefined} />
-      </div>
-
-      <div style={{ marginTop: 8, fontSize: 10, color: 'var(--text4)', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif" }}>
-        tap to cycle demo conditions
-      </div>
+      {!weather ? (
+        <div style={{ fontSize: 12, color: 'var(--text4)', padding: '8px 0' }}>
+          {fetching ? 'Loading…' : 'Could not load conditions'}
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <WindArrow bearing={weather.bearing} />
+            <div>
+              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 26, lineHeight: 1, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                {weather.wind}
+                <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text3)', marginLeft: 3 }}>kts</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--green)' }}>
+                  {bearingToCardinal(weather.bearing)}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--text4)' }}>{weather.sky}</span>
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 0' }}>
+            <CondItem label="Temp"  value={`${weather.temp}°C`} />
+            <CondItem label="Sky"   value={weather.sky} />
+            <CondItem label="Gusts" value={`${weather.gusts} kts`} color={weather.gusts > 25 ? 'var(--red)' : weather.gusts > 18 ? 'var(--yellow)' : undefined} />
+            <CondItem label="Dir"   value={`${weather.bearing}°`} />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -220,39 +246,12 @@ function CondItem({ label, value, color }: { label: string; value: React.ReactNo
   );
 }
 
-const EQUIPMENT_DEFAULTS = [
-  { cat: 'Wing', val: '27.5m',      confirmed: false },
-  { cat: 'Dboard', val: 'LAB2',     confirmed: false },
-  { cat: 'Rudder', val: 'LARW2',    confirmed: true  },
-  { cat: 'Jib',    val: 'Light Air', confirmed: false },
-];
-
 function EquipmentPanel() {
-  const [eq, setEq] = useState(EQUIPMENT_DEFAULTS);
-
-  function toggle(i: number) {
-    setEq(prev => prev.map((item, idx) => idx === i ? { ...item, confirmed: !item.confirmed } : item));
-  }
-
   return (
     <div className="eq-section">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div className="eq-title" style={{ marginBottom: 0 }}>Equipment Config</div>
-        <DemoBadge />
-      </div>
-      <div className="eq-grid">
-        {eq.map((item, i) => (
-          <div
-            key={item.cat}
-            className={`eq-item${item.confirmed ? ' confirmed' : ''}`}
-            onClick={e => { e.stopPropagation(); toggle(i); }}
-            title="Click to toggle confirmation"
-          >
-            <div className="eq-cat">{item.cat}</div>
-            <div className="eq-val">{item.val}</div>
-            <div className="eq-status">{item.confirmed ? '✓ Confirmed' : 'Predicted'}</div>
-          </div>
-        ))}
+      <div className="eq-title">Equipment Config</div>
+      <div style={{ fontSize: 12, color: 'var(--text4)', lineHeight: 1.6 }}>
+        Equipment selection will appear here when configured for the event.
       </div>
     </div>
   );

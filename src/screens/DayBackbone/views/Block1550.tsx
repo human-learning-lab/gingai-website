@@ -2,95 +2,142 @@
 
 import { useState } from 'react';
 
-interface CheckItem { id: string; label: string; checked: boolean; }
-interface AiChip { id: string; text: string; dismissed: boolean; }
+export interface TransferBlockData {
+  items?: string[];
+  notes?: string;
+}
 
-const INITIAL_ITEMS: CheckItem[] = [
-  { id: 'sunscreen', label: 'Sunscreen',   checked: false },
-  { id: 'goggles',   label: 'Goggles',     checked: false },
-  { id: 'tablet',    label: 'Tablet',      checked: false },
-  { id: 'shackle',   label: 'Soft shackle', checked: false },
-  { id: 'gloves',    label: 'Gloves',      checked: false },
-  { id: 'radio',     label: 'Team radio',  checked: false },
-];
+interface Props { data?: TransferBlockData | null }
 
-const INITIAL_CHIPS: AiChip[] = [
-  { id: 'uv',   text: '☀️ UV index is high today — don\'t forget sunscreen', dismissed: false },
-  { id: 'wind', text: '💨 Wind forecast 18–22 kn — check glove fit',          dismissed: false },
-];
+export default function Block1550({ data }: Props) {
+  const seedItems = data?.items ?? [];
+  const [checked, setChecked] = useState<Set<number>>(() => new Set());
+  const [custom, setCustom] = useState('');
+  const [extras, setExtras] = useState<string[]>([]);
 
-export default function Block1550() {
-  const [items, setItems]       = useState<CheckItem[]>(INITIAL_ITEMS);
-  const [chips, setChips]       = useState<AiChip[]>(INITIAL_CHIPS);
-  const [newLabel, setNewLabel] = useState('');
+  const all = [...seedItems, ...extras];
+  const done = all.filter((_, i) => checked.has(i)).length;
 
-  function toggle(id: string) {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, checked: !i.checked } : i));
+  function toggle(i: number) {
+    setChecked(prev => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
   }
-  function dismiss(id: string) {
-    setChips(prev => prev.map(c => c.id === id ? { ...c, dismissed: true } : c));
-  }
+
   function addItem() {
-    const label = newLabel.trim();
+    const label = custom.trim();
     if (!label) return;
-    setItems(prev => [...prev, { id: `custom-${Date.now()}`, label, checked: false }]);
-    setNewLabel('');
+    setExtras(prev => [...prev, label]);
+    setCustom('');
   }
-  function handleKey(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') addItem();
-  }
-
-  const done = items.filter(i => i.checked).length;
-  const total = items.length;
 
   return (
-    <div style={{ padding: '20px 24px', maxWidth: 420 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 16 }}>
-        15:50 — Transfer to Boat
+    <>
+      <div className="main-top">
+        <div className="eyebrow">15:50 · Transfer to Yacht</div>
+        <div className="page-title">Gear Checklist</div>
       </div>
-      <h2 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 800 }}>Gear Checklist</h2>
-      <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--text2)' }}>{done}/{total} packed</p>
-
-      {chips.filter(c => !c.dismissed).length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-          {chips.filter(c => !c.dismissed).map(chip => (
-            <div key={chip.id} className="transfer-chip">
-              <span>{chip.text}</span>
-              <button className="transfer-chip-dismiss" onClick={() => dismiss(chip.id)} aria-label="Dismiss">×</button>
+      <div className="gen-panel">
+        {all.length === 0 ? (
+          <>
+            <div style={{ fontSize: 13, color: 'var(--text4)', lineHeight: 1.7, marginBottom: 20 }}>
+              Gear list will be configured before departure.
             </div>
-          ))}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 20 }}>
-        {items.map(item => (
-          <button
-            key={item.id}
-            className={`transfer-row${item.checked ? ' checked' : ''}`}
-            onClick={() => toggle(item.id)}
-          >
-            <div className={`transfer-check${item.checked ? ' on' : ''}`}>
-              {item.checked && (
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="2 6 5 9 10 3" />
-                </svg>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                value={custom}
+                onChange={e => setCustom(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addItem()}
+                placeholder="Add item…"
+                style={{
+                  flex: 1, height: 36, padding: '0 12px',
+                  border: '1.5px solid var(--line)', borderRadius: 6,
+                  background: 'var(--bg)', color: 'var(--text)',
+                  fontSize: 13, fontFamily: 'inherit', outline: 'none',
+                }}
+              />
+              {custom.trim() && (
+                <button
+                  onClick={addItem}
+                  style={{
+                    height: 36, padding: '0 14px', borderRadius: 6,
+                    border: '1px solid var(--line)', background: 'var(--bg2)',
+                    fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                    color: 'var(--text2)',
+                  }}
+                >Add</button>
               )}
             </div>
-            <span className="transfer-label">{item.label}</span>
-          </button>
-        ))}
+          </>
+        ) : (
+          <>
+            {data?.notes && (
+              <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 16 }}>{data.notes}</div>
+            )}
+            <div style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 12 }}>{done}/{all.length} packed</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 16 }}>
+              {all.map((item, i) => (
+                <button
+                  key={i}
+                  onClick={() => toggle(i)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '10px 0', background: 'none', border: 'none',
+                    borderBottom: i < all.length - 1 ? '1px solid var(--line)' : 'none',
+                    cursor: 'pointer', textAlign: 'left', width: '100%',
+                  }}
+                >
+                  <div style={{
+                    width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                    border: checked.has(i) ? '1.5px solid var(--green)' : '1.5px solid var(--line2)',
+                    background: checked.has(i) ? 'var(--green)' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {checked.has(i) && (
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="2 5 4 7 8 3" />
+                      </svg>
+                    )}
+                  </div>
+                  <span style={{
+                    fontSize: 14, color: checked.has(i) ? 'var(--text4)' : 'var(--text)',
+                    textDecoration: checked.has(i) ? 'line-through' : 'none',
+                  }}>{item}</span>
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                value={custom}
+                onChange={e => setCustom(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addItem()}
+                placeholder="Add item…"
+                style={{
+                  flex: 1, height: 34, padding: '0 10px',
+                  border: '1px solid var(--line)', borderRadius: 6,
+                  background: 'var(--bg)', color: 'var(--text)',
+                  fontSize: 13, fontFamily: 'inherit', outline: 'none',
+                }}
+              />
+              {custom.trim() && (
+                <button
+                  onClick={addItem}
+                  style={{
+                    height: 34, padding: '0 12px', borderRadius: 6,
+                    border: '1px solid var(--line)', background: 'var(--bg2)',
+                    fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                    color: 'var(--text2)',
+                  }}
+                >Add</button>
+              )}
+            </div>
+          </>
+        )}
       </div>
-
-      <div className="transfer-add">
-        <input
-          type="text"
-          placeholder="+ Add item"
-          value={newLabel}
-          onChange={e => setNewLabel(e.target.value)}
-          onKeyDown={handleKey}
-        />
-        {newLabel.trim() && <button onClick={addItem}>Add</button>}
-      </div>
-    </div>
+    </>
   );
 }

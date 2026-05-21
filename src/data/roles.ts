@@ -1,6 +1,6 @@
 import type { Role } from '@/types';
 
-const ALL_SCREENS = ['backbone', 'capture', 'intel', 'debrief', 'transcripts'] as const;
+const ALL_SCREENS = ['backbone', 'capture', 'debrief', 'transcripts'] as const;
 
 export const ROLES: Role[] = [
   // ── Sailing Crew ──────────────────────────────────────────────
