@@ -40,7 +40,7 @@ async function ensureSession(userId: string, sessionId: string) {
 	});
 }
 
-async function* fetchAgentResponse(userId: string, sessionId: string, text: string): Promise<string> {
+async function fetchAgentResponse(userId: string, sessionId: string, text: string): Promise<string> {
 	const res = await fetch(`${AGENT_BASE}/run_sse`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
