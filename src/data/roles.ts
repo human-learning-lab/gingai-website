@@ -21,3 +21,25 @@ export const ROLES: Role[] = [
 ];
 
 export const DEFAULT_ROLE = ROLES.find(r => r.id === 'rasmus')!;
+
+// Maps known email addresses to a roleId.
+// Anyone from @sailgpbra.com who is NOT listed here gets 'christian' (analyst, all screens).
+export const EMAIL_ROLE_MAP: Record<string, string> = {
+  // Sailing crew
+  'mgrael@sailgpbra.com':       'martine',
+  'rkostner@sailgpbra.com':     'rasmus',
+  'pgoodison@sailgpbra.com':    'paul-g',
+  'misaac@sailgpbra.com':       'mateus',
+  'marcograel@sailgpbra.com':   'marco',
+  // Coaching & analysis
+  'rmason@sailgpbra.com':       'richard',
+  'ncarabelli@sailgpbra.com':   'nico',
+  // Developers
+  'emilie@sailgpbra.com':       'emilie',
+  'viktor@sailgpbra.com':       'viktor',
+};
+
+export const ALLOWED_DOMAINS: Record<string, string> = {
+  'sailgpbra.com': 'christian',  // analyst, all screens
+  'hulelab.com':   'emilie',     // developer, all screens
+};

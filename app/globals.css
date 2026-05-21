@@ -860,6 +860,18 @@ body {
   margin-top: 6px; font-size: 11px; color: var(--text3);
   font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.05em;
 }
+.gingai-md { font-size: 13px; color: var(--text2); line-height: 1.7; }
+.gingai-md p { margin: 0 0 8px; }
+.gingai-md p:last-child { margin-bottom: 0; }
+.gingai-md strong { font-weight: 700; color: var(--text); }
+.gingai-md ul, .gingai-md ol { padding-left: 18px; margin: 0 0 8px; }
+.gingai-md li { margin-bottom: 4px; }
+.gingai-md h1, .gingai-md h2, .gingai-md h3 { font-weight: 700; margin: 10px 0 4px; color: var(--text); }
+.gingai-md h1 { font-size: 15px; }
+.gingai-md h2 { font-size: 14px; }
+.gingai-md h3 { font-size: 13px; }
+.gingai-md code { background: var(--bg3); border-radius: 3px; padding: 1px 5px; font-size: 12px; font-family: monospace; }
+.gingai-md hr { border: none; border-top: 1px solid var(--gb); margin: 8px 0; }
 .ask-chips {
   display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import LeftNav from '@/components/LeftNav/LeftNav';
 import Timeline from '@/components/Timeline/Timeline';
 import Block1430 from './views/Block1430';
@@ -147,6 +148,8 @@ const ASK_SUGGESTIONS = [
 	"What did we decide about tack timing at mark 2?",
 	"What's the plan for today?",
 ];
+
+type ChatEntry = { role: 'user' | 'ai'; text: string };
 
 function AskMeBar() {
 	const [query, setQuery] = useState('');
