@@ -54,7 +54,7 @@ async function ensureSession(userId: string, sessionId: string) {
 	});
 }
 
-async function* streamAgentResponse(userId: string, sessionId: string, text: string): AsyncGenerator<string> {
+async function fetchAgentResponse(userId: string, sessionId: string, text: string): Promise<string> {
 	const res = await fetch(`${AGENT_BASE}/run_sse`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
@@ -63,14 +63,15 @@ async function* streamAgentResponse(userId: string, sessionId: string, text: str
 			userId,
 			sessionId,
 			newMessage: { role: 'user', parts: [{ text }] },
-			streaming: true,
+			streaming: false,
 		}),
 	});
 
 	const reader = res.body?.getReader();
-	if (!reader) return;
+	if (!reader) return '';
 	const decoder = new TextDecoder();
 	let buffer = '';
+	let fullText = '';
 
 	while (true) {
 		const { done, value } = await reader.read();
@@ -87,13 +88,14 @@ async function* streamAgentResponse(userId: string, sessionId: string, text: str
 				if (event.error) throw new Error(event.error);
 				const parts = event?.content?.parts ?? [];
 				for (const part of parts) {
-					if (typeof part.text === 'string' && part.text) yield part.text;
+					if (typeof part.text === 'string' && part.text) fullText += part.text;
 				}
 			} catch {
 				// skip non-JSON lines
 			}
 		}
 	}
+	return fullText;
 }
 
 function DemoBadge() {
@@ -190,44 +192,86 @@ type ChatEntry = { role: 'user' | 'ai'; text: string };
 
 function AskMeBar() {
 	const [query, setQuery] = useState('');
-	const [answer, setAnswer] = useState('');
+	const [history, setHistory] = useState<ChatEntry[]>([]);
 	const [thinking, setThinking] = useState(false);
 	const sessionReady = useRef(false);
 	const sessionId = useRef(`ask-session-${Date.now()}`);
+	const scrollRef = useRef<HTMLDivElement>(null);
 	const userId = 'user-1';
+
+	useEffect(() => {
+		scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+	}, [history, thinking]);
 
 	const submit = useCallback(async (q?: string) => {
 		const text = (q ?? query).trim();
 		if (!text || thinking) return;
-		if (q) setQuery(q);
+		setQuery('');
 		setThinking(true);
-		setAnswer('');
+		setHistory(prev => [...prev, { role: 'user', text }]);
 
 		try {
 			if (!sessionReady.current) {
 				await ensureSession(userId, sessionId.current);
 				sessionReady.current = true;
 			}
-
-			let accumulated = '';
-			for await (const chunk of streamAgentResponse(userId, sessionId.current, text)) {
-				accumulated += chunk;
-				setAnswer(accumulated);
-			}
-			if (!accumulated) setAnswer('No response from GingAI — please try again.');
+			const answer = await fetchAgentResponse(userId, sessionId.current, text);
+			setHistory(prev => [...prev, { role: 'ai', text: answer || 'No response from GingAI — please try again.' }]);
 		} catch {
-			setAnswer('Could not reach GingAI. Check that the agent is running.');
+			setHistory(prev => [...prev, { role: 'ai', text: 'Could not reach GingAI. Check that the agent is running.' }]);
 		} finally {
 			setThinking(false);
 		}
 	}, [query, thinking]);
 
-	function handleKey(e: React.KeyboardEvent) {
-		if (e.key === 'Enter') submit();
-	}
+	const hasHistory = history.length > 0;
 
 	return (
-		<div className="ask-bar-wrap">
+		<div className="ask-bar-wrap" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+
+		{hasHistory && (
+			<div ref={scrollRef} style={{ maxHeight: 380, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 10, paddingRight: 2 }}>
+			{history.map((entry, i) => (
+				<div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexDirection: entry.role === 'user' ? 'row-reverse' : 'row' }}>
+				{entry.role === 'ai' && (
+					<div style={{ flexShrink: 0, width: 24, height: 24, borderRadius: '50%', background: 'var(--gg)', border: '1px solid var(--gb)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
+					<svg width="10" height="10" viewBox="0 0 24 24" fill="var(--green)">
+					<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+					</svg>
+					</div>
+				)}
+				<div style={{
+					maxWidth: '85%',
+					background: entry.role === 'user' ? 'var(--navy)' : 'var(--gg)',
+					border: `1px solid ${entry.role === 'user' ? 'transparent' : 'var(--gb)'}`,
+					borderRadius: entry.role === 'user' ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
+					padding: '9px 13px', fontSize: 13,
+					color: entry.role === 'user' ? '#fff' : 'var(--text2)',
+					lineHeight: 1.65,
+				}}>
+				{entry.role === 'ai' ? (
+					<div className="gingai-md"><ReactMarkdown>{entry.text}</ReactMarkdown></div>
+				) : entry.text}
+				</div>
+				</div>
+			))}
+			{thinking && (
+				<div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+				<div style={{ flexShrink: 0, width: 24, height: 24, borderRadius: '50%', background: 'var(--gg)', border: '1px solid var(--gb)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+				<svg width="10" height="10" viewBox="0 0 24 24" fill="var(--green)">
+				<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+				</svg>
+				</div>
+				<div style={{ background: 'var(--gg)', border: '1px solid var(--gb)', borderRadius: '12px 12px 12px 2px', padding: '10px 14px', display: 'flex', gap: 4, alignItems: 'center' }}>
+				{[0, 1, 2].map(i => (
+					<span key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--green)', opacity: 0.5, animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`, display: 'inline-block' }} />
+				))}
+				</div>
+				</div>
+			)}
+			</div>
+		)}
+
 		<div className="ask-bar">
 		<div className="ask-bar-logo">
 			<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -236,45 +280,24 @@ function AskMeBar() {
 		</div>
 		<input
 		type="text"
-		placeholder="Ask anything…"
+		placeholder={hasHistory ? 'Ask a follow-up…' : 'Ask anything…'}
 		value={query}
 		onChange={e => setQuery(e.target.value)}
-		onKeyDown={handleKey}
+		onKeyDown={e => { if (e.key === 'Enter') submit(); }}
 		disabled={thinking}
 		/>
-		{thinking ? (
-			<div style={{ display: 'flex', gap: 3, alignItems: 'center', padding: '0 14px' }}>
-			{[0, 1, 2].map(i => (
-				<span key={i} style={{
-					width: 4, height: 4, borderRadius: '50%', background: 'var(--green)',
-					display: 'inline-block',
-					animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-				}} />
-			))}
-			</div>
-		) : (
-			<button
-				className="ask-bar-send"
-				onClick={() => submit()}
-				aria-label="Send"
-				style={{ color: query.trim() ? 'var(--green)' : 'var(--line2)' }}
-			>
-			<svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-			<path d="M6.5 11V2M3 5.5l3.5-3.5 3.5 3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-			</svg>
-			</button>
-		)}
+		<button
+			className="ask-bar-send"
+			onClick={() => submit()}
+			aria-label="Send"
+			style={{ color: query.trim() ? 'var(--green)' : 'var(--line2)' }}
+		>
+		<svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+		<path d="M6.5 11V2M3 5.5l3.5-3.5 3.5 3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+		</svg>
+		</button>
 		</div>
-		{answer && (
-			<div className="ask-response">
-			<div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--green)', fontFamily: "'Barlow Condensed', sans-serif", marginBottom: 8 }}>
-				GingAI
-			</div>
-			<div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
-				{answer}
-			</div>
-			</div>
-		)}
+
 		</div>
 	);
 }
