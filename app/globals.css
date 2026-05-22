@@ -976,6 +976,25 @@ body {
 /* ── Phone mock — navy frame in light mode ── */
 .phone { border-color: var(--navy); box-shadow: 0 32px 64px rgba(10,22,40,0.18), 0 0 0 1px rgba(10,22,40,0.08); }
 
+/* ── Weather skeleton + fade-in ── */
+.wx-skel {
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--line) 50%, var(--bg3) 75%);
+  background-size: 200% 100%;
+  animation: wx-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes wx-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.wx-loaded {
+  animation: wx-fadein 0.35s ease-out both;
+}
+@keyframes wx-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 /* ══════════════════════════════
    ASK ME BAR
 ══════════════════════════════ */
