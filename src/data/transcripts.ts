@@ -14,6 +14,7 @@ export type Transcript = {
   title: string;
   duration: string;
   lines: TranscriptLine[];
+  avatarUrl?: string;
 };
 
 // Replace TRANSCRIPTS array with a fetch() call when database is ready

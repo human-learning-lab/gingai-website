@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRole } from '@/context/RoleContext';
+import { useUser } from '@clerk/nextjs';
 import { IconStop } from '@/components/Icons';
+import { addCapture } from '@/data/captureStore';
 
 type Phase = 'idle' | 'recording' | 'transcribing' | 'review';
 
@@ -11,6 +13,18 @@ declare global {
     SpeechRecognition: typeof SpeechRecognition;
     webkitSpeechRecognition: typeof SpeechRecognition;
   }
+}
+
+function UserAvatar({ imgUrl, initial }: { imgUrl?: string; initial?: string }) {
+  return (
+    <div className="sailor-r-ava" style={{ overflow: 'hidden', padding: 0 }}>
+      {imgUrl ? (
+        <img src={imgUrl} alt={initial ?? 'Me'} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+      ) : (
+        initial ?? '?'
+      )}
+    </div>
+  );
 }
 
 function GingAIAvatar() {
@@ -24,6 +38,8 @@ function GingAIAvatar() {
 
 export default function Capture() {
   const { role } = useRole();
+  const { user } = useUser();
+  const imgUrl = user?.imageUrl;
   const [phase, setPhase] = useState<Phase>('idle');
   const [transcript, setTranscript] = useState('');
   const [interim, setInterim] = useState('');
@@ -113,6 +129,18 @@ export default function Capture() {
     const text = transcript.trim();
     if (!text) return;
     const ts = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const id = `capture-${Date.now()}`;
+    addCapture({
+      id,
+      source: 'capture',
+      regatta: '',
+      race: '',
+      team: role?.initial ?? 'BRA',
+      title: 'Capture',
+      duration: `${mm}:${ss}`,
+      lines: [{ speaker: role?.name ?? 'Me', text }],
+      avatarUrl: imgUrl,
+    });
     setSaved(prev => [{ text, ts }, ...prev]);
     setTranscript('');
     setPhase('idle');
@@ -141,7 +169,7 @@ export default function Capture() {
             {saved.map((s, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div className="sailor-r">
-                  <div className="sailor-r-ava">{role?.initial ?? '?'}</div>
+                  <UserAvatar imgUrl={imgUrl} initial={role?.initial} />
                   <div className="sailor-r-bub">{s.text}</div>
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--text4)', paddingLeft: 46 }}>{s.ts} · Saved</div>
@@ -165,19 +193,22 @@ export default function Capture() {
             )}
 
             {phase === 'review' && (
-              <div className="sailor-r">
-                <div className="sailor-r-ava">{role?.initial ?? '?'}</div>
-                <textarea
-                  value={transcript}
-                  onChange={e => setTranscript(e.target.value)}
+              <div className="sailor-r" style={{ alignItems: 'flex-start' }}>
+                <UserAvatar imgUrl={imgUrl} initial={role?.initial} />
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={e => setTranscript(e.currentTarget.textContent ?? '')}
                   style={{
-                    flex: 1, background: 'var(--bg2)', border: '1px solid var(--line)',
-                    borderRadius: 12, padding: '10px 14px',
+                    flex: 1, background: 'var(--gg)', border: '1px solid var(--gb)',
+                    borderRadius: '12px 3px 12px 12px', padding: '11px 13px',
                     fontSize: 13, color: 'var(--text)', lineHeight: 1.6,
-                    fontFamily: 'inherit', resize: 'none', outline: 'none',
-                    minHeight: 80,
+                    fontFamily: 'inherit', outline: 'none', whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word', cursor: 'text',
                   }}
-                />
+                >
+                  {transcript}
+                </div>
               </div>
             )}
           </div>

@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { getTranscripts, type Transcript, type TranscriptSource } from '@/data/transcripts';
+import { getCaptured, subscribeCapture } from '@/data/captureStore';
 
 const ALL_REGATTAS = ['All', 'Perth', 'Auckland', 'Sydney', 'Rio', 'Bermuda'];
 const TEAM_FLAGS: Record<string, string> = {
@@ -131,11 +132,15 @@ function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, searchQ
       <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }} onClick={onToggle}>
         <div style={{
           flexShrink: 0, width: 36, height: 36, borderRadius: 6,
-          background: 'var(--bg3)',
+          background: 'var(--bg3)', overflow: 'hidden',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 22, lineHeight: 1,
         }}>
-          {TEAM_FLAGS[t.team] ?? t.team}
+          {t.avatarUrl ? (
+            <img src={t.avatarUrl} alt={t.team} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            TEAM_FLAGS[t.team] ?? t.team
+          )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
@@ -272,7 +277,13 @@ export default function Transcripts() {
   const [search, setSearch]   = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [transcripts, setTranscripts] = useState<Transcript[]>(() => getTranscripts());
+  const [transcripts, setTranscripts] = useState<Transcript[]>(() => [...getCaptured(), ...getTranscripts()]);
+
+  useEffect(() => {
+    return subscribeCapture(() => {
+      setTranscripts([...getCaptured(), ...getTranscripts()]);
+    });
+  }, []);
 
   const all = transcripts;
 
