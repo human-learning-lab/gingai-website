@@ -4,7 +4,7 @@ type BlockSeed = Omit<Block, 'status'>;
 
 const BLOCK_SEEDS: BlockSeed[] = [
   { id: '1320', time: '13:20', name: 'All Team — Tent',      panel: 'past',   tag: '',         tagColor: '',              tZeroOffset: -258 },
-  { id: '1330', time: '13:30', name: 'Debrief & Sim Brief',  panel: '1330',   tag: 'Learn',    tagColor: 'var(--text3)',   tZeroOffset: -248 },
+  { id: '1330', time: '13:30', name: 'Brief & Sim Brief',    panel: '1330',   tag: 'Learn',    tagColor: 'var(--text3)',   tZeroOffset: -248 },
   { id: '1400', time: '14:00', name: 'Simulator Session',    panel: 'past',   tag: '',         tagColor: '',              tZeroOffset: -218 },
   { id: '1430', time: '14:30', name: 'Brief the Day',        panel: '1430',   tag: 'Prime',    tagColor: 'var(--green)',   tZeroOffset: -188 },
   { id: '1500', time: '15:00', name: 'Warm Up',              panel: '1500',   tag: '',         tagColor: '',              tZeroOffset: -158 },
