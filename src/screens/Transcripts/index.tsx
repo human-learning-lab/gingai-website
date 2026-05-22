@@ -120,12 +120,12 @@ function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, searchQ
   return (
     <div
       style={{
-        background: '#fff',
+        background: 'var(--bg2)',
         border: '1px solid var(--line)',
         borderRadius: 10,
         overflow: 'hidden',
         transition: 'box-shadow 0.15s',
-        boxShadow: expanded ? '0 2px 12px rgba(10,22,40,0.10)' : '0 1px 3px rgba(10,22,40,0.05)',
+        boxShadow: expanded ? '0 2px 12px rgba(10,22,40,0.06)' : 'none',
       }}
     >
       {/* Header row — click to expand */}
@@ -240,24 +240,94 @@ function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, searchQ
   );
 }
 
-function SelectWrap({ children, active }: { children: React.ReactNode; active: boolean }) {
+interface DropdownOption { value: string; label: string; icon?: React.ReactNode }
+
+function Dropdown({ value, options, onChange, placeholder }: {
+  value: string;
+  options: DropdownOption[];
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const active = value !== options[0]?.value;
+  const current = options.find(o => o.value === value);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false); }
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
   return (
-    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-      <div style={{ pointerEvents: 'none', position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text4)' }}>
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          height: 32, padding: '0 10px 0 12px', borderRadius: 8,
+          border: `1px solid ${active ? 'var(--text3)' : 'var(--line)'}`,
+          background: active ? 'var(--bg3)' : 'var(--bg2)',
+          color: active ? 'var(--text)' : 'var(--text2)',
+          fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+          whiteSpace: 'nowrap', fontWeight: active ? 500 : 400,
+          transition: 'border-color 0.12s, background 0.12s',
+        }}
+      >
+        {current?.icon && <span style={{ lineHeight: 1 }}>{current.icon}</span>}
+        <span>{current?.label ?? placeholder}</span>
+        <svg
+          width="10" height="10" viewBox="0 0 10 10" fill="none"
+          style={{ transition: 'transform 0.15s', transform: open ? 'rotate(180deg)' : 'none', color: 'var(--text4)', flexShrink: 0 }}
+        >
           <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-      </div>
-      {React.cloneElement(children as React.ReactElement, {
-        style: {
-          height: 32, padding: '0 30px 0 12px', borderRadius: 8,
-          border: `1px solid ${active ? 'var(--text3)' : 'var(--line)'}`,
-          cursor: 'pointer', fontSize: 13, fontFamily: 'inherit',
-          background: active ? 'var(--bg3)' : 'var(--bg2)',
-          color: 'var(--text2)', outline: 'none',
-          appearance: 'none' as const, WebkitAppearance: 'none' as const,
-        },
-      })}
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 5px)', left: 0, zIndex: 100,
+          background: 'var(--bg2)', border: '1px solid var(--line)',
+          borderRadius: 10, padding: '4px',
+          boxShadow: '0 8px 24px rgba(10,14,20,0.18)',
+          minWidth: '100%',
+          animation: 'ddFadeIn 0.12s ease-out',
+        }}>
+          {options.map(opt => {
+            const sel = opt.value === value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => { onChange(opt.value); setOpen(false); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  width: '100%', padding: '7px 10px', borderRadius: 7,
+                  border: 'none', background: sel ? 'var(--bg3)' : 'transparent',
+                  color: sel ? 'var(--text)' : 'var(--text2)',
+                  fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                  textAlign: 'left', fontWeight: sel ? 600 : 400,
+                  transition: 'background 0.08s',
+                }}
+                onMouseEnter={e => { if (!sel) (e.currentTarget as HTMLElement).style.background = 'var(--bg3)'; }}
+                onMouseLeave={e => { if (!sel) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+              >
+                {opt.icon && <span style={{ lineHeight: 1, flexShrink: 0 }}>{opt.icon}</span>}
+                <span style={{ flex: 1 }}>{opt.label}</span>
+                {sel && (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -270,13 +340,220 @@ const SOURCES: { id: TranscriptSource | 'all'; label: string }[] = [
   { id: 'upload',  label: 'Upload' },
 ];
 
+const UPLOAD_REGATTAS = ['New York', 'Halifax', 'Portsmouth', 'Sassnitz', 'Valencia', 'Geneva', 'Dubai', 'Abu Dhabi'];
+const UPLOAD_TEAMS = Object.keys(TEAM_FLAGS).sort();
+const UPLOAD_TAGS = ['Debrief', 'Race', 'Training', 'Practice', 'Hot Wash', 'Briefing', 'Team', 'Coaching'];
+
+interface UploadForm {
+  file: File | null;
+  title: string;
+  regatta: string;
+  race: string;
+  team: string;
+  tags: string[];
+}
+
+function UploadModal({ onClose, onSubmit }: {
+  onClose: () => void;
+  onSubmit: (form: UploadForm) => void;
+}) {
+  const [form, setForm] = useState<UploadForm>({
+    file: null, title: '', regatta: '', race: '', team: 'BRA', tags: [],
+  });
+  const [dragging, setDragging] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function setFile(f: File | null) {
+    if (!f) return;
+    setForm(p => ({ ...p, file: f, title: p.title || f.name.replace(/\.[^.]+$/, '') }));
+  }
+
+  function toggleTag(tag: string) {
+    setForm(p => ({
+      ...p,
+      tags: p.tags.includes(tag) ? p.tags.filter(t => t !== tag) : [...p.tags, tag],
+    }));
+  }
+
+  const canSubmit = !!form.file && !!form.title.trim();
+
+  const fieldStyle: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box', height: 36,
+    background: 'var(--bg)', border: '1px solid var(--line)',
+    borderRadius: 7, padding: '0 11px', fontSize: 13,
+    color: 'var(--text)', fontFamily: 'inherit', outline: 'none',
+  };
+  const labelStyle: React.CSSProperties = {
+    fontSize: 11, fontWeight: 600, color: 'var(--text3)',
+    fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.1em',
+    textTransform: 'uppercase', marginBottom: 5, display: 'block',
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: 'rgba(10,14,20,0.55)', backdropFilter: 'blur(3px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20,
+      }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{
+        background: 'var(--bg2)', border: '1px solid var(--line)',
+        borderRadius: 14, width: '100%', maxWidth: 480,
+        maxHeight: '90dvh', overflowY: 'auto',
+        boxShadow: '0 24px 64px rgba(10,14,20,0.4)',
+      }}>
+        {/* Header */}
+        <div style={{ padding: '20px 22px 16px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 800, letterSpacing: '0.01em', color: 'var(--text)', lineHeight: 1 }}>Upload Audio</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>Add context before transcribing</div>
+          </div>
+          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--line)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Drop zone */}
+          <div
+            onDragOver={e => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={e => { e.preventDefault(); setDragging(false); setFile(e.dataTransfer.files[0]); }}
+            onClick={() => fileRef.current?.click()}
+            style={{
+              border: `2px dashed ${dragging ? 'var(--green)' : form.file ? 'var(--gb)' : 'var(--line)'}`,
+              borderRadius: 10, padding: '20px 16px',
+              textAlign: 'center', cursor: 'pointer',
+              background: dragging ? 'var(--gg)' : form.file ? 'var(--bg3)' : 'var(--bg)',
+              transition: 'all 0.15s',
+            }}
+          >
+            <input ref={fileRef} type="file" accept="audio/*,video/*" style={{ display: 'none' }} onChange={e => setFile(e.target.files?.[0] ?? null)} />
+            {form.file ? (
+              <>
+                <div style={{ fontSize: 22, marginBottom: 5 }}>🎵</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', wordBreak: 'break-all' }}>{form.file.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 2 }}>{(form.file.size / 1024 / 1024).toFixed(1)} MB · click to change</div>
+              </>
+            ) : (
+              <>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>Drop audio file here</div>
+                <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 3 }}>or click to browse · mp3, m4a, wav, mp4</div>
+              </>
+            )}
+          </div>
+
+          {/* Title */}
+          <div>
+            <label style={labelStyle}>Title *</label>
+            <input
+              style={fieldStyle}
+              placeholder="e.g. R4 debrief — port tack calls"
+              value={form.title}
+              onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+            />
+          </div>
+
+          {/* Regatta + Race in a row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Regatta</label>
+              <select style={{ ...fieldStyle, appearance: 'none' }} value={form.regatta} onChange={e => setForm(p => ({ ...p, regatta: e.target.value }))}>
+                <option value="">— none —</option>
+                {UPLOAD_REGATTAS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Race</label>
+              <input style={fieldStyle} placeholder="e.g. R4" value={form.race} onChange={e => setForm(p => ({ ...p, race: e.target.value }))} />
+            </div>
+          </div>
+
+          {/* Team */}
+          <div>
+            <label style={labelStyle}>Team</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {UPLOAD_TEAMS.map(t => (
+                <button
+                  key={t}
+                  onClick={() => setForm(p => ({ ...p, team: t }))}
+                  style={{
+                    height: 28, padding: '0 9px', borderRadius: 5,
+                    border: `1px solid ${form.team === t ? 'var(--navy)' : 'var(--line)'}`,
+                    background: form.team === t ? 'var(--navy)' : 'var(--bg)',
+                    color: form.team === t ? '#fff' : 'var(--text2)',
+                    fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}
+                >
+                  <span>{TEAM_FLAGS[t]}</span>
+                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.05em' }}>{t}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label style={labelStyle}>Tags</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {UPLOAD_TAGS.map(tag => {
+                const on = form.tags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => toggleTag(tag)}
+                    style={{
+                      height: 26, padding: '0 9px', borderRadius: 5,
+                      border: `1px solid ${on ? 'var(--gb)' : 'var(--line)'}`,
+                      background: on ? 'var(--gg)' : 'var(--bg)',
+                      color: on ? 'var(--green)' : 'var(--text3)',
+                      fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', fontWeight: on ? 600 : 400,
+                    }}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '14px 22px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button onClick={onClose} style={{ ...btnStyle, padding: '6px 16px' }}>Cancel</button>
+          <button
+            disabled={!canSubmit}
+            onClick={() => canSubmit && onSubmit(form)}
+            style={{
+              padding: '6px 18px', borderRadius: 7, border: 'none',
+              background: canSubmit ? 'var(--navy)' : 'var(--bg3)',
+              color: canSubmit ? '#fff' : 'var(--text4)',
+              fontSize: 13, fontWeight: 600, cursor: canSubmit ? 'pointer' : 'default',
+              fontFamily: 'inherit', transition: 'background 0.15s',
+            }}
+          >
+            Upload &amp; Transcribe
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Transcripts() {
   const [source, setSource]   = useState<TranscriptSource | 'all'>('all');
   const [regatta, setRegatta] = useState('All');
   const [team, setTeam]       = useState('All');
   const [search, setSearch]   = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showUpload, setShowUpload]   = useState(false);
   const [transcripts, setTranscripts] = useState<Transcript[]>(() => [...getCaptured(), ...getTranscripts()]);
 
   useEffect(() => {
@@ -301,6 +578,23 @@ export default function Transcripts() {
     ));
   }
 
+  function handleUploadSubmit(form: UploadForm) {
+    const id = `upload-${Date.now()}`;
+    const newT: Transcript = {
+      id,
+      source: 'upload',
+      regatta: form.regatta,
+      race: form.race,
+      team: form.team,
+      title: form.title,
+      duration: '—',
+      lines: [{ speaker: form.team, text: `Audio file: ${form.file!.name}. Transcription pending.` }],
+    };
+    setTranscripts(prev => [newT, ...prev]);
+    setShowUpload(false);
+    // TODO: send form.file + metadata to /api/transcribe
+  }
+
   const q = search.trim().toLowerCase();
   const filtered = all.filter(t => {
     if (source !== 'all' && t.source !== source) return false;
@@ -319,15 +613,9 @@ export default function Transcripts() {
   const showRegattaFilter = source === 'all' || source === 'race';
   const showTeamFilter    = source === 'all' || source === 'race';
 
-  function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    // TODO: send to /api/transcribe
-    alert(`Upload received: ${file.name} — transcription coming soon.`);
-    e.target.value = '';
-  }
-
   return (
+    <>
+    {showUpload && <UploadModal onClose={() => setShowUpload(false)} onSubmit={handleUploadSubmit} />}
     <div className="s-backbone">
       <div className="main" style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 24px 0', flexShrink: 0 }}>
@@ -343,7 +631,7 @@ export default function Transcripts() {
             {/* Search */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              background: '#fff', border: '1.5px solid var(--line)', borderRadius: 8,
+              background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 8,
               padding: '0 12px', height: 36, minWidth: 200,
               boxShadow: '0 1px 3px rgba(10,22,40,0.05)',
             }}>
@@ -361,13 +649,12 @@ export default function Transcripts() {
               )}
             </div>
             {/* Upload */}
-            <input ref={fileInputRef} type="file" accept="audio/*,video/*" style={{ display: 'none' }} onChange={handleUpload} />
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setShowUpload(true)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 7,
                 padding: '0 16px', height: 36, borderRadius: 8,
-                background: 'var(--bg2)', border: '1.5px solid var(--line)',
+                background: 'var(--bg2)', border: '1px solid var(--line)',
                 color: 'var(--text2)', fontSize: 13, fontWeight: 500,
                 cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
                 transition: 'border-color 0.12s, color 0.12s',
@@ -389,7 +676,7 @@ export default function Transcripts() {
                 key={s.id}
                 onClick={() => { setSource(s.id); setRegatta('All'); setTeam('All'); }}
                 style={{
-                  flexShrink: 0, padding: '5px 14px', borderRadius: 20,
+                  flexShrink: 0, height: 32, padding: '0 14px', borderRadius: 20,
                   border: '1px solid', cursor: 'pointer', fontSize: 13, fontWeight: 500,
                   fontFamily: 'inherit', transition: 'all 0.12s',
                   background: source === s.id ? 'var(--navy)' : 'var(--bg2)',
@@ -404,21 +691,21 @@ export default function Transcripts() {
             {showRegattaFilter && (
               <>
                 <div style={{ width: 1, height: 20, background: 'var(--line)', margin: '0 2px' }} />
-                <SelectWrap active={regatta !== 'All'}>
-                  <select value={regatta} onChange={e => setRegatta(e.target.value)}>
-                    {ALL_REGATTAS.map(r => <option key={r} value={r}>{r === 'All' ? 'All events' : r}</option>)}
-                  </select>
-                </SelectWrap>
+                <Dropdown
+                  value={regatta}
+                  onChange={setRegatta}
+                  options={ALL_REGATTAS.map(r => ({ value: r, label: r === 'All' ? 'All events' : r }))}
+                />
 
-                <SelectWrap active={team !== 'All'}>
-                  <select value={team} onChange={e => setTeam(e.target.value)}>
-                    {allTeams.map(t => (
-                      <option key={t} value={t}>
-                        {t === 'All' ? 'All teams' : `${TEAM_FLAGS[t] ?? ''} ${t}`}
-                      </option>
-                    ))}
-                  </select>
-                </SelectWrap>
+                <Dropdown
+                  value={team}
+                  onChange={setTeam}
+                  options={allTeams.map(t => ({
+                    value: t,
+                    label: t === 'All' ? 'All teams' : t,
+                    icon: t !== 'All' ? TEAM_FLAGS[t] : undefined,
+                  }))}
+                />
               </>
             )}
           </div>
@@ -452,5 +739,6 @@ export default function Transcripts() {
         </div>
       </div>
     </div>
+    </>
   );
 }
