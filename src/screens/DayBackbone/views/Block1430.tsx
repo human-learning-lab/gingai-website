@@ -106,7 +106,7 @@ export default function Block1430({ data }: Props) {
                 </div>
               )}
 
-              {data.coachNotes && canEdit && (
+              {data.coachNotes && (
                 <div className="card">
                   <div className="card-label">Coach notes</div>
                   <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{data.coachNotes}</div>

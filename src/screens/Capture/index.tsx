@@ -10,8 +10,10 @@ type Phase = 'idle' | 'recording' | 'transcribing' | 'review';
 
 declare global {
   interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    SpeechRecognition: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    webkitSpeechRecognition: any;
   }
 }
 
@@ -46,7 +48,8 @@ export default function Capture() {
   const [saved, setSaved] = useState<{ text: string; ts: string }[]>([]);
   const [recTime, setRecTime] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
@@ -67,7 +70,8 @@ export default function Capture() {
       rec.continuous = true;
       rec.interimResults = true;
       rec.lang = 'en-US';
-      rec.onresult = (e) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rec.onresult = (e: any) => {
         let final = '';
         let inter = '';
         for (let i = 0; i < e.results.length; i++) {

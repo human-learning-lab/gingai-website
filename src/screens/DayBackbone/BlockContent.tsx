@@ -66,10 +66,10 @@ function Block1330({ data }: { data: DebriefBlockData | null }) {
                 </div>
               </>
             )}
-            {data.actionItems?.length > 0 && (
+            {(data.actionItems?.length ?? 0) > 0 && (
               <>
                 <div className="sec-title">Action Items</div>
-                {data.actionItems.map((a, i) => (
+                {data.actionItems!.map((a, i) => (
                   <div className="past-action-row" key={i} style={i === data.actionItems!.length - 1 ? { borderBottom: 'none' } : undefined}>
                     <div className="pa-dot" style={{ background: a.priority === 'high' ? 'var(--green)' : 'var(--yellow)' }} />
                     <div>
