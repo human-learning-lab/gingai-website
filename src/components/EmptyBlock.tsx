@@ -12,7 +12,7 @@ export default function EmptyBlock({ icon, title, hint }: Props) {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-      gap: 10, padding: '32px 0',
+      gap: 10,
     }}>
       <div style={{
         width: 40, height: 40, borderRadius: 10,
