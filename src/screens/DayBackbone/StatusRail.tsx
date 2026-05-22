@@ -1,6 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Avatar from '@/components/Avatar';
+import { getBlocks } from '@/data/blocks';
 
 const TEAM_AVATARS: Record<string, string> = {
   Martine: '/images/team/martine.png',
@@ -19,6 +21,34 @@ function DemoBadge() {
       textTransform: 'uppercase', padding: '2px 6px', borderRadius: 3,
       background: 'var(--yg)', border: '1px solid var(--yb)', color: 'var(--yellow)',
     }}>DEMO</span>
+  );
+}
+
+function NextUp() {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const blocks = getBlocks(now);
+  const next = blocks.find(b => b.status === 'future');
+
+  if (!next) return null;
+
+  const [h, m] = next.time.split(':').map(Number);
+  const diffMins = (h * 60 + m) - (now.getHours() * 60 + now.getMinutes());
+  const inLabel = diffMins <= 0 ? 'now'
+    : diffMins < 60 ? `in ${diffMins} min`
+    : `in ${Math.floor(diffMins / 60)}h ${diffMins % 60}m`;
+
+  return (
+    <div className="srl-sec">
+      <div className="srl-lbl">Next Up</div>
+      <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 3 }}>{next.time} · {inLabel}</div>
+      <div style={{ fontSize: 14, fontWeight: 500 }}>{next.name}</div>
+    </div>
   );
 }
 
@@ -58,11 +88,7 @@ export default function StatusRail() {
           </div>
         ))}
       </div>
-      <div className="srl-sec">
-        <div className="srl-lbl">Next Up</div>
-        <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 3 }}>15:00 · in 36 min</div>
-        <div style={{ fontSize: 14, fontWeight: 500 }}>Warm Up</div>
-      </div>
+      <NextUp />
       <div className="srl-sec">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div className="srl-lbl" style={{ marginBottom: 0 }}>Open Items</div>
