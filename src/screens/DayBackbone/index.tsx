@@ -4,11 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import Timeline from '@/components/Timeline/Timeline';
 import Block1430 from './views/Block1430';
-import Block1330 from './views/Block1330';
-import Block1818 from './views/Block1818';
-import Block1500 from './views/Block1500';
-import Block1550 from './views/Block1550';
-import BlockGeneric from './views/BlockGeneric';
+import BlockContent from './BlockContent';
 import StatusRail from './StatusRail';
 import { getBlocks } from '@/data/blocks';
 
@@ -280,16 +276,8 @@ function AskMeBar() {
 }
 
 function blockContentForPanel(panel: string, selectedId: string) {
-	return (
-		<>
-		{panel === '1430' && <Block1430 data={null} />}
-		{panel === '1330' && <Block1330 data={null} />}
-		{panel === '1818' && <Block1818 data={null} />}
-		{panel === '1500' && <Block1500 data={null} />}
-		{panel === '1550' && <Block1550 data={null} />}
-		{(panel === 'past' || panel === 'future') && <BlockGeneric selectedId={selectedId} />}
-		</>
-	);
+	if (panel === '1430') return <Block1430 data={null} />;
+	return <BlockContent panel={panel} selectedId={selectedId} />;
 }
 
 export default function DayBackbone() {
