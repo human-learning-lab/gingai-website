@@ -195,10 +195,17 @@ function AgendaTab() {
 }
 
 // ─── Session tab ──────────────────────────────────────────────
-function SessionTab() {
+interface SessionTabProps {
+  transcriptLines?: string[];
+  sentimentPts?: number[];
+  topics?: string[];
+  onRecordingChange?: (recording: boolean) => void;
+}
+
+function SessionTab({ transcriptLines, sentimentPts: _sentimentPts, topics: _topics, onRecordingChange }: SessionTabProps) {
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const [lines] = useState<string[]>([]);
+  const lines = transcriptLines ?? [];
   const [interim] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -216,6 +223,7 @@ function SessionTab() {
     const next = !recording;
     setRecording(next);
     if (!next) setElapsed(0);
+    onRecordingChange?.(next);
   }
 
   const m   = Math.floor(elapsed / 60).toString().padStart(2, '0');
@@ -283,7 +291,14 @@ function SessionTab() {
 }
 
 // ─── Main export ──────────────────────────────────────────────
-export default function TeamDebrief() {
+interface TeamDebriefProps {
+  transcriptLines?: string[];
+  topics?: string[];
+  sentimentPts?: number[];
+  onRecordingChange?: (recording: boolean) => void;
+}
+
+export default function TeamDebrief({ transcriptLines, topics, sentimentPts, onRecordingChange }: TeamDebriefProps = {}) {
   const [tab, setTab] = useState<'agenda' | 'session'>('agenda');
 
   return (
@@ -295,7 +310,14 @@ export default function TeamDebrief() {
           <div className={`tab${tab === 'session' ? ' on' : ''}`} onClick={() => setTab('session')}>Session</div>
         </div>
         {tab === 'agenda'  && <AgendaTab />}
-        {tab === 'session' && <SessionTab />}
+        {tab === 'session' && (
+          <SessionTab
+            transcriptLines={transcriptLines}
+            topics={topics}
+            sentimentPts={sentimentPts}
+            onRecordingChange={onRecordingChange}
+          />
+        )}
       </div>
     </div>
   );
