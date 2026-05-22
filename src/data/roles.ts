@@ -1,15 +1,15 @@
 import type { Role } from '@/types';
 
-const ALL_SCREENS = ['backbone', 'capture', 'intel', 'debrief'] as const;
+const ALL_SCREENS = ['backbone', 'capture', 'debrief', 'transcripts'] as const;
 
 export const ROLES: Role[] = [
   // ── Sailing Crew ──────────────────────────────────────────────
-  { id: 'martine', name: 'Martine', initial: 'MG', label: 'Helm / Driver',     view: 'sailor', avatar: '/images/team/martine.png',  screens: ['backbone', 'capture'] },
-  { id: 'rasmus',  name: 'Rasmus',  initial: 'RK', label: 'Flight Controller', view: 'sailor', avatar: '/images/team/rasmus.png',   screens: ['backbone', 'capture'] },
-  { id: 'pietro',  name: 'Pietro',  initial: 'PS', label: 'Wing Trimmer',      view: 'sailor', avatar: '/images/team/pietro.png',   screens: ['backbone', 'capture'] },
-  { id: 'paul-g',  name: 'Paul G.', initial: 'PG', label: 'Strategist',        view: 'sailor', avatar: '/images/team/goodison.png', screens: ['backbone', 'capture'] },
-  { id: 'mateus',  name: 'Mateus',  initial: 'MI', label: 'Grinder G1',        view: 'sailor', avatar: '/images/team/mateus.png',   screens: ['backbone', 'capture'] },
-  { id: 'marco',   name: 'Marco',   initial: 'MC', label: 'Grinder G2',        view: 'sailor', avatar: '/images/team/marco.png',    screens: ['backbone', 'capture'] },
+  { id: 'martine', name: 'Martine', initial: 'MG', label: 'Helm / Driver',     view: 'sailor', avatar: '/images/team/martine.png',  screens: ['backbone', 'capture', 'transcripts'] },
+  { id: 'rasmus',  name: 'Rasmus',  initial: 'RK', label: 'Flight Controller', view: 'sailor', avatar: '/images/team/rasmus.png',   screens: ['backbone', 'capture', 'transcripts'] },
+  { id: 'pietro',  name: 'Pietro',  initial: 'PS', label: 'Wing Trimmer',      view: 'sailor', avatar: '/images/team/pietro.png',   screens: ['backbone', 'capture', 'transcripts'] },
+  { id: 'paul-g',  name: 'Paul G.', initial: 'PG', label: 'Strategist',        view: 'sailor', avatar: '/images/team/goodison.png', screens: ['backbone', 'capture', 'transcripts'] },
+  { id: 'mateus',  name: 'Mateus',  initial: 'MI', label: 'Grinder G1',        view: 'sailor', avatar: '/images/team/mateus.png',   screens: ['backbone', 'capture', 'transcripts'] },
+  { id: 'marco',   name: 'Marco',   initial: 'MC', label: 'Grinder G2',        view: 'sailor', avatar: '/images/team/marco.png',    screens: ['backbone', 'capture', 'transcripts'] },
   // ── Coaching & Analysis ───────────────────────────────────────
   { id: 'paul-b',  name: 'Paul B.', initial: 'PB', label: 'Senior Coach',      view: 'coach',   screens: [...ALL_SCREENS] },
   { id: 'richard', name: 'Richard', initial: 'RM', label: 'Coach / Booth',     view: 'coach',   screens: [...ALL_SCREENS] },
@@ -21,3 +21,25 @@ export const ROLES: Role[] = [
 ];
 
 export const DEFAULT_ROLE = ROLES.find(r => r.id === 'rasmus')!;
+
+// Maps known email addresses to a roleId.
+// Anyone from @sailgpbra.com who is NOT listed here gets 'christian' (analyst, all screens).
+export const EMAIL_ROLE_MAP: Record<string, string> = {
+  // Sailing crew
+  'mgrael@sailgpbra.com':       'martine',
+  'rkostner@sailgpbra.com':     'rasmus',
+  'pgoodison@sailgpbra.com':    'paul-g',
+  'misaac@sailgpbra.com':       'mateus',
+  'marcograel@sailgpbra.com':   'marco',
+  // Coaching & analysis
+  'rmason@sailgpbra.com':       'richard',
+  'ncarabelli@sailgpbra.com':   'nico',
+  // Developers
+  'emilie@sailgpbra.com':       'emilie',
+  'viktor@sailgpbra.com':       'viktor',
+};
+
+export const ALLOWED_DOMAINS: Record<string, string> = {
+  'sailgpbra.com': 'christian',  // analyst, all screens
+  'hulelab.com':   'emilie',     // developer, all screens
+};

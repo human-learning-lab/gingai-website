@@ -5,13 +5,13 @@ import { useClerk, useUser } from '@clerk/nextjs';
 import { useState, useRef, useEffect } from 'react';
 import { useRole } from '@/context/RoleContext';
 import type { ScreenId } from '@/types';
-import { IconCalendar, IconMic, IconAgenda, IconDebrief } from '@/components/Icons';
+import { IconCalendar, IconMic, IconDebrief, IconTranscript } from '@/components/Icons';
 
 const NAV_ITEMS: { id: ScreenId; label: string; icon: React.ReactElement }[] = [
-  { id: 'backbone', label: 'Day Backbone',   icon: <IconCalendar size={13} /> },
-  { id: 'capture',  label: 'Capture',        icon: <IconMic size={13} /> },
-  { id: 'intel',    label: 'Debrief Agenda', icon: <IconAgenda size={13} /> },
-  { id: 'debrief',  label: 'Team Debrief',   icon: <IconDebrief size={13} /> },
+  { id: 'backbone',    label: 'Schedule',    icon: <IconCalendar size={13} /> },
+  { id: 'capture',     label: 'Capture',     icon: <IconMic size={13} /> },
+  { id: 'debrief',     label: 'Debrief',     icon: <IconDebrief size={13} /> },
+  { id: 'transcripts', label: 'Transcripts', icon: <IconTranscript size={13} /> },
 ];
 
 function UserChip() {
@@ -96,7 +96,7 @@ export default function NavBar() {
 
   return (
     <div id="pbar">
-      <div className="pb-logo">Ging<span className="ai">AI</span></div>
+      <img src="/images/logo/team_logo.png" alt="Team logo" className="pb-logo" style={{ width: 36, height: 36, objectFit: 'contain' }} />
       <div className="pb-sep" />
 
       {NAV_ITEMS.map(item => (

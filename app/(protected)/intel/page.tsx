@@ -1,5 +1,5 @@
-import Intelligence from '@/screens/Intelligence';
+import { redirect } from 'next/navigation';
 
 export default function IntelPage() {
-  return <Intelligence />;
+  redirect('/debrief');
 }

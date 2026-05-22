@@ -1,14 +1,18 @@
 'use client';
 
-import { BLOCKS } from '@/data/blocks';
+import { getBlocks } from '@/data/blocks';
 
 interface Props { selectedId: string; }
 
 export default function BlockGeneric({ selectedId }: Props) {
-  const block = BLOCKS.find(b => b.id === selectedId);
+  const blocks = getBlocks();
+  const block = blocks.find(b => b.id === selectedId);
   if (!block) return null;
 
   const isPast = block.status === 'past';
+  const nextContentBlock = blocks.find(b =>
+    b.status !== 'past' && !['past', 'future'].includes(b.panel)
+  );
 
   return (
     <>
@@ -23,19 +27,23 @@ export default function BlockGeneric({ selectedId }: Props) {
       <div className="gen-panel">
         {isPast ? (
           <div style={{ color: 'var(--text3)', fontSize: 14, lineHeight: 1.7 }}>
-            Session complete. No linked GingAI content for this block.
+            Session complete.
           </div>
         ) : (
           <>
             <div style={{ color: 'var(--text3)', fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
-              This block is not yet active. GingAI will surface relevant content when it opens.
+              GingAI will surface relevant content when this block opens.
             </div>
-            <div className="sec-title">Day Backbone continues</div>
-            <div style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.7 }}>
-              The next active block is{' '}
-              <strong style={{ color: 'var(--text)' }}>14:30 — Brief the Day</strong>. Select it in the timeline
-              to view the full briefing pack, focus points, and team chat.
-            </div>
+            {nextContentBlock && (
+              <>
+                <div className="sec-title">Day Backbone continues</div>
+                <div style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.7 }}>
+                  The next active block is{' '}
+                  <strong style={{ color: 'var(--text)' }}>{nextContentBlock.time} — {nextContentBlock.name}</strong>.
+                  Select it in the timeline to view details.
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

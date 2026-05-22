@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { RoleProvider } from '@/context/RoleContext';
 import NavBar from '@/components/NavBar/NavBar';
+import LeftNav from '@/components/LeftNav/LeftNav';
 import BottomNav from '@/components/BottomNav/BottomNav';
 import { ROLES } from '@/data/roles';
 
@@ -17,14 +18,9 @@ export default function ProtectedShell({ children }: { children: React.ReactNode
     if (!user) return;
 
     const roleId = (user.publicMetadata as { roleId?: string }).roleId;
-    if (!roleId) {
-      router.replace('/pending');
-      return;
-    }
-
-    const isKnown = ROLES.some(r => r.id === roleId);
+    const isKnown = roleId && ROLES.some(r => r.id === roleId);
     if (!isKnown) {
-      router.replace('/pending');
+      router.replace('/backbone');
     }
   }, [user, isLoaded, router]);
 
@@ -48,8 +44,11 @@ export default function ProtectedShell({ children }: { children: React.ReactNode
   return (
     <RoleProvider>
       <NavBar />
-      <div className="screen-wrap">
-        {children}
+      <div className="app-body">
+        <LeftNav />
+        <div className="screen-wrap">
+          {children}
+        </div>
       </div>
       <BottomNav />
     </RoleProvider>

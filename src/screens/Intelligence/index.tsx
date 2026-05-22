@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import LeftNav from '@/components/LeftNav/LeftNav';
 import { useRole } from '@/context/RoleContext';
 import { IconWarn, IconStar, IconPlay } from '@/components/Icons';
 
@@ -52,7 +51,7 @@ export default function Intelligence() {
 
   return (
     <div className="s-intel">
-      <LeftNav />
+
 
       <div className="intel-left">
         <div className="il-top">

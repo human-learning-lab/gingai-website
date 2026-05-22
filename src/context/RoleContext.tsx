@@ -6,7 +6,7 @@ import { useUser } from '@clerk/nextjs';
 import type { Role, ScreenId } from '@/types';
 import { ROLES } from '@/data/roles';
 
-const ALL_SCREENS: ScreenId[] = ['backbone', 'capture', 'intel', 'debrief'];
+const ALL_SCREENS: ScreenId[] = ['backbone', 'capture', 'debrief', 'transcripts'];
 
 interface RoleContextValue {
   role: Role | null;
