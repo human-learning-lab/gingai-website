@@ -4,28 +4,24 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import Timeline from '@/components/Timeline/Timeline';
 import Block1430 from './views/Block1430';
-import Block1330 from './views/Block1330';
-import Block1818 from './views/Block1818';
-import Block1500 from './views/Block1500';
-import Block1550 from './views/Block1550';
-import BlockGeneric from './views/BlockGeneric';
+import BlockContent from './BlockContent';
 import StatusRail from './StatusRail';
 import { getBlocks } from '@/data/blocks';
 
 const REGATTAS = [
-	{ id: 'perth',      city: 'Perth',          short: 'Perth',       dates: 'Jan 17–18',    start: '2026-01-17', end: '2026-01-18', lat: -31.95,  lon: 115.86,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
-	{ id: 'auckland',   city: 'Auckland',       short: 'Auckland',    dates: 'Feb 14–15',    start: '2026-02-14', end: '2026-02-15', lat: -36.85,  lon: 174.76,  photo: '/images/boat-auckland.jpg',     photoPos: 'center 60%',   days: ['Day 1', 'Day 2'] },
-	{ id: 'sydney',     city: 'Sydney',         short: 'Sydney',      dates: 'Feb 28–Mar 1', start: '2026-02-28', end: '2026-03-01', lat: -33.87,  lon: 151.21,  photo: '/images/boat-sydney.jpg',       photoPos: 'center 40%',   days: ['Day 1', 'Day 2'] },
-	{ id: 'rio',        city: 'Rio de Janeiro', short: 'Rio',         dates: 'Apr 11–12',    start: '2026-04-11', end: '2026-04-12', lat: -22.91,  lon: -43.17,  photo: '/images/boat-rio.jpg',          photoPos: 'center 70%',   days: ['Day 1', 'Day 2'] },
-	{ id: 'bermuda',    city: 'Bermuda',        short: 'Bermuda',     dates: 'May 9–10',     start: '2026-05-09', end: '2026-05-10', lat:  32.30,  lon: -64.78,  photo: '/images/boat-bermuda.jpg',      photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
-	{ id: 'newyork',    city: 'New York',       short: 'New York',    dates: 'May 23–24',    start: '2026-05-23', end: '2026-05-24', lat:  40.65,  lon: -74.02,  photo: '/images/boat-newyork.jpg',      photoPos: 'center 70%',   days: ['Day 1', 'Day 2'] },
-	{ id: 'halifax',    city: 'Halifax',        short: 'Halifax',     dates: 'Jun 13–14',    start: '2026-06-13', end: '2026-06-14', lat:  44.65,  lon: -63.58,  photo: '/images/boat-halifax.jpg',      photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
-	{ id: 'portsmouth', city: 'Portsmouth',     short: 'Portsmouth',  dates: 'Jul 18–19',    start: '2026-07-18', end: '2026-07-19', lat:  50.80,  lon:  -1.08,  photo: '/images/boat-portsmouth.jpg',   photoPos: 'center 50%',   days: ['Day 1', 'Day 2'] },
-	{ id: 'sassnitz',   city: 'Sassnitz',       short: 'Sassnitz',    dates: 'Aug 8–9',      start: '2026-08-08', end: '2026-08-09', lat:  54.52,  lon:  13.64,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
-	{ id: 'valencia',   city: 'Valencia',       short: 'Valencia',    dates: 'Sep 5–6',      start: '2026-09-05', end: '2026-09-06', lat:  39.47,  lon:  -0.38,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
-	{ id: 'geneva',     city: 'Geneva',         short: 'Geneva',      dates: 'Sep 26–27',    start: '2026-09-26', end: '2026-09-27', lat:  46.20,  lon:   6.14,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
-	{ id: 'dubai',      city: 'Dubai',          short: 'Dubai',       dates: 'Nov 14–15',    start: '2026-11-14', end: '2026-11-15', lat:  25.08,  lon:  55.13,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
-	{ id: 'abudhabi',   city: 'Abu Dhabi',      short: 'Grand Final', dates: 'Dec 5–6',      start: '2026-12-05', end: '2026-12-06', lat:  24.47,  lon:  54.37,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+	{ id: 'perth',       city: 'Perth',          short: 'Perth',        dates: 'Jan 17–18',     start: '2026-01-17', end: '2026-01-18', lat: -31.95,  lon: 115.86,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+	{ id: 'auckland',    city: 'Auckland',       short: 'Auckland',     dates: 'Feb 14–15',     start: '2026-02-14', end: '2026-02-15', lat: -36.85,  lon: 174.76,  photo: '/images/boat-auckland.jpg',     photoPos: 'center 60%',    days: ['Day 1', 'Day 2'] },
+	{ id: 'sydney',      city: 'Sydney',         short: 'Sydney',       dates: 'Feb 28–Mar 1',  start: '2026-02-28', end: '2026-03-01', lat: -33.87,  lon: 151.21,  photo: '/images/boat-sydney.jpg',       photoPos: 'center 40%',    days: ['Day 1', 'Day 2'] },
+	{ id: 'rio',         city: 'Rio de Janeiro', short: 'Rio',          dates: 'Apr 11–12',     start: '2026-04-11', end: '2026-04-12', lat: -22.91,  lon: -43.17,  photo: '/images/boat-rio.jpg',          photoPos: 'center 70%',    days: ['Day 1', 'Day 2'] },
+	{ id: 'bermuda',     city: 'Bermuda',        short: 'Bermuda',      dates: 'May 10–11',     start: '2026-05-10', end: '2026-05-11', lat:  32.30,  lon: -64.78,  photo: '/images/boat-bermuda.jpg',      photoPos: 'center 50%',    days: ['Day 1', 'Day 2'] },
+	{ id: 'newyork',     city: 'New York',       short: 'New York',     dates: 'May 30–31',     start: '2026-05-30', end: '2026-05-31', lat:  40.65,  lon: -74.02,  photo: '/images/boat-newyork.jpg',      photoPos: 'center 70%',    days: ['Day 1', 'Day 2'] },
+	{ id: 'halifax',     city: 'Halifax',        short: 'Halifax',      dates: 'Jun 20–21',     start: '2026-06-20', end: '2026-06-21', lat:  44.65,  lon: -63.58,  photo: '/images/boat-halifax.jpg',      photoPos: 'center 50%',    days: ['Day 1', 'Day 2'] },
+	{ id: 'portsmouth',  city: 'Portsmouth',     short: 'Portsmouth',   dates: 'Jul 25–26',     start: '2026-07-25', end: '2026-07-26', lat:  50.80,  lon:  -1.08,  photo: '/images/boat-portsmouth.jpg',   photoPos: 'center 50%',    days: ['Day 1', 'Day 2'] },
+	{ id: 'sassnitz',    city: 'Sassnitz',       short: 'Sassnitz',     dates: 'Aug 22–23',     start: '2026-08-22', end: '2026-08-23', lat:  54.52,  lon:  13.64,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+	{ id: 'valencia',    city: 'Valencia',       short: 'Valencia',     dates: 'Sep 5–6',       start: '2026-09-05', end: '2026-09-06', lat:  39.47,  lon:  -0.38,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+	{ id: 'geneva',      city: 'Geneva',         short: 'Geneva',       dates: 'Sep 19–20',     start: '2026-09-19', end: '2026-09-20', lat:  46.20,  lon:   6.14,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+	{ id: 'dubai',       city: 'Dubai',          short: 'Dubai',        dates: 'Nov 21–22',     start: '2026-11-21', end: '2026-11-22', lat:  25.08,  lon:  55.13,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+	{ id: 'abudhabi',    city: 'Abu Dhabi',      short: 'Grand Final',  dates: 'Nov 28–29',     start: '2026-11-28', end: '2026-11-29', lat:  24.47,  lon:  54.37,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 ];
 
 function getRegatResult(start: string, end: string): 'Past' | 'Active' | 'Upcoming' {
@@ -303,16 +299,8 @@ function AskMeBar() {
 }
 
 function blockContentForPanel(panel: string, selectedId: string) {
-	return (
-		<>
-		{panel === '1430' && <Block1430 data={null} />}
-		{panel === '1330' && <Block1330 data={null} />}
-		{panel === '1818' && <Block1818 data={null} />}
-		{panel === '1500' && <Block1500 data={null} />}
-		{panel === '1550' && <Block1550 data={null} />}
-		{(panel === 'past' || panel === 'future') && <BlockGeneric selectedId={selectedId} />}
-		</>
-	);
+	if (panel === '1430') return <Block1430 data={null} />;
+	return <BlockContent panel={panel} selectedId={selectedId} />;
 }
 
 export default function DayBackbone() {

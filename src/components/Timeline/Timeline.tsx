@@ -158,12 +158,17 @@ function wmoToSky(code: number): string {
 function WeatherPanel({ lat, lon, city }: { lat?: number; lon?: number; city?: string }) {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [fetching, setFetching] = useState(false);
+  const [showSkeleton, setShowSkeleton] = useState(false);
   const [updatedAt, setUpdatedAt] = useState('');
 
   useEffect(() => {
     if (!lat || !lon) return;
     let cancelled = false;
     setFetching(true);
+    // Only show skeleton if fetch takes longer than 160ms — avoids flash for fast loads
+    const skeletonTimer = setTimeout(() => {
+      if (!cancelled) setShowSkeleton(true);
+    }, 160);
     fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
       `&current=wind_speed_10m,wind_gusts_10m,wind_direction_10m,temperature_2m,weather_code` +
@@ -183,12 +188,22 @@ function WeatherPanel({ lat, lon, city }: { lat?: number; lon?: number; city?: s
         setUpdatedAt(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
       })
       .catch(() => {})
-      .finally(() => { if (!cancelled) setFetching(false); });
-    return () => { cancelled = true; };
+      .finally(() => {
+        if (!cancelled) {
+          clearTimeout(skeletonTimer);
+          setShowSkeleton(false);
+          setFetching(false);
+        }
+      });
+    return () => { cancelled = true; clearTimeout(skeletonTimer); };
   }, [lat, lon]);
 
+  const skeletonBar = (w: string, h = 10, mt = 0) => (
+    <div className="wx-skel" style={{ width: w, height: h, marginTop: mt }} />
+  );
+
   return (
-    <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)', transition: 'opacity 0.3s', opacity: fetching ? 0.5 : 1 }}>
+    <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)' }}>
           Conditions · {city ?? 'Venue'}
@@ -196,12 +211,31 @@ function WeatherPanel({ lat, lon, city }: { lat?: number; lon?: number; city?: s
         {updatedAt && <div style={{ fontSize: 10, color: 'var(--text4)' }}>Updated {updatedAt}</div>}
       </div>
 
-      {!weather ? (
-        <div style={{ fontSize: 12, color: 'var(--text4)', padding: '8px 0' }}>
-          {fetching ? 'Loading…' : 'Could not load conditions'}
-        </div>
-      ) : (
+      {showSkeleton && !weather ? (
+        /* Skeleton — matches real content dimensions exactly */
         <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <div className="wx-skel" style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0 }} />
+            <div>
+              {skeletonBar('52px', 26)}
+              {skeletonBar('80px', 10, 6)}
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 0' }}>
+            {['40px', '56px', '48px', '36px'].map((w, i) => (
+              <div key={i}>
+                {skeletonBar('28px', 7)}
+                {skeletonBar(w, 13, 3)}
+              </div>
+            ))}
+          </div>
+        </>
+      ) : !weather ? null : (
+        <div
+          key={`${weather.wind}-${weather.bearing}`}
+          className="wx-loaded"
+          style={{ opacity: fetching ? 0.5 : 1, transition: 'opacity 0.25s' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <WindArrow bearing={weather.bearing} />
             <div>
@@ -223,7 +257,7 @@ function WeatherPanel({ lat, lon, city }: { lat?: number; lon?: number; city?: s
             <CondItem label="Gusts" value={`${weather.gusts} kts`} color={weather.gusts > 25 ? 'var(--red)' : weather.gusts > 18 ? 'var(--yellow)' : undefined} />
             <CondItem label="Dir"   value={`${weather.bearing}°`} />
           </div>
-        </>
+        </div>
       )}
     </div>
   );

@@ -52,6 +52,22 @@ export interface BriefingBlockData {
   coachNotes?: string;
 }
 
+// ── 15:00 — Warm Up ──────────────────────────────────────────
+export interface WarmUpBlockData {
+  notes?: string;
+  exercises?: {
+    name: string;
+    duration?: string;
+    url?: string;
+  }[];
+}
+
+// ── 15:50 — Transfer to Yacht / Gear Checklist ───────────────
+export interface TransferBlockData {
+  items?: string[];
+  notes?: string;
+}
+
 // ── 18:18 — R7 → Capture Opens ───────────────────────────────
 export interface CaptureBlockData {
   captureStatus: 'waiting' | 'open' | 'complete';
