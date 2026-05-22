@@ -13,6 +13,8 @@ const BLOCK_SEEDS: BlockSeed[] = [
   { id: '1738', time: '17:38', name: '🏁 R5 Start — T-Zero', panel: 'future', tag: 'Race 1',   tagColor: 'var(--green)',  tZeroOffset: 0    },
   { id: '1759', time: '17:59', name: 'R6 Start',             panel: 'future', tag: '',         tagColor: '',              tZeroOffset: 21   },
   { id: '1818', time: '18:18', name: 'R7 → Capture Opens',  panel: '1818',   tag: 'Capture',  tagColor: 'var(--red)',    tZeroOffset: 40   },
+  { id: '1900', time: '19:00', name: 'Hot Wash',            panel: 'future', tag: '',         tagColor: '',              tZeroOffset: 82   },
+  { id: '1930', time: '19:30', name: 'Team Debrief',        panel: 'future', tag: 'Debrief',  tagColor: 'var(--text3)',   tZeroOffset: 112  },
 ];
 
 function toMinutes(time: string): number {
