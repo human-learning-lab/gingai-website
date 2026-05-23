@@ -20,7 +20,7 @@ export default function CapturePage() {
 		<Capture
 		transcriptLines={lines}
 		topics={topics}
-		sentiment={sentiment}
+		sentimentPts={sentiment}
 		onRecordingChange={handleRecordingChange}
 		/>
 	);
