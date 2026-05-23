@@ -65,25 +65,28 @@ export default function Capture({ transcriptLines, topics, sentimentPts, onRecor
 	}
 
 	function handleSave() {
-		const text = transcript.trim();
-		if (!text) return;
-		const ts = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-		const id = `capture-${Date.now()}`;
-		addCapture({
-			id,
-			source: 'capture',
-			regatta: '',
-			race: '',
-			team: role?.initial ?? 'BRA',
-			title: 'Capture',
-			duration: `${mm}:${ss}`,
-			lines: [{ speaker: role?.name ?? 'Me', text }],
-			avatarUrl: imgUrl,
-		});
-		setSaved(prev => [{ text, ts }, ...prev]);
-		setTranscript('');
-		setPhase('idle');
+		return;
 	}
+	/*
+	   const text = transcript.trim();
+	   if (!text) return;
+	   const ts = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+	   const id = `capture-${Date.now()}`;
+	   addCapture({
+	   id,
+source: 'capture',
+regatta: '',
+race: '',
+team: role?.initial ?? 'BRA',
+title: 'Capture',
+duration: `${mm}:${ss}`,
+lines: [{ speaker: role?.name ?? 'Me', text }],
+avatarUrl: imgUrl,
+});
+setSaved(prev => [{ text, ts }, ...prev]);
+setTranscript('');
+setPhase('idle');
+*/
 
 	const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
 	const ss = String(elapsed % 60).padStart(2, '0');
