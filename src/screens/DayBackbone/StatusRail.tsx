@@ -24,7 +24,7 @@ function DemoBadge() {
   );
 }
 
-function NextUp() {
+function NextUp({ regatId, dayIndex }: { regatId?: string; dayIndex?: number }) {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -32,7 +32,7 @@ function NextUp() {
     return () => clearInterval(t);
   }, []);
 
-  const blocks = getBlocks(now);
+  const blocks = getBlocks(now, regatId, dayIndex);
   const next = blocks.find(b => b.status === 'future');
 
   if (!next) return null;
@@ -52,7 +52,7 @@ function NextUp() {
   );
 }
 
-export default function StatusRail() {
+export default function StatusRail({ regatId, dayIndex }: { regatId?: string; dayIndex?: number }) {
   const team = [
     { init: 'MG', name: 'Martine', state: 'At tent',  dot: 'sd-g' },
     { init: 'RK', name: 'Rasmus',  state: 'At tent',  dot: 'sd-g' },
@@ -88,7 +88,7 @@ export default function StatusRail() {
           </div>
         ))}
       </div>
-      <NextUp />
+      <NextUp regatId={regatId} dayIndex={dayIndex} />
       <div className="srl-sec">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div className="srl-lbl" style={{ marginBottom: 0 }}>Open Items</div>

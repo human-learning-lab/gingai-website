@@ -8,6 +8,8 @@ export interface TutorialStep {
   screen?: string;
   /** Development status shown as a badge in the tutorial card */
   status?: 'live' | 'demo' | 'soon' | 'beta';
+  /** If set, step only shows to users whose role.view is in this list */
+  requiredViews?: string[];
 }
 
 // To add or update steps in the future, only edit this array.
@@ -38,13 +40,14 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     title: 'Capture',
     screen: 'capture',
     status: 'live',
-    body: `Tap Record and speak naturally — Ginga transcribes in real time. Review, edit if needed, hit Save. Your note lands instantly in Transcripts.`,
+    body: `Tap Record and speak naturally — Ginga transcribes in real time. Review, edit if needed, hit Save. Your note lands instantly in Transcripts.\n\nCaptures are personal — only you can see what you record.`,
   },
   {
     id: 'debrief',
     title: 'Debrief',
     screen: 'debrief',
     status: 'live',
+    requiredViews: ['coach', 'analyst', 'developer'],
     body: `Post-race intelligence from team debrief sessions. Live session recording and transcripts are available.\n\nThe debrief agenda and topic analysis currently use demo data — real data feeds in as the pipeline is connected.`,
   },
   {

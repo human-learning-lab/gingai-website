@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { TUTORIAL_STEPS } from '@/data/tutorialSteps';
+import { useRole } from '@/context/RoleContext';
 import { IconMic } from '@/components/Icons';
 import './TutorialModal.css';
 
@@ -150,9 +151,16 @@ const PREVIEWS: Record<string, React.ReactElement> = {
 /* ── Modal ── */
 
 export default function TutorialModal({ onClose }: Props) {
+  const { role } = useRole();
+
+  const steps = useMemo(() => TUTORIAL_STEPS.filter(s => {
+    if (!s.requiredViews) return true;
+    return role ? s.requiredViews.includes(role.view) : false;
+  }), [role]);
+
   const [step, setStep] = useState(0);
-  const total = TUTORIAL_STEPS.length;
-  const current = TUTORIAL_STEPS[step];
+  const total = steps.length;
+  const current = steps[step];
   const isFirst = step === 0;
   const isLast = step === total - 1;
 
@@ -203,7 +211,7 @@ export default function TutorialModal({ onClose }: Props) {
         {/* Footer */}
         <div className="tut-footer">
           <div className="tut-dots">
-            {TUTORIAL_STEPS.map((_, i) => (
+            {steps.map((_, i) => (
               <button
                 key={i}
                 className={`tut-dot${i === step ? ' on' : ''}`}

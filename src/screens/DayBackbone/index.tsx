@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import Timeline from '@/components/Timeline/Timeline';
+import AgendaTimeline from '@/components/Timeline/AgendaTimeline';
 import Block1430 from './views/Block1430';
 import BlockContent from './BlockContent';
 import StatusRail from './StatusRail';
@@ -533,7 +534,15 @@ export default function DayBackbone() {
 
 	{/* Desktop layout */}
 	<div className="desk-only" style={{ display: 'contents' }}>
-	{!isAgendaDay && (
+	{isAgendaDay && agendaItems ? (
+		<AgendaTimeline
+			items={agendaItems}
+			dayLabel={activeVenue.days[activeDay]}
+			venueCity={activeVenue.city}
+			venueLat={activeVenue.lat}
+			venueLon={activeVenue.lon}
+		/>
+	) : (
 		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} />
 	)}
 	<div className="main">
@@ -547,7 +556,7 @@ export default function DayBackbone() {
 		</div>
 		</div>
 
-		<StatusRail />
+		<StatusRail regatId={activeRegat} dayIndex={activeDay} />
 		</div>
 	);
 }

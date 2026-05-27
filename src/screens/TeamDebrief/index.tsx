@@ -299,15 +299,15 @@ interface TeamDebriefProps {
 }
 
 export default function TeamDebrief({ transcriptLines, topics, sentimentPts, onRecordingChange }: TeamDebriefProps = {}) {
-  const [tab, setTab] = useState<'agenda' | 'session'>('agenda');
+  const [tab, setTab] = useState<'agenda' | 'session'>('session');
 
   return (
     <div className="s-debrief">
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
         <div className="tabs" style={{ flexShrink: 0, borderBottom: '1px solid var(--line)', padding: '0 24px' }}>
-          <div className={`tab${tab === 'agenda' ? ' on' : ''}`} onClick={() => setTab('agenda')}>Agenda</div>
           <div className={`tab${tab === 'session' ? ' on' : ''}`} onClick={() => setTab('session')}>Session</div>
+          <div className={`tab${tab === 'agenda'  ? ' on' : ''}`} onClick={() => setTab('agenda')}>Agenda</div>
         </div>
         {tab === 'agenda'  && <AgendaTab />}
         {tab === 'session' && (
