@@ -110,6 +110,8 @@ const WARMUP_EXERCISES = [
 ];
 
 function Block1500({ data }: { data: WarmUpBlockData | null }) {
+  const [activeVideo, setActiveVideo] = useState<{ id: string; name: string } | null>(null);
+
   return (
     <>
       <BlockHeader eyebrow="Warm Up · Exercise Library" title="Warm Up" />
@@ -117,14 +119,31 @@ function Block1500({ data }: { data: WarmUpBlockData | null }) {
         {data?.notes && (
           <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, marginBottom: 16 }}>{data.notes}</div>
         )}
+
+        {/* Inline player */}
+        {activeVideo && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', borderRadius: 8, overflow: 'hidden', background: '#000' }}>
+              <iframe
+                key={activeVideo.id}
+                src={`https://www.youtube.com/embed/${activeVideo.id}?autoplay=1&rel=0`}
+                title={activeVideo.name}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
+              />
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>{activeVideo.name}</div>
+          </div>
+        )}
+
         <div className="warmup-grid">
           {WARMUP_EXERCISES.map((ex) => (
-            <a
+            <div
               key={ex.id}
-              href={`https://youtu.be/${ex.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="warmup-card"
+              className={`warmup-card${activeVideo?.id === ex.id ? ' active' : ''}`}
+              onClick={() => setActiveVideo(activeVideo?.id === ex.id ? null : ex)}
+              style={{ cursor: 'pointer' }}
             >
               <div className="warmup-thumb">
                 <img
@@ -133,13 +152,19 @@ function Block1500({ data }: { data: WarmUpBlockData | null }) {
                   loading="lazy"
                 />
                 <div className="warmup-play">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                    <polygon points="5 3 19 12 5 21 5 3"/>
-                  </svg>
+                  {activeVideo?.id === ex.id ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                      <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                      <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                  )}
                 </div>
               </div>
               <div className="warmup-name">{ex.name}</div>
-            </a>
+            </div>
           ))}
         </div>
       </div>

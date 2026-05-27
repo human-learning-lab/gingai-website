@@ -1611,6 +1611,7 @@ body {
   transition: box-shadow 0.15s, border-color 0.15s;
 }
 .warmup-card:hover { border-color: var(--line2); box-shadow: 0 2px 10px rgba(10,14,20,0.10); }
+.warmup-card.active { border-color: var(--green); box-shadow: 0 0 0 2px var(--gb); }
 .warmup-thumb {
   position: relative; width: 100%; aspect-ratio: 16/9;
   background: var(--bg3); overflow: hidden;
