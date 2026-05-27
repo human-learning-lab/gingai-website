@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import Timeline from '@/components/Timeline/Timeline';
+import AgendaTimeline from '@/components/Timeline/AgendaTimeline';
 import Block1430 from './views/Block1430';
 import BlockContent from './BlockContent';
 import StatusRail from './StatusRail';
@@ -528,6 +529,10 @@ export default function DayBackbone() {
 	const panel = selected?.panel ?? 'future';
 	const blockContent = blockContentForPanel(panel, selectedId, blocks);
 
+	// Date for the selected regatta day (used for tides lookup)
+	const selectedDate = new Date(activeVenue.start);
+	selectedDate.setDate(selectedDate.getDate() + activeDay);
+
 	function renderMobExpanded(blockId: string) {
 		const b = blocks.find(bl => bl.id === blockId);
 		if (!b) return null;
@@ -556,8 +561,17 @@ export default function DayBackbone() {
 
 	{/* Desktop layout */}
 	<div className="desk-only" style={{ display: 'contents' }}>
-	{!isAgendaDay && (
-		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} />
+	{isAgendaDay && agendaItems ? (
+		<AgendaTimeline
+			items={agendaItems}
+			dayLabel={activeVenue.days[activeDay]}
+			venueCity={activeVenue.city}
+			venueLat={activeVenue.lat}
+			venueLon={activeVenue.lon}
+			selectedDate={selectedDate}
+		/>
+	) : (
+		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} />
 	)}
 	<div className="main">
 	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
@@ -570,7 +584,7 @@ export default function DayBackbone() {
 		</div>
 		</div>
 
-		<StatusRail />
+		<StatusRail regatId={activeRegat} dayIndex={activeDay} />
 		</div>
 	);
 }
