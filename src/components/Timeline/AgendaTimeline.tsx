@@ -15,9 +15,10 @@ interface Props {
   venueCity?: string;
   venueLat?: number;
   venueLon?: number;
+  selectedDate?: Date;
 }
 
-export default function AgendaTimeline({ items, dayLabel, venueCity, venueLat, venueLon }: Props) {
+export default function AgendaTimeline({ items, dayLabel, venueCity, venueLat, venueLon, selectedDate }: Props) {
   // Only show time-bearing items in the timeline (skip Hotel/Venue location rows)
   const timedItems = items.filter(item => item.time !== '—');
 
@@ -28,7 +29,7 @@ export default function AgendaTimeline({ items, dayLabel, venueCity, venueLat, v
         <div className="tl-day">{venueCity ?? 'Event'}</div>
         <div className="tl-sub">{dayLabel} · SailGP 2026</div>
         <WeatherPanel lat={venueLat} lon={venueLon} city={venueCity} />
-        <TidePanel />
+        <TidePanel date={selectedDate} />
       </div>
 
       <div className="tl-list">

@@ -506,6 +506,10 @@ export default function DayBackbone() {
 	const panel = selected?.panel ?? 'future';
 	const blockContent = blockContentForPanel(panel, selectedId, blocks);
 
+	// Date for the selected regatta day (used for tides lookup)
+	const selectedDate = new Date(activeVenue.start);
+	selectedDate.setDate(selectedDate.getDate() + activeDay);
+
 	function renderMobExpanded(blockId: string) {
 		const b = blocks.find(bl => bl.id === blockId);
 		if (!b) return null;
@@ -541,9 +545,10 @@ export default function DayBackbone() {
 			venueCity={activeVenue.city}
 			venueLat={activeVenue.lat}
 			venueLon={activeVenue.lon}
+			selectedDate={selectedDate}
 		/>
 	) : (
-		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} />
+		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} />
 	)}
 	<div className="main">
 	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />

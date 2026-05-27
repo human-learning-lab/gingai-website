@@ -13,6 +13,7 @@ interface Props {
   venueLon?: number;
   venueCity?: string;
   blocks?: Block[];
+  selectedDate?: Date;
 }
 
 function formatTZero(offset: number): string {
@@ -52,7 +53,7 @@ function secsRelTZero(targetTime: string, now: Date): number {
   return Math.floor((now.getTime() - target.getTime()) / 1000);
 }
 
-export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity, blocks: propBlocks }: Props) {
+export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity, blocks: propBlocks, selectedDate }: Props) {
   const now = useNow();
   const blocks = propBlocks ?? getBlocks(now);
   const listRef = useRef<HTMLDivElement>(null);
@@ -93,7 +94,7 @@ export default function Timeline({ selectedId, onSelect, renderExpanded, venueLa
         <div className="tl-day">{venueCity ?? 'Event'}</div>
         <div className="tl-sub">{venueCity ? `${venueCity} SailGP · 2026` : 'SailGP · 2026'}</div>
         <WeatherPanel lat={venueLat} lon={venueLon} city={venueCity} />
-        <TidePanel />
+        <TidePanel date={selectedDate} />
         <EquipmentPanel />
       </div>
       <div className="tl-list" ref={listRef}>

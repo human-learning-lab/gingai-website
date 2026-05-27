@@ -179,13 +179,15 @@ export function WeatherPanel({ lat, lon, city }: { lat?: number; lon?: number; c
 
 // ── Tide panel ────────────────────────────────────────────────
 
-export function TidePanel() {
-  const [tide, setTide] = useState(() => getTideNow());
+export function TidePanel({ date }: { date?: Date }) {
+  const [tide, setTide] = useState(() => getTideNow(date ?? new Date()));
 
   useEffect(() => {
-    const t = setInterval(() => setTide(getTideNow()), 60_000);
+    setTide(getTideNow(date ?? new Date()));
+    if (date) return; // only auto-refresh for live (today) view
+    const t = setInterval(() => setTide(getTideNow(new Date())), 60_000);
     return () => clearInterval(t);
-  }, []);
+  }, [date]);
 
   if (!tide) return null;
 
