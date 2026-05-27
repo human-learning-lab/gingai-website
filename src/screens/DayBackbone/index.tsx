@@ -55,13 +55,18 @@ const REGATTAS: Regatta[] = [
 		weekAgenda: {
 			0: [
 				{ time: '—',     title: 'Hotel: NU Hotel Brooklyn\n85 Smith St, Brooklyn NY 11201', tag: 'Hotel', tagColor: 'var(--text3)' },
-				{ time: '—',     title: 'Tech site: 210 Clinton Wharf, Brooklyn NY 11231',      tag: 'Venue',    tagColor: 'var(--yellow)' },
+				{ time: '—',     title: 'Tech site: 210 Clinton Wharf, Brooklyn NY 11231',          tag: 'Venue', tagColor: 'var(--yellow)' },
+				{ time: '14:30', title: 'Simulator session 1',                                      tag: 'Sim',   tagColor: 'var(--text3)' },
+				{ time: '15:00', title: 'Simulator session 2',                                      tag: 'Sim',   tagColor: 'var(--text3)' },
+				{ time: '16:00', title: 'SailGP team meeting — Hilton Hotel',                       tag: 'Team',  tagColor: 'var(--text3)' },
+				{ time: '20:00', title: 'Team dinner — Hilton Hotel',                               tag: 'Team',  tagColor: 'var(--text3)' },
 			],
 			1: [
-				{ time: '09:00', title: 'Morning team meeting — NYC brief',                      tag: 'Team',     tagColor: 'var(--text3)' },
-				{ time: '10:30', title: 'On-water training session',                             tag: 'Training', tagColor: 'var(--yellow)' },
-				{ time: '15:00', title: 'Sim & strategy session',                                tag: 'Learn',    tagColor: 'var(--text3)' },
-				{ time: '17:00', title: 'Venue walk & media obligations',                        tag: 'Media',    tagColor: 'var(--text4)' },
+				{ time: '08:30', title: 'Simulator session 1',               tag: 'Sim',    tagColor: 'var(--text3)' },
+				{ time: '09:00', title: 'Morning team meeting — NYC brief',  tag: 'Team',   tagColor: 'var(--text3)' },
+				{ time: '10:30', title: 'Sim & strategy session',            tag: 'Learn',  tagColor: 'var(--text3)' },
+				{ time: '15:00', title: 'Venue walk & media obligations',    tag: 'Media',  tagColor: 'var(--text4)' },
+				{ time: '17:30', title: 'Simulator session 2',               tag: 'Sim',    tagColor: 'var(--text3)' },
 			],
 			4: [
 				{ time: '09:00', title: 'Full weekend debrief',                                  tag: 'Debrief',  tagColor: 'var(--text3)' },
