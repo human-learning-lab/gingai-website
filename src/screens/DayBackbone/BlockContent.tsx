@@ -96,33 +96,52 @@ function Block1330({ data }: { data: DebriefBlockData | null }) {
 
 // ─── 15:00 Warm Up ────────────────────────────────────────────
 
+const WARMUP_EXERCISES = [
+  { name: 'Lacrosse Ball — Foot',              id: '1gAVanUJVtQ' },
+  { name: 'Calf Foam Roll',                     id: 'zn1tcngoD8U' },
+  { name: 'Quad Foam Roll',                     id: 'jNC0qnQsw3w' },
+  { name: 'T-Spine Foam Roller',                id: '81kPLsMt6wY' },
+  { name: 'T-Spine Foam Roller Passes',         id: 'ZYn6iypHrCI' },
+  { name: 'Cobra to Downward Dog',              id: 'QcMv2yclgxk' },
+  { name: 'Shin Box Get Up',                    id: 'IWf78Bf-rAI' },
+  { name: 'Shoulder Dislocates',                id: 'rPo5VjfQe9w' },
+  { name: 'Quadruped Step Through Rotation',    id: 'KQU0SMJdqBo' },
+  { name: 'Single Leg Pogo Hops — 4 Directions',id: 'N84BAPZKnP4' },
+];
+
 function Block1500({ data }: { data: WarmUpBlockData | null }) {
-  const empty = !data || (!data.exercises?.length && !data.notes);
   return (
     <>
-      <BlockHeader eyebrow="15:00 · Warm Up" title="Warm Up" />
+      <BlockHeader eyebrow="Warm Up · Exercise Library" title="Warm Up" />
       <div className="gen-panel">
-        {empty ? (
-          <EmptyBlock
-            icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
-            title="Warm Up"
-            hint="The coaching staff will add the warm-up protocol before the session."
-          />
-        ) : (
-          <>
-            {data!.notes && <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, marginBottom: 20 }}>{data!.notes}</div>}
-            {data!.exercises?.map((ex, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: i < data!.exercises!.length - 1 ? '1px solid var(--line)' : 'none', cursor: ex.url ? 'pointer' : 'default' }}
-                onClick={() => ex.url && window.open(ex.url, '_blank', 'noopener')}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>{ex.name}</div>
-                  {ex.duration && <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 2 }}>{ex.duration}</div>}
-                </div>
-                {ex.url && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--line2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>}
-              </div>
-            ))}
-          </>
+        {data?.notes && (
+          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, marginBottom: 16 }}>{data.notes}</div>
         )}
+        <div className="warmup-grid">
+          {WARMUP_EXERCISES.map((ex) => (
+            <a
+              key={ex.id}
+              href={`https://youtu.be/${ex.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="warmup-card"
+            >
+              <div className="warmup-thumb">
+                <img
+                  src={`https://img.youtube.com/vi/${ex.id}/hqdefault.jpg`}
+                  alt={ex.name}
+                  loading="lazy"
+                />
+                <div className="warmup-play">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </div>
+              </div>
+              <div className="warmup-name">{ex.name}</div>
+            </a>
+          ))}
+        </div>
       </div>
     </>
   );
