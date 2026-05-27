@@ -1163,6 +1163,33 @@ body {
 .rd-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--yellow); flex-shrink: 0; }
 .regat-day-tab.on .rd-dot { background: rgba(255,255,255,0.7); }
 
+/* ── Location cards ── */
+.loc-cards-row {
+  display: flex; gap: 10px; flex-direction: column;
+}
+.loc-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 14px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--bg2);
+  text-decoration: none; transition: border-color 0.12s, box-shadow 0.12s;
+}
+.loc-card:hover { border-color: var(--line2); box-shadow: 0 2px 8px rgba(10,14,20,0.08); }
+.loc-card-icon {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: var(--bg3); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text3); flex-shrink: 0;
+}
+.loc-card-body { flex: 1; min-width: 0; }
+.loc-card-type {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text4); margin-bottom: 2px;
+}
+.loc-card-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.2; }
+.loc-card-address { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.loc-card-arrow { color: var(--text4); flex-shrink: 0; }
+
 /* ── Agenda day view ── */
 .agenda-day-wrap { padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
 .agenda-day-header {}

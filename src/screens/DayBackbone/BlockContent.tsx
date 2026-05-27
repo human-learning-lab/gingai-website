@@ -301,8 +301,8 @@ function BlockSim() {
 
 // ─── Generic (past / future) ──────────────────────────────────
 
-function BlockGeneric({ selectedId }: { selectedId: string }) {
-  const blocks = getBlocks();
+function BlockGeneric({ selectedId, blocks: propBlocks }: { selectedId: string; blocks?: import('@/types').Block[] }) {
+  const blocks = propBlocks ?? getBlocks();
   const block = blocks.find(b => b.id === selectedId);
   if (!block) return null;
 
@@ -329,7 +329,11 @@ function BlockGeneric({ selectedId }: { selectedId: string }) {
 
 // ─── Main export — single entry point ─────────────────────────
 
-export default function BlockContent({ panel, selectedId }: { panel: string; selectedId: string }) {
+export default function BlockContent({ panel, selectedId, blocks }: {
+  panel: string;
+  selectedId: string;
+  blocks?: import('@/types').Block[];
+}) {
   switch (panel) {
     case 'tent':  return <BlockTent />;
     case 'sim':   return <BlockSim />;
@@ -338,6 +342,6 @@ export default function BlockContent({ panel, selectedId }: { panel: string; sel
     case '1550':  return <Block1550 data={null} />;
     case '1818':  return <Block1818 />;
     case '1930':  return <Block1930 />;
-    default:      return <BlockGeneric selectedId={selectedId} />;
+    default:      return <BlockGeneric selectedId={selectedId} blocks={blocks} />;
   }
 }

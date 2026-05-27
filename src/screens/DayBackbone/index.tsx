@@ -54,7 +54,6 @@ const REGATTAS: Regatta[] = [
 		},
 		weekAgenda: {
 			0: [
-				{ time: '—',     title: 'Travel to New York',                                   tag: 'Travel',   tagColor: 'var(--text4)' },
 				{ time: '—',     title: 'Hotel: NU Hotel Brooklyn\n85 Smith St, Brooklyn NY 11201', tag: 'Hotel', tagColor: 'var(--text3)' },
 				{ time: '—',     title: 'Tech site: 210 Clinton Wharf, Brooklyn NY 11231',      tag: 'Venue',    tagColor: 'var(--yellow)' },
 			],
@@ -238,43 +237,85 @@ function RegatNav({ activeRegat, setActiveRegat, activeDay, setActiveDay }: {
 }
 
 /* ─── Agenda view for non-race days ─────────────────────────── */
-const MAP_LINKS: Record<string, string> = {
-	'Venue': 'https://maps.app.goo.gl/mNCCdT1XGTAGJhKcA',
-	'Hotel': 'https://maps.google.com/?q=NU+Hotel+Brooklyn+85+Smith+St+Brooklyn+NY',
+const LOCATION_CARDS: Record<string, { type: string; name: string; address: string; mapsUrl: string }> = {
+	'Hotel': {
+		type: 'Hotel',
+		name: 'NU Hotel Brooklyn',
+		address: '85 Smith St, Brooklyn NY 11201',
+		mapsUrl: 'https://maps.google.com/?q=NU+Hotel+Brooklyn+85+Smith+St+Brooklyn+NY',
+	},
+	'Venue': {
+		type: 'Tech Site',
+		name: 'Clinton Wharf — Tech Base',
+		address: '210 Clinton Wharf, Brooklyn NY 11231',
+		mapsUrl: 'https://maps.app.goo.gl/mNCCdT1XGTAGJhKcA',
+	},
 };
 
-function AgendaDayView({ items, dayLabel }: { items: AgendaItem[]; dayLabel: string }) {
+function LocationCard({ loc }: { loc: typeof LOCATION_CARDS[string] }) {
+	const isHotel = loc.type === 'Hotel';
+	return (
+		<a href={loc.mapsUrl} target="_blank" rel="noopener noreferrer" className="loc-card">
+			<div className="loc-card-icon">
+				{isHotel ? (
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+						<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+						<polyline points="9 22 9 12 15 12 15 22"/>
+					</svg>
+				) : (
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+						<path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+						<circle cx="12" cy="10" r="3"/>
+					</svg>
+				)}
+			</div>
+			<div className="loc-card-body">
+				<div className="loc-card-type">{loc.type}</div>
+				<div className="loc-card-name">{loc.name}</div>
+				<div className="loc-card-address">{loc.address}</div>
+			</div>
+			<div className="loc-card-arrow">
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+					<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+					<polyline points="15 3 21 3 21 9"/>
+					<line x1="10" y1="14" x2="21" y2="3"/>
+				</svg>
+			</div>
+		</a>
+	);
+}
+
+function AgendaDayView({ items, dayLabel, showLocations }: { items: AgendaItem[]; dayLabel: string; showLocations?: boolean }) {
+	const regularItems = items.filter(i => i.tag !== 'Hotel' && i.tag !== 'Venue');
 	return (
 		<div className="agenda-day-wrap">
 			<div className="agenda-day-header">
 				<div className="agenda-day-title">{dayLabel}</div>
 				<div className="agenda-day-sub">Day agenda · indicative schedule</div>
 			</div>
+
+			{/* Location cards — Thu explicitly, Fri/others via showLocations prop */}
+			{(items.some(i => i.tag === 'Hotel' || i.tag === 'Venue') || showLocations) && (
+				<div className="loc-cards-row">
+					<LocationCard loc={LOCATION_CARDS['Hotel']} />
+					<LocationCard loc={LOCATION_CARDS['Venue']} />
+				</div>
+			)}
+
 			<div className="agenda-day-list">
-				{items.map((item, i) => {
-					const mapUrl = item.tag ? MAP_LINKS[item.tag] : undefined;
-					return (
-						<div key={i} className="agenda-day-row">
-							<div className="agenda-day-time">{item.time}</div>
-							<div className="agenda-day-body">
-								<div className="agenda-day-name" style={{ whiteSpace: 'pre-line' }}>{item.title}</div>
-								<div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-									{item.tag && (
-										<span className="agenda-day-tag" style={{ color: item.tagColor || 'var(--text4)' }}>
-											{item.tag}
-										</span>
-									)}
-									{mapUrl && (
-										<a href={mapUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: 'var(--text4)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}>
-											<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-											Maps
-										</a>
-									)}
-								</div>
-							</div>
+				{regularItems.map((item, i) => (
+					<div key={i} className="agenda-day-row">
+						<div className="agenda-day-time">{item.time}</div>
+						<div className="agenda-day-body">
+							<div className="agenda-day-name">{item.title}</div>
+							{item.tag && (
+								<span className="agenda-day-tag" style={{ color: item.tagColor || 'var(--text4)' }}>
+									{item.tag}
+								</span>
+							)}
 						</div>
-					);
-				})}
+					</div>
+				))}
 			</div>
 		</div>
 	);
@@ -408,9 +449,9 @@ function AskMeBar() {
 	);
 }
 
-function blockContentForPanel(panel: string, selectedId: string) {
+function blockContentForPanel(panel: string, selectedId: string, blocks?: import('@/types').Block[]) {
 	if (panel === '1430') return <Block1430 data={null} />;
-	return <BlockContent panel={panel} selectedId={selectedId} />;
+	return <BlockContent panel={panel} selectedId={selectedId} blocks={blocks} />;
 }
 
 export default function DayBackbone() {
@@ -457,12 +498,12 @@ export default function DayBackbone() {
 
 	const selected = blocks.find(b => b.id === selectedId);
 	const panel = selected?.panel ?? 'future';
-	const blockContent = blockContentForPanel(panel, selectedId);
+	const blockContent = blockContentForPanel(panel, selectedId, blocks);
 
 	function renderMobExpanded(blockId: string) {
 		const b = blocks.find(bl => bl.id === blockId);
 		if (!b) return null;
-		return blockContentForPanel(b.panel, blockId);
+		return blockContentForPanel(b.panel, blockId, blocks);
 	}
 
 	return (
@@ -476,7 +517,7 @@ export default function DayBackbone() {
 	</div>
 	{isAgendaDay && agendaItems ? (
 		<div style={{ padding: '12px 16px' }}>
-			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} />
+			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1} />
 		</div>
 	) : (
 		<div className="mob-bb-tl">
@@ -494,7 +535,7 @@ export default function DayBackbone() {
 	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
 		<div className="block-view on">
 		{isAgendaDay && agendaItems ? (
-			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} />
+			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1} />
 		) : blockContent}
 		</div>
 		<AskMeBar />
