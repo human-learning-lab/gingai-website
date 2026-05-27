@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { IconMic } from '@/components/Icons';
 import EmptyBlock from '@/components/EmptyBlock';
 import { getBlocks } from '@/data/blocks';
+import { ROLES } from '@/data/roles';
 import type { DebriefBlockData, WarmUpBlockData, TransferBlockData } from '@/types/block-content';
 
 // ─── Shared ───────────────────────────────────────────────────
@@ -212,6 +213,73 @@ function Block1930() {
   );
 }
 
+// ─── All Team — Tent ──────────────────────────────────────────
+
+const SAILORS = ROLES.filter(r => r.view === 'sailor');
+const SUPPORT = ROLES.filter(r => r.view === 'coach' || r.view === 'analyst');
+
+function BlockTent() {
+  return (
+    <>
+      <BlockHeader eyebrow="Morning · All Team" title="All Team — Tent" />
+      <div className="gen-panel">
+        <div style={{ fontSize: 10, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 10 }}>Sailing Crew · 6</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+          {SAILORS.map(s => (
+            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 10px', background: 'var(--bg3)', borderRadius: 8, border: '1px solid var(--line)' }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: 'var(--bg2)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {s.avatar
+                  ? <img src={s.avatar} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 800, color: 'var(--text3)' }}>{s.initial}</span>
+                }
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>{s.name}</div>
+                <div style={{ fontSize: 10, color: 'var(--text4)', marginTop: 1 }}>{s.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 10, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 10 }}>Coaching &amp; Support</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {SUPPORT.map(s => (
+            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 7, border: '1px solid var(--line)' }}>
+              <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, background: 'var(--bg3)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 10, fontWeight: 800, color: 'var(--text3)' }}>{s.initial}</span>
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text2)' }}>{s.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--text4)', marginLeft: 'auto' }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Simulator Session ────────────────────────────────────────
+
+function BlockSim() {
+  return (
+    <>
+      <BlockHeader eyebrow="Simulator · Learn" title="Simulator Session" />
+      <div className="gen-panel">
+        <EmptyBlock
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <path d="M8 21h8M12 17v4"/>
+              <path d="M7 8l3 3-3 3M13 14h4"/>
+            </svg>
+          }
+          title="Simulator Session"
+          hint="Structured sim reps based on today's race conditions. Content added by coaching staff before the session."
+        />
+      </div>
+    </>
+  );
+}
+
 // ─── Generic (past / future) ──────────────────────────────────
 
 function BlockGeneric({ selectedId }: { selectedId: string }) {
@@ -244,11 +312,13 @@ function BlockGeneric({ selectedId }: { selectedId: string }) {
 
 export default function BlockContent({ panel, selectedId }: { panel: string; selectedId: string }) {
   switch (panel) {
-    case '1330': return <Block1330 data={null} />;
-    case '1500': return <Block1500 data={null} />;
-    case '1550': return <Block1550 data={null} />;
-    case '1818': return <Block1818 />;
-    case '1930': return <Block1930 />;
-    default:     return <BlockGeneric selectedId={selectedId} />;
+    case 'tent':  return <BlockTent />;
+    case 'sim':   return <BlockSim />;
+    case '1330':  return <Block1330 data={null} />;
+    case '1500':  return <Block1500 data={null} />;
+    case '1550':  return <Block1550 data={null} />;
+    case '1818':  return <Block1818 />;
+    case '1930':  return <Block1930 />;
+    default:      return <BlockGeneric selectedId={selectedId} />;
   }
 }

@@ -4,9 +4,9 @@ type BlockSeed = Omit<Block, 'status'>;
 
 // ── Generic race day (used for all regattas except NYC) ────────
 const GENERIC_SEEDS: BlockSeed[] = [
-  { id: '1320', time: '13:20', name: 'All Team — Tent',       panel: 'past',   tag: '',        tagColor: '',              tZeroOffset: -258 },
+  { id: '1320', time: '13:20', name: 'All Team — Tent',       panel: 'tent',   tag: '',        tagColor: '',              tZeroOffset: -258 },
   { id: '1330', time: '13:30', name: 'Brief & Sim Brief',     panel: '1330',   tag: 'Learn',   tagColor: 'var(--text3)',   tZeroOffset: -248 },
-  { id: '1400', time: '14:00', name: 'Simulator Session',     panel: 'past',   tag: '',        tagColor: '',              tZeroOffset: -218 },
+  { id: '1400', time: '14:00', name: 'Simulator Session',     panel: 'sim',    tag: '',        tagColor: '',              tZeroOffset: -218 },
   { id: '1500', time: '15:00', name: 'Warm Up',               panel: '1500',   tag: '',        tagColor: '',              tZeroOffset: -158 },
   { id: '1550', time: '15:50', name: 'Transfer to Yacht',     panel: '1550',   tag: 'Race',    tagColor: 'var(--yellow)', tZeroOffset: -108 },
   { id: '1620', time: '16:20', name: 'Dock Off',              panel: 'future', tag: 'Race',    tagColor: 'var(--yellow)', tZeroOffset: -78  },
@@ -18,9 +18,9 @@ const GENERIC_SEEDS: BlockSeed[] = [
 
 // ── NYC Saturday May 30 — R1–R4 (T-Zero = 15:39) ──────────────
 const NYC_SAT_SEEDS: BlockSeed[] = [
-  { id: 'ns-0930', time: '09:30', name: 'All Team — Tent',      panel: 'past',   tag: '',        tagColor: '',              tZeroOffset: -369 },
+  { id: 'ns-0930', time: '09:30', name: 'All Team — Tent',      panel: 'tent',   tag: '',        tagColor: '',              tZeroOffset: -369 },
   { id: 'ns-1000', time: '10:00', name: 'Brief & Sim Brief',    panel: '1330',   tag: 'Learn',   tagColor: 'var(--text3)',   tZeroOffset: -339 },
-  { id: 'ns-1130', time: '11:30', name: 'Simulator Session',    panel: 'past',   tag: '',        tagColor: '',              tZeroOffset: -249 },
+  { id: 'ns-1130', time: '11:30', name: 'Simulator Session',    panel: 'sim',    tag: '',        tagColor: '',              tZeroOffset: -249 },
   { id: 'ns-1300', time: '13:00', name: 'Warm Up',              panel: '1500',   tag: '',        tagColor: '',              tZeroOffset: -159 },
   { id: 'ns-1350', time: '13:50', name: 'Transfer to Yacht',    panel: '1550',   tag: 'Race',    tagColor: 'var(--yellow)', tZeroOffset: -109 },
   { id: 'ns-1420', time: '14:20', name: 'Dock Off',             panel: 'future', tag: 'Race',    tagColor: 'var(--yellow)', tZeroOffset: -79  },
@@ -35,9 +35,9 @@ const NYC_SAT_SEEDS: BlockSeed[] = [
 
 // ── NYC Sunday May 31 — R5–R7 + Final (T-Zero = 15:38) ────────
 const NYC_SUN_SEEDS: BlockSeed[] = [
-  { id: 'nu-0930', time: '09:30', name: 'All Team — Tent',      panel: 'past',   tag: '',        tagColor: '',              tZeroOffset: -368 },
+  { id: 'nu-0930', time: '09:30', name: 'All Team — Tent',      panel: 'tent',   tag: '',        tagColor: '',              tZeroOffset: -368 },
   { id: 'nu-1000', time: '10:00', name: 'Brief & Sim Brief',    panel: '1330',   tag: 'Learn',   tagColor: 'var(--text3)',   tZeroOffset: -338 },
-  { id: 'nu-1130', time: '11:30', name: 'Simulator Session',    panel: 'past',   tag: '',        tagColor: '',              tZeroOffset: -248 },
+  { id: 'nu-1130', time: '11:30', name: 'Simulator Session',    panel: 'sim',    tag: '',        tagColor: '',              tZeroOffset: -248 },
   { id: 'nu-1300', time: '13:00', name: 'Warm Up',              panel: '1500',   tag: '',        tagColor: '',              tZeroOffset: -158 },
   { id: 'nu-1350', time: '13:50', name: 'Transfer to Yacht',    panel: '1550',   tag: 'Race',    tagColor: 'var(--yellow)', tZeroOffset: -108 },
   { id: 'nu-1420', time: '14:20', name: 'Dock Off',             panel: 'future', tag: 'Race',    tagColor: 'var(--yellow)', tZeroOffset: -78  },
