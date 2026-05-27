@@ -8,13 +8,68 @@ import BlockContent from './BlockContent';
 import StatusRail from './StatusRail';
 import { getBlocks } from '@/data/blocks';
 
-const REGATTAS = [
+type AgendaItem = { time: string; title: string; tag?: string; tagColor?: string };
+type RaceEntry  = { id: string; start: string; end: string; final?: boolean };
+
+interface Regatta {
+	id: string; city: string; short: string; dates: string;
+	start: string; end: string; lat: number; lon: number;
+	photo: string; photoPos: string; days: string[];
+	raceDayIndices?: number[];
+	raceSchedule?: Record<number, { broadcast: string; races: RaceEntry[] }>;
+	weekAgenda?:  Record<number, AgendaItem[]>;
+}
+
+const REGATTAS: Regatta[] = [
 	{ id: 'perth',       city: 'Perth',          short: 'Perth',        dates: 'Jan 17–18',     start: '2026-01-17', end: '2026-01-18', lat: -31.95,  lon: 115.86,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 	{ id: 'auckland',    city: 'Auckland',       short: 'Auckland',     dates: 'Feb 14–15',     start: '2026-02-14', end: '2026-02-15', lat: -36.85,  lon: 174.76,  photo: '/images/boat-auckland.jpg',     photoPos: 'center 60%',    days: ['Day 1', 'Day 2'] },
 	{ id: 'sydney',      city: 'Sydney',         short: 'Sydney',       dates: 'Feb 28–Mar 1',  start: '2026-02-28', end: '2026-03-01', lat: -33.87,  lon: 151.21,  photo: '/images/boat-sydney.jpg',       photoPos: 'center 40%',    days: ['Day 1', 'Day 2'] },
 	{ id: 'rio',         city: 'Rio de Janeiro', short: 'Rio',          dates: 'Apr 11–12',     start: '2026-04-11', end: '2026-04-12', lat: -22.91,  lon: -43.17,  photo: '/images/boat-rio.jpg',          photoPos: 'center 70%',    days: ['Day 1', 'Day 2'] },
 	{ id: 'bermuda',     city: 'Bermuda',        short: 'Bermuda',      dates: 'May 10–11',     start: '2026-05-10', end: '2026-05-11', lat:  32.30,  lon: -64.78,  photo: '/images/boat-bermuda.jpg',      photoPos: 'center 50%',    days: ['Day 1', 'Day 2'] },
-	{ id: 'newyork',     city: 'New York',       short: 'New York',     dates: 'May 30–31',     start: '2026-05-30', end: '2026-05-31', lat:  40.65,  lon: -74.02,  photo: '/images/boat-newyork.jpg',      photoPos: 'center 70%',    days: ['Day 1', 'Day 2'] },
+	{
+		id: 'newyork', city: 'New York', short: 'New York', dates: 'May 28–Jun 1',
+		start: '2026-05-28', end: '2026-06-01',
+		lat: 40.65, lon: -74.02, photo: '/images/boat-newyork.jpg', photoPos: 'center 70%',
+		days: ['Thu · 28', 'Fri · 29', 'Sat · 30', 'Sun · 31', 'Mon · 1'],
+		raceDayIndices: [2, 3],
+		raceSchedule: {
+			2: {
+				broadcast: '15:30–17:00',
+				races: [
+					{ id: 'R1', start: '15:39', end: '15:51' },
+					{ id: 'R2', start: '15:58', end: '16:10' },
+					{ id: 'R3', start: '16:18', end: '16:30' },
+					{ id: 'R4', start: '16:40', end: '16:52' },
+				],
+			},
+			3: {
+				broadcast: '15:30–17:00',
+				races: [
+					{ id: 'R5', start: '15:38', end: '15:50' },
+					{ id: 'R6', start: '15:58', end: '16:10' },
+					{ id: 'R7', start: '16:18', end: '16:30' },
+					{ id: 'Final', start: '16:39', end: '16:50', final: true },
+				],
+			},
+		},
+		weekAgenda: {
+			0: [
+				{ time: '—',     title: 'Hotel: NU Hotel Brooklyn\n85 Smith St, Brooklyn NY 11201', tag: 'Hotel', tagColor: 'var(--text3)' },
+				{ time: '—',     title: 'Tech site: 210 Clinton Wharf, Brooklyn NY 11231',      tag: 'Venue',    tagColor: 'var(--yellow)' },
+			],
+			1: [
+				{ time: '09:00', title: 'Morning team meeting — NYC brief',                      tag: 'Team',     tagColor: 'var(--text3)' },
+				{ time: '10:30', title: 'On-water training session',                             tag: 'Training', tagColor: 'var(--yellow)' },
+				{ time: '15:00', title: 'Sim & strategy session',                                tag: 'Learn',    tagColor: 'var(--text3)' },
+				{ time: '17:00', title: 'Venue walk & media obligations',                        tag: 'Media',    tagColor: 'var(--text4)' },
+			],
+			4: [
+				{ time: '09:00', title: 'Full weekend debrief',                                  tag: 'Debrief',  tagColor: 'var(--text3)' },
+				{ time: '11:00', title: 'Data & video review',                                   tag: 'Learn',    tagColor: 'var(--text3)' },
+				{ time: '15:00', title: 'Travel home',                                           tag: 'Travel',   tagColor: 'var(--text4)' },
+			],
+		},
+	},
 	{ id: 'halifax',     city: 'Halifax',        short: 'Halifax',      dates: 'Jun 20–21',     start: '2026-06-20', end: '2026-06-21', lat:  44.65,  lon: -63.58,  photo: '/images/boat-halifax.jpg',      photoPos: 'center 50%',    days: ['Day 1', 'Day 2'] },
 	{ id: 'portsmouth',  city: 'Portsmouth',     short: 'Portsmouth',   dates: 'Jul 25–26',     start: '2026-07-25', end: '2026-07-26', lat:  50.80,  lon:  -1.08,  photo: '/images/boat-portsmouth.jpg',   photoPos: 'center 50%',    days: ['Day 1', 'Day 2'] },
 	{ id: 'sassnitz',    city: 'Sassnitz',       short: 'Sassnitz',     dates: 'Aug 22–23',     start: '2026-08-22', end: '2026-08-23', lat:  54.52,  lon:  13.64,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
@@ -105,10 +160,11 @@ function DemoBadge() {
 	);
 }
 
-function RegatNav({ activeRegat, setActiveRegat }: { activeRegat: string; setActiveRegat: (id: string) => void }) {
-	const [activeDay, setActiveDay] = useState(0);
+function RegatNav({ activeRegat, setActiveRegat, activeDay, setActiveDay }: {
+	activeRegat: string; setActiveRegat: (id: string) => void;
+	activeDay: number;   setActiveDay:   (i: number)  => void;
+}) {
 	const tier1Ref = useRef<HTMLDivElement>(null);
-
 	const regat = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[0];
 	const result = getRegatResult(regat.start, regat.end);
 
@@ -164,16 +220,134 @@ function RegatNav({ activeRegat, setActiveRegat }: { activeRegat: string; setAct
 		))}
 		</div>
 		<div className="regat-tier2">
-		{regat.days.map((d, i) => (
-			<button
-			key={d}
-			className={`regat-day-tab${activeDay === i ? ' on' : ''}`}
-			onClick={() => setActiveDay(i)}
-			>
-			{d}
-			</button>
-		))}
+		{regat.days.map((d, i) => {
+			const isRace = regat.raceDayIndices?.includes(i);
+			return (
+				<button
+				key={d}
+				className={`regat-day-tab${activeDay === i ? ' on' : ''}${isRace ? ' race-day' : ''}`}
+				onClick={() => setActiveDay(i)}
+				>
+				{isRace && <span className="rd-dot" />}
+				{d}
+				</button>
+			);
+		})}
 		</div>
+		</div>
+	);
+}
+
+/* ─── Agenda view for non-race days ─────────────────────────── */
+const LOCATION_CARDS: Record<string, { type: string; name: string; address: string; mapsUrl: string }> = {
+	'Hotel': {
+		type: 'Hotel',
+		name: 'NU Hotel Brooklyn',
+		address: '85 Smith St, Brooklyn NY 11201',
+		mapsUrl: 'https://maps.google.com/?q=NU+Hotel+Brooklyn+85+Smith+St+Brooklyn+NY',
+	},
+	'Venue': {
+		type: 'Tech Site',
+		name: 'Clinton Wharf — Tech Base',
+		address: '210 Clinton Wharf, Brooklyn NY 11231',
+		mapsUrl: 'https://maps.app.goo.gl/mNCCdT1XGTAGJhKcA',
+	},
+};
+
+function LocationCard({ loc }: { loc: typeof LOCATION_CARDS[string] }) {
+	const isHotel = loc.type === 'Hotel';
+	return (
+		<a href={loc.mapsUrl} target="_blank" rel="noopener noreferrer" className="loc-card">
+			<div className="loc-card-icon">
+				{isHotel ? (
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+						<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+						<polyline points="9 22 9 12 15 12 15 22"/>
+					</svg>
+				) : (
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+						<path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+						<circle cx="12" cy="10" r="3"/>
+					</svg>
+				)}
+			</div>
+			<div className="loc-card-body">
+				<div className="loc-card-type">{loc.type}</div>
+				<div className="loc-card-name">{loc.name}</div>
+				<div className="loc-card-address">{loc.address}</div>
+			</div>
+			<div className="loc-card-arrow">
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+					<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+					<polyline points="15 3 21 3 21 9"/>
+					<line x1="10" y1="14" x2="21" y2="3"/>
+				</svg>
+			</div>
+		</a>
+	);
+}
+
+function AgendaDayView({ items, dayLabel, showLocations }: { items: AgendaItem[]; dayLabel: string; showLocations?: boolean }) {
+	const regularItems = items.filter(i => i.tag !== 'Hotel' && i.tag !== 'Venue');
+	return (
+		<div className="agenda-day-wrap">
+			<div className="agenda-day-header">
+				<div className="agenda-day-title">{dayLabel}</div>
+				<div className="agenda-day-sub">Day agenda · indicative schedule</div>
+			</div>
+
+			{/* Location cards — Thu explicitly, Fri/others via showLocations prop */}
+			{(items.some(i => i.tag === 'Hotel' || i.tag === 'Venue') || showLocations) && (
+				<div className="loc-cards-row">
+					<LocationCard loc={LOCATION_CARDS['Hotel']} />
+					<LocationCard loc={LOCATION_CARDS['Venue']} />
+				</div>
+			)}
+
+			<div className="agenda-day-list">
+				{regularItems.map((item, i) => (
+					<div key={i} className="agenda-day-row">
+						<div className="agenda-day-time">{item.time}</div>
+						<div className="agenda-day-body">
+							<div className="agenda-day-name">{item.title}</div>
+							{item.tag && (
+								<span className="agenda-day-tag" style={{ color: item.tagColor || 'var(--text4)' }}>
+									{item.tag}
+								</span>
+							)}
+						</div>
+					</div>
+				))}
+			</div>
+		</div>
+	);
+}
+
+/* ─── Race schedule card shown on race days ─────────────────── */
+function RaceScheduleCard({ races, broadcast, dayLabel }: {
+	races: RaceEntry[];
+	broadcast: string;
+	dayLabel: string;
+}) {
+	return (
+		<div className="race-sched-card">
+			<div className="race-sched-header">
+				<div>
+					<div className="race-sched-title">{dayLabel} · Race Schedule</div>
+					<div className="race-sched-sub">Broadcast {broadcast} · Times indicative</div>
+				</div>
+			</div>
+			<div className="race-sched-list">
+				{races.map((r) => (
+					<div key={r.id} className={`race-sched-row${r.final ? ' final' : ''}`}>
+						<div className="rs-id">{r.id}</div>
+						<div className="rs-bar">
+							<div className="rs-bar-fill" style={{ width: `${Math.round(((parseInt(r.end.replace(':','')) - parseInt(r.start.replace(':',''))) / 100) * 6)}%` }} />
+						</div>
+						<div className="rs-times">{r.start} — {r.end}</div>
+					</div>
+				))}
+			</div>
 		</div>
 	);
 }
@@ -298,35 +472,47 @@ function AskMeBar() {
 	);
 }
 
-function blockContentForPanel(panel: string, selectedId: string) {
+function blockContentForPanel(panel: string, selectedId: string, blocks?: import('@/types').Block[]) {
 	if (panel === '1430') return <Block1430 data={null} />;
-	return <BlockContent panel={panel} selectedId={selectedId} />;
+	return <BlockContent panel={panel} selectedId={selectedId} blocks={blocks} />;
 }
 
 export default function DayBackbone() {
-	const blocks = getBlocks();
+	const [activeRegat, setActiveRegat] = useState(getDefaultRegat);
+	const [activeDay, setActiveDay]     = useState(0);
+	const activeVenue = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[5];
+
+	// Blocks depend on which regatta + day is selected
+	const blocks = getBlocks(new Date(), activeRegat, activeDay);
 	const nowBlock = blocks.find(b => b.status === 'now');
 	const [selectedId, setSelectedId] = useState(nowBlock?.id ?? blocks[0]?.id ?? '1430');
 	const userSelectedRef = useRef(false);
-	const [activeRegat, setActiveRegat] = useState(getDefaultRegat);
-	const activeVenue = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[5];
+
+	// Derived: is the selected day a non-race agenda day?
+	const isAgendaDay = !!(
+		activeVenue.weekAgenda?.[activeDay] &&
+		!activeVenue.raceDayIndices?.includes(activeDay)
+	);
+	const agendaItems  = activeVenue.weekAgenda?.[activeDay];
+	const raceSchedule = activeVenue.raceSchedule?.[activeDay];
+
+	// Reset selection when regatta or day changes
+	useEffect(() => {
+		userSelectedRef.current = false;
+		const freshBlocks = getBlocks(new Date(), activeRegat, activeDay);
+		const live = freshBlocks.find(b => b.status === 'now');
+		setSelectedId(live?.id ?? freshBlocks[0]?.id ?? '1430');
+	}, [activeRegat, activeDay]);
 
 	// Follow the live "now" block automatically unless the user has manually selected one
 	useEffect(() => {
-		if (userSelectedRef.current) return;
 		const interval = setInterval(() => {
-			const live = getBlocks().find(b => b.status === 'now');
+			if (userSelectedRef.current) return;
+			const live = getBlocks(new Date(), activeRegat, activeDay).find(b => b.status === 'now');
 			if (live) setSelectedId(live.id);
 		}, 30_000);
 		return () => clearInterval(interval);
-	}, []);
-
-	// Also sync immediately whenever blocks change (e.g. on mount after hydration)
-	useEffect(() => {
-		if (userSelectedRef.current) return;
-		const live = getBlocks().find(b => b.status === 'now');
-		if (live) setSelectedId(live.id);
-	}, []);
+	}, [activeRegat, activeDay]);
 
 	function handleSelect(id: string) {
 		userSelectedRef.current = true;
@@ -335,35 +521,45 @@ export default function DayBackbone() {
 
 	const selected = blocks.find(b => b.id === selectedId);
 	const panel = selected?.panel ?? 'future';
-	const blockContent = blockContentForPanel(panel, selectedId);
+	const blockContent = blockContentForPanel(panel, selectedId, blocks);
 
 	function renderMobExpanded(blockId: string) {
 		const b = blocks.find(bl => bl.id === blockId);
 		if (!b) return null;
-		return blockContentForPanel(b.panel, blockId);
+		return blockContentForPanel(b.panel, blockId, blocks);
 	}
 
 	return (
 		<div className="s-backbone">
 
-	{/* Mobile layout — inline expansion, no tabs */}
+	{/* Mobile layout */}
 	<div className="mob-only mob-backbone">
-	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} />
+	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
 	<div style={{ padding: '0 0 4px' }}>
 		<AskMeBar />
 	</div>
-	<div className="mob-bb-tl">
-		<Timeline selectedId={selectedId} onSelect={handleSelect} renderExpanded={renderMobExpanded} />
-	</div>
+	{isAgendaDay && agendaItems ? (
+		<div style={{ padding: '12px 16px' }}>
+			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1} />
+		</div>
+	) : (
+		<div className="mob-bb-tl">
+			<Timeline selectedId={selectedId} onSelect={handleSelect} renderExpanded={renderMobExpanded} blocks={blocks} />
+		</div>
+	)}
 	</div>
 
 	{/* Desktop layout */}
 	<div className="desk-only" style={{ display: 'contents' }}>
-	<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} />
+	{!isAgendaDay && (
+		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} />
+	)}
 	<div className="main">
-	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} />
+	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
 		<div className="block-view on">
-		{blockContent}
+		{isAgendaDay && agendaItems ? (
+			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1} />
+		) : blockContent}
 		</div>
 		<AskMeBar />
 		</div>

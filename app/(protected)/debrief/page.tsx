@@ -1,27 +1,11 @@
-'use client';
+import type { Metadata } from 'next';
+import DebriefClient from './DebriefClient';
 
-import { useCallback } from 'react';
-import TeamDebrief from '@/screens/TeamDebrief';
-import { useTranscript } from '@/hooks/useTranscript';
+export const metadata: Metadata = {
+  title: 'Debrief',
+  description: 'Live team debrief with AI synthesis, sentiment tracking and race analysis.',
+};
 
 export default function DebriefPage() {
-  const { lines, topics, sentiment, connect, disconnect, reset } = useTranscript();
-
-  const handleRecordingChange = useCallback((recording: boolean) => {
-    if (recording) {
-      reset();
-      connect();
-    } else {
-      disconnect();
-    }
-  }, [connect, disconnect, reset]);
-
-  return (
-    <TeamDebrief
-      transcriptLines={lines}
-      topics={topics}
-      sentimentPts={sentiment}
-      onRecordingChange={handleRecordingChange}
-    />
-  );
+  return <DebriefClient />;
 }

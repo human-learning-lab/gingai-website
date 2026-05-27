@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { IconMic } from '@/components/Icons';
 import EmptyBlock from '@/components/EmptyBlock';
 import { getBlocks } from '@/data/blocks';
+import { ROLES } from '@/data/roles';
 import type { DebriefBlockData, WarmUpBlockData, TransferBlockData } from '@/types/block-content';
 
 // ─── Shared ───────────────────────────────────────────────────
@@ -95,33 +96,52 @@ function Block1330({ data }: { data: DebriefBlockData | null }) {
 
 // ─── 15:00 Warm Up ────────────────────────────────────────────
 
+const WARMUP_EXERCISES = [
+  { name: 'Lacrosse Ball — Foot',              id: '1gAVanUJVtQ' },
+  { name: 'Calf Foam Roll',                     id: 'zn1tcngoD8U' },
+  { name: 'Quad Foam Roll',                     id: 'jNC0qnQsw3w' },
+  { name: 'T-Spine Foam Roller',                id: '81kPLsMt6wY' },
+  { name: 'T-Spine Foam Roller Passes',         id: 'ZYn6iypHrCI' },
+  { name: 'Cobra to Downward Dog',              id: 'QcMv2yclgxk' },
+  { name: 'Shin Box Get Up',                    id: 'IWf78Bf-rAI' },
+  { name: 'Shoulder Dislocates',                id: 'rPo5VjfQe9w' },
+  { name: 'Quadruped Step Through Rotation',    id: 'KQU0SMJdqBo' },
+  { name: 'Single Leg Pogo Hops — 4 Directions',id: 'N84BAPZKnP4' },
+];
+
 function Block1500({ data }: { data: WarmUpBlockData | null }) {
-  const empty = !data || (!data.exercises?.length && !data.notes);
   return (
     <>
-      <BlockHeader eyebrow="15:00 · Warm Up" title="Warm Up" />
+      <BlockHeader eyebrow="Warm Up · Exercise Library" title="Warm Up" />
       <div className="gen-panel">
-        {empty ? (
-          <EmptyBlock
-            icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
-            title="Warm Up"
-            hint="The coaching staff will add the warm-up protocol before the session."
-          />
-        ) : (
-          <>
-            {data!.notes && <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, marginBottom: 20 }}>{data!.notes}</div>}
-            {data!.exercises?.map((ex, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: i < data!.exercises!.length - 1 ? '1px solid var(--line)' : 'none', cursor: ex.url ? 'pointer' : 'default' }}
-                onClick={() => ex.url && window.open(ex.url, '_blank', 'noopener')}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>{ex.name}</div>
-                  {ex.duration && <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 2 }}>{ex.duration}</div>}
-                </div>
-                {ex.url && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--line2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>}
-              </div>
-            ))}
-          </>
+        {data?.notes && (
+          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, marginBottom: 16 }}>{data.notes}</div>
         )}
+        <div className="warmup-grid">
+          {WARMUP_EXERCISES.map((ex) => (
+            <a
+              key={ex.id}
+              href={`https://youtu.be/${ex.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="warmup-card"
+            >
+              <div className="warmup-thumb">
+                <img
+                  src={`https://img.youtube.com/vi/${ex.id}/hqdefault.jpg`}
+                  alt={ex.name}
+                  loading="lazy"
+                />
+                <div className="warmup-play">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </div>
+              </div>
+              <div className="warmup-name">{ex.name}</div>
+            </a>
+          ))}
+        </div>
       </div>
     </>
   );
@@ -212,10 +232,77 @@ function Block1930() {
   );
 }
 
+// ─── All Team — Tent ──────────────────────────────────────────
+
+const SAILORS = ROLES.filter(r => r.view === 'sailor');
+const SUPPORT = ROLES.filter(r => r.view === 'coach' || r.view === 'analyst');
+
+function BlockTent() {
+  return (
+    <>
+      <BlockHeader eyebrow="Morning · All Team" title="All Team — Tent" />
+      <div className="gen-panel">
+        <div style={{ fontSize: 10, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 10 }}>Sailing Crew · 6</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+          {SAILORS.map(s => (
+            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 10px', background: 'var(--bg3)', borderRadius: 8, border: '1px solid var(--line)' }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: 'var(--bg2)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {s.avatar
+                  ? <img src={s.avatar} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 800, color: 'var(--text3)' }}>{s.initial}</span>
+                }
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>{s.name}</div>
+                <div style={{ fontSize: 10, color: 'var(--text4)', marginTop: 1 }}>{s.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 10, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 10 }}>Coaching &amp; Support</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {SUPPORT.map(s => (
+            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 7, border: '1px solid var(--line)' }}>
+              <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, background: 'var(--bg3)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 10, fontWeight: 800, color: 'var(--text3)' }}>{s.initial}</span>
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text2)' }}>{s.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--text4)', marginLeft: 'auto' }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Simulator Session ────────────────────────────────────────
+
+function BlockSim() {
+  return (
+    <>
+      <BlockHeader eyebrow="Simulator · Learn" title="Simulator Session" />
+      <div className="gen-panel">
+        <EmptyBlock
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <path d="M8 21h8M12 17v4"/>
+              <path d="M7 8l3 3-3 3M13 14h4"/>
+            </svg>
+          }
+          title="Simulator Session"
+          hint="Structured sim reps based on today's race conditions. Content added by coaching staff before the session."
+        />
+      </div>
+    </>
+  );
+}
+
 // ─── Generic (past / future) ──────────────────────────────────
 
-function BlockGeneric({ selectedId }: { selectedId: string }) {
-  const blocks = getBlocks();
+function BlockGeneric({ selectedId, blocks: propBlocks }: { selectedId: string; blocks?: import('@/types').Block[] }) {
+  const blocks = propBlocks ?? getBlocks();
   const block = blocks.find(b => b.id === selectedId);
   if (!block) return null;
 
@@ -242,13 +329,19 @@ function BlockGeneric({ selectedId }: { selectedId: string }) {
 
 // ─── Main export — single entry point ─────────────────────────
 
-export default function BlockContent({ panel, selectedId }: { panel: string; selectedId: string }) {
+export default function BlockContent({ panel, selectedId, blocks }: {
+  panel: string;
+  selectedId: string;
+  blocks?: import('@/types').Block[];
+}) {
   switch (panel) {
-    case '1330': return <Block1330 data={null} />;
-    case '1500': return <Block1500 data={null} />;
-    case '1550': return <Block1550 data={null} />;
-    case '1818': return <Block1818 />;
-    case '1930': return <Block1930 />;
-    default:     return <BlockGeneric selectedId={selectedId} />;
+    case 'tent':  return <BlockTent />;
+    case 'sim':   return <BlockSim />;
+    case '1330':  return <Block1330 data={null} />;
+    case '1500':  return <Block1500 data={null} />;
+    case '1550':  return <Block1550 data={null} />;
+    case '1818':  return <Block1818 />;
+    case '1930':  return <Block1930 />;
+    default:      return <BlockGeneric selectedId={selectedId} blocks={blocks} />;
   }
 }

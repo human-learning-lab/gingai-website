@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { getBlocks } from '@/data/blocks';
+import { getTideNow } from '@/data/tides';
 import type { Block } from '@/types';
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
   venueLat?: number;
   venueLon?: number;
   venueCity?: string;
+  blocks?: Block[];
 }
 
 function formatTZero(offset: number): string {
@@ -49,9 +51,9 @@ function secsUntil(targetTime: string, now: Date): number {
   return Math.max(0, Math.floor((target.getTime() - now.getTime()) / 1000));
 }
 
-export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity }: Props) {
+export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity, blocks: propBlocks }: Props) {
   const now = useNow();
-  const blocks = getBlocks(now);
+  const blocks = propBlocks ?? getBlocks(now);
   const listRef = useRef<HTMLDivElement>(null);
 
   const tZeroBlock = blocks.find(b => b.tZeroOffset === 0);
@@ -88,6 +90,7 @@ export default function Timeline({ selectedId, onSelect, renderExpanded, venueLa
         <div className="tl-day">{venueCity ?? 'Event'}</div>
         <div className="tl-sub">{venueCity ? `${venueCity} SailGP · 2026` : 'SailGP · 2026'}</div>
         <WeatherPanel lat={venueLat} lon={venueLon} city={venueCity} />
+        <TidePanel />
         <EquipmentPanel />
       </div>
       <div className="tl-list" ref={listRef}>
@@ -153,6 +156,53 @@ function wmoToSky(code: number): string {
   if (code <= 77) return 'Snow';
   if (code <= 82) return 'Showers';
   return 'Thunderstorm';
+}
+
+function TideArrow({ dir }: { dir: number }) {
+  return (
+    <svg width="28" height="28" viewBox="0 0 28 28" style={{ transform: `rotate(${dir}deg)`, flexShrink: 0 }}>
+      <circle cx="14" cy="14" r="13" fill="none" stroke="var(--line)" strokeWidth="1"/>
+      <polygon points="14,4 17,14 14,12 11,14" fill="var(--navy)" />
+      <line x1="14" y1="12" x2="14" y2="22" stroke="var(--navy)" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function TidePanel() {
+  const [tide, setTide] = useState(() => getTideNow());
+
+  useEffect(() => {
+    const t = setInterval(() => setTide(getTideNow()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  if (!tide) return null;
+
+  const dirLabel = tide.dir === 30 ? '030°' : '205°';
+
+  return (
+    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 8 }}>
+        Tidal Stream · Governors Is.
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+        <TideArrow dir={tide.dir} />
+        <div>
+          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 22, lineHeight: 1, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            {tide.speed.toFixed(1)}
+            <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text3)', marginLeft: 3 }}>kn</span>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 2 }}>{dirLabel} · Admiralty</div>
+        </div>
+      </div>
+      {tide.turningAt && (
+        <div style={{ fontSize: 11, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--yellow)', flexShrink: 0 }} />
+          Turning ~{tide.turningAt}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function WeatherPanel({ lat, lon, city }: { lat?: number; lon?: number; city?: string }) {
