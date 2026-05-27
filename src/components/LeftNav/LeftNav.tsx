@@ -5,7 +5,8 @@ import { useRole } from '@/context/RoleContext';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { useState, useRef, useEffect } from 'react';
 import type { ScreenId } from '@/types';
-import { IconCalendar, IconMic, IconDebrief, IconTranscript } from '@/components/Icons';
+import { IconCalendar, IconMic, IconDebrief, IconTranscript, IconHelp } from '@/components/Icons';
+import { useTutorial } from '@/context/TutorialContext';
 
 const NAV_ITEMS: { id: ScreenId; title: string; icon: React.ReactElement }[] = [
   { id: 'backbone',    title: 'Schedule',    icon: <IconCalendar /> },
@@ -20,6 +21,7 @@ export default function LeftNav() {
   const { canAccess } = useRole();
   const { user } = useUser();
   const { signOut } = useClerk();
+  const { openTutorial } = useTutorial();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +49,7 @@ export default function LeftNav() {
         return (
           <div
             key={item.id}
+            data-tutorial-id={item.id}
             className={`ii${activeScreen === item.id ? ' on' : ''}${!accessible ? ' disabled' : ''}`}
             onClick={() => accessible && router.push('/' + item.id)}
           >
@@ -57,6 +60,11 @@ export default function LeftNav() {
       })}
 
       <div className="isp" />
+
+      <div className="ii" onClick={openTutorial}>
+        <IconHelp />
+        Tutorial
+      </div>
 
       <div className="inav-ava-wrap" ref={menuRef}>
         <div className="inav-user" onClick={() => setMenuOpen(v => !v)}>

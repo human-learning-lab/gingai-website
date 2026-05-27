@@ -2,8 +2,9 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { useRole } from '@/context/RoleContext';
+import { useTutorial } from '@/context/TutorialContext';
 import type { ScreenId } from '@/types';
-import { IconCalendar, IconMic, IconDebrief, IconTranscript } from '@/components/Icons';
+import { IconCalendar, IconMic, IconDebrief, IconTranscript, IconHelp } from '@/components/Icons';
 
 const NAV_ITEMS: { id: ScreenId; label: string; icon: React.ReactElement }[] = [
   { id: 'backbone',    label: 'Schedule',    icon: <IconCalendar size={22} /> },
@@ -16,6 +17,7 @@ export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { canAccess } = useRole();
+  const { openTutorial } = useTutorial();
 
   const activeScreen = (pathname.replace('/', '') as ScreenId) || 'backbone';
 
@@ -26,6 +28,7 @@ export default function BottomNav() {
         return (
           <div
             key={item.id}
+            data-tutorial-id={item.id}
             className={`bn-item${activeScreen === item.id ? ' on' : ''}${!accessible ? ' disabled' : ''}`}
             onClick={() => accessible && router.push('/' + item.id)}
           >
@@ -34,6 +37,10 @@ export default function BottomNav() {
           </div>
         );
       })}
+      <div className="bn-item" onClick={openTutorial}>
+        <IconHelp size={22} />
+        <span className="bn-label">Tutorial</span>
+      </div>
     </nav>
   );
 }
