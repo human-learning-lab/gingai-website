@@ -88,7 +88,7 @@ function ConditionsBar({ lat, lon, date }: { lat?: number; lon?: number; date: D
   );
 }
 
-// ── Alarm overlay ─────────────────────────────────────────────
+// ── Schedule alarm overlay ────────────────────────────────────
 
 function AlarmOverlay({ block, onDismiss }: { block: Block; onDismiss: () => void }) {
   useEffect(() => {
@@ -121,6 +121,107 @@ function AlarmOverlay({ block, onDismiss }: { block: Block; onDismiss: () => voi
       </div>
     </div>
   );
+}
+
+// ── Performance alarm overlay (from Viktor's alarm server) ────
+
+interface PerfAlarm {
+  id: string;
+  type: 'positive' | 'negative' | 'neutral';
+  message: string;
+}
+
+function PerfAlarmOverlay({ alarm, onDismiss }: { alarm: PerfAlarm; onDismiss: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 6000);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
+
+  const colors = {
+    positive: { bg: '#0d3d20', border: '#1a6b38', accent: '#00c84a', icon: '✓' },
+    negative: { bg: '#3d0d0d', border: '#6b1a1a', accent: '#ff4444', icon: '✕' },
+    neutral:  { bg: '#1a1610', border: '#3d3428', accent: '#b07800', icon: '!' },
+  };
+  const c = colors[alarm.type];
+
+  return (
+    <div
+      onClick={onDismiss}
+      style={{
+        position: 'absolute', inset: 0, zIndex: 150,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+        cursor: 'pointer',
+      }}
+    >
+      <div style={{
+        background: c.bg, border: `2px solid ${c.border}`,
+        borderRadius: 20, padding: '40px 48px', textAlign: 'center',
+        maxWidth: 480, width: '90%',
+        boxShadow: `0 0 60px ${c.accent}33`,
+        animation: 'lm-alarm-in 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+      }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: '50%',
+          background: `${c.accent}22`, border: `2px solid ${c.accent}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 20px',
+          fontSize: 26, color: c.accent, fontWeight: 700,
+        }}>{c.icon}</div>
+        <div style={{
+          fontFamily: "'Barlow Condensed', sans-serif",
+          fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
+          textTransform: 'uppercase', color: c.accent, marginBottom: 12,
+        }}>
+          {alarm.type === 'positive' ? 'Great work' : alarm.type === 'negative' ? 'Watch out' : 'Note'}
+        </div>
+        <div style={{
+          fontSize: 22, fontWeight: 700, color: '#fff',
+          lineHeight: 1.3, marginBottom: 24,
+        }}>{alarm.message}</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>tap to dismiss</div>
+      </div>
+    </div>
+  );
+}
+
+function usePerfAlarms() {
+  const [queue, setQueue] = useState<PerfAlarm[]>([]);
+  const seenIds = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    async function poll() {
+      try {
+        const res = await fetch('/api/alarms', { cache: 'no-store' });
+        if (!res.ok) return;
+        const alarms: PerfAlarm[] = await res.json();
+        const fresh = alarms.filter(a => !seenIds.current.has(a.id));
+        if (fresh.length) {
+          fresh.forEach(a => seenIds.current.add(a.id));
+          setQueue(q => [...q, ...fresh]);
+        }
+      } catch { /* server not ready yet */ }
+    }
+
+    poll();
+    const t = setInterval(poll, 1500);
+    return () => clearInterval(t);
+  }, []);
+
+  function dismiss() { setQueue(q => q.slice(1)); }
+
+  function triggerTest(type: PerfAlarm['type']) {
+    const testMessages = {
+      positive: 'Clean tack — best time this regatta 🔥',
+      negative: 'Wing cant angle too late on port',
+      neutral:  'Wind shift detected — port tack lifting',
+    };
+    const alarm: PerfAlarm = { id: `test-${Date.now()}`, type, message: testMessages[type] };
+    seenIds.current.add(alarm.id);
+    setQueue(q => [...q, alarm]);
+  }
+
+  return { current: queue[0] ?? null, dismiss, triggerTest };
 }
 
 // ── Main component ────────────────────────────────────────────
@@ -228,6 +329,7 @@ function MiniCapture() {
 export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venueLon, venueTimezone, selectedDate, onExit, renderContent }: Props) {
   const [now, setNow] = useState(() => new Date());
   const [alarmBlock, setAlarmBlock] = useState<Block | null>(null);
+  const { current: perfAlarm, dismiss: dismissPerfAlarm, triggerTest } = usePerfAlarms();
   const [peekBlockId, setPeekBlockId] = useState<string | null>(null);
   const userPickedRef = useRef(false); // true when user manually selected a block
   const prevNowIdRef = useRef<string | null>(null);
@@ -319,6 +421,24 @@ export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venue
           </div>
         )}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Test alarm buttons — remove when Viktor's server is live */}
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.1em', textTransform: 'uppercase', marginRight: 2 }}>TEST</span>
+            {(['positive', 'negative', 'neutral'] as const).map(type => (
+              <button
+                key={type}
+                onClick={() => triggerTest(type)}
+                style={{
+                  padding: '3px 8px', borderRadius: 5, border: 'none', cursor: 'pointer',
+                  fontSize: 10, fontWeight: 700, fontFamily: 'inherit',
+                  background: type === 'positive' ? '#1a6b38' : type === 'negative' ? '#6b1a1a' : '#3d3010',
+                  color: type === 'positive' ? '#00c84a' : type === 'negative' ? '#ff4444' : '#b07800',
+                }}
+              >
+                {type === 'positive' ? '✓' : type === 'negative' ? '✕' : '!'}
+              </button>
+            ))}
+          </div>
           <button className="lm-exit" onClick={handleExit} aria-label="Exit live mode">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <line x1="2" y1="2" x2="14" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -416,8 +536,11 @@ export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venue
       {/* Quick capture FAB */}
       <MiniCapture />
 
-      {/* Alarm overlay */}
+      {/* Schedule block alarm */}
       {alarmBlock && <AlarmOverlay block={alarmBlock} onDismiss={dismissAlarm} />}
+
+      {/* Performance alarm from Viktor's server */}
+      {perfAlarm && !alarmBlock && <PerfAlarmOverlay alarm={perfAlarm} onDismiss={dismissPerfAlarm} />}
     </div>
   );
 }
