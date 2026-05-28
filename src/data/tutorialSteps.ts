@@ -29,6 +29,13 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     body: `Your race-day backbone. See the full event schedule, team status, weather, and what's coming up next — all in one place.`,
   },
   {
+    id: 'livemode',
+    title: 'Live Mode',
+    screen: 'livemode',
+    status: 'live',
+    body: `On race days, tap Live Mode in the schedule timeline to enter a fullscreen command centre.\n\nShows the current block, T-Zero countdown, upcoming events, and live weather and tide conditions. Tap any block to see its content — the view auto-follows the schedule as the day progresses.`,
+  },
+  {
     id: 'gingai',
     title: 'GingAI',
     screen: 'gingai',

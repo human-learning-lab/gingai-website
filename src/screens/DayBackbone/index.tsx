@@ -7,6 +7,7 @@ import AgendaTimeline from '@/components/Timeline/AgendaTimeline';
 import Block1430 from './views/Block1430';
 import BlockContent from './BlockContent';
 import StatusRail from './StatusRail';
+import LiveMode from './LiveMode';
 import { getBlocks } from '@/data/blocks';
 
 type AgendaItem = { time: string; title: string; tag?: string; tagColor?: string };
@@ -16,6 +17,7 @@ interface Regatta {
 	id: string; city: string; short: string; dates: string;
 	start: string; end: string; lat: number; lon: number;
 	photo: string; photoPos: string; days: string[];
+	timezone?: string;
 	raceDayIndices?: number[];
 	raceSchedule?: Record<number, { broadcast: string; races: RaceEntry[] }>;
 	weekAgenda?:  Record<number, AgendaItem[]>;
@@ -30,6 +32,7 @@ const REGATTAS: Regatta[] = [
 	{
 		id: 'newyork', city: 'New York', short: 'New York', dates: 'May 28–Jun 1',
 		start: '2026-05-28', end: '2026-06-01',
+		timezone: 'America/New_York',
 		lat: 40.65, lon: -74.02, photo: '/images/boat-newyork.jpg', photoPos: 'center 70%',
 		days: ['Thu · 28', 'Fri · 29', 'Sat · 30', 'Sun · 31', 'Mon · 1'],
 		raceDayIndices: [2, 3],
@@ -486,10 +489,13 @@ function blockContentForPanel(panel: string, selectedId: string, blocks?: import
 export default function DayBackbone() {
 	const [activeRegat, setActiveRegat] = useState(getDefaultRegat);
 	const [activeDay, setActiveDay]     = useState(0);
+	const [isLiveMode, setIsLiveMode]   = useState(false);
 	const activeVenue = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[5];
 
+	const venueTimezone = activeVenue.timezone;
+
 	// Blocks depend on which regatta + day is selected
-	const blocks = getBlocks(new Date(), activeRegat, activeDay);
+	const blocks = getBlocks(new Date(), activeRegat, activeDay, venueTimezone);
 	const nowBlock = blocks.find(b => b.status === 'now');
 	const [selectedId, setSelectedId] = useState(nowBlock?.id ?? blocks[0]?.id ?? '1430');
 	const userSelectedRef = useRef(false);
@@ -505,24 +511,35 @@ export default function DayBackbone() {
 	// Reset selection when regatta or day changes
 	useEffect(() => {
 		userSelectedRef.current = false;
-		const freshBlocks = getBlocks(new Date(), activeRegat, activeDay);
+		const freshBlocks = getBlocks(new Date(), activeRegat, activeDay, venueTimezone);
 		const live = freshBlocks.find(b => b.status === 'now');
 		setSelectedId(live?.id ?? freshBlocks[0]?.id ?? '1430');
-	}, [activeRegat, activeDay]);
+	}, [activeRegat, activeDay]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	// Follow the live "now" block automatically unless the user has manually selected one
 	useEffect(() => {
 		const interval = setInterval(() => {
 			if (userSelectedRef.current) return;
-			const live = getBlocks(new Date(), activeRegat, activeDay).find(b => b.status === 'now');
+			const live = getBlocks(new Date(), activeRegat, activeDay, venueTimezone).find(b => b.status === 'now');
 			if (live) setSelectedId(live.id);
 		}, 30_000);
 		return () => clearInterval(interval);
-	}, [activeRegat, activeDay]);
+	}, [activeRegat, activeDay]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	function handleSelect(id: string) {
 		userSelectedRef.current = true;
 		setSelectedId(id);
+	}
+
+	async function handleEnterLive() {
+		try {
+			await document.documentElement.requestFullscreen();
+		} catch (_) { /* fullscreen may be blocked */ }
+		setIsLiveMode(true);
+	}
+
+	function handleExitLive() {
+		setIsLiveMode(false);
 	}
 
 	const selected = blocks.find(b => b.id === selectedId);
@@ -533,6 +550,8 @@ export default function DayBackbone() {
 	const selectedDate = new Date(activeVenue.start);
 	selectedDate.setDate(selectedDate.getDate() + activeDay);
 
+	const isRaceDay = !isAgendaDay;
+
 	function renderMobExpanded(blockId: string) {
 		const b = blocks.find(bl => bl.id === blockId);
 		if (!b) return null;
@@ -542,19 +561,43 @@ export default function DayBackbone() {
 	return (
 		<div className="s-backbone">
 
+	{isLiveMode && (
+		<LiveMode
+			regatId={activeRegat}
+			dayIndex={activeDay}
+			venueCity={activeVenue.city}
+			venueLat={activeVenue.lat}
+			venueLon={activeVenue.lon}
+			venueTimezone={venueTimezone}
+			selectedDate={selectedDate}
+			onExit={handleExitLive}
+			renderContent={(blockId) => blockContentForPanel(
+				blocks.find(b => b.id === blockId)?.panel ?? 'future',
+				blockId,
+				blocks,
+			)}
+		/>
+	)}
+
 	{/* Mobile layout */}
 	<div className="mob-only mob-backbone">
 	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
 	<div style={{ padding: '0 0 4px' }}>
 		<AskMeBar />
 	</div>
+	{isRaceDay && (
+		<button className="mob-live-btn" onClick={handleEnterLive}>
+			<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
+			Live Mode
+		</button>
+	)}
 	{isAgendaDay && agendaItems ? (
 		<div style={{ padding: '12px 16px' }}>
 			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1} />
 		</div>
 	) : (
 		<div className="mob-bb-tl">
-			<Timeline selectedId={selectedId} onSelect={handleSelect} renderExpanded={renderMobExpanded} blocks={blocks} />
+			<Timeline selectedId={selectedId} onSelect={handleSelect} renderExpanded={renderMobExpanded} blocks={blocks} onLive={isRaceDay ? handleEnterLive : undefined} />
 		</div>
 	)}
 	</div>
@@ -571,7 +614,7 @@ export default function DayBackbone() {
 			selectedDate={selectedDate}
 		/>
 	) : (
-		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} />
+		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} onLive={isRaceDay ? handleEnterLive : undefined} />
 	)}
 	<div className="main">
 	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
@@ -584,7 +627,7 @@ export default function DayBackbone() {
 		</div>
 		</div>
 
-		<StatusRail regatId={activeRegat} dayIndex={activeDay} />
+		<StatusRail regatId={activeRegat} dayIndex={activeDay} venueTimezone={venueTimezone} />
 		</div>
 	);
 }

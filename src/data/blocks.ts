@@ -55,8 +55,39 @@ function toMinutes(time: string): number {
   return h * 60 + m;
 }
 
-function seedsToBlocks(seeds: BlockSeed[], now: Date): Block[] {
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+/** Returns hours + minutes in the given IANA timezone (falls back to browser local). */
+export function getVenueHM(now: Date, timezone?: string): { h: number; m: number } {
+  if (!timezone) return { h: now.getHours(), m: now.getMinutes() };
+  const parts = new Intl.DateTimeFormat('en-US', {
+    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: timezone,
+  }).formatToParts(now);
+  const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value ?? '0');
+  return { h: get('hour'), m: get('minute') };
+}
+
+/**
+ * Signed seconds relative to a scheduled time in the venue's timezone.
+ * Negative = before start, positive = elapsed after start.
+ */
+export function secsRelTZeroTZ(targetTime: string, now: Date, timezone?: string): number {
+  const [th, tm] = targetTime.split(':').map(Number);
+  if (!timezone) {
+    const target = new Date(now);
+    target.setHours(th, tm, 0, 0);
+    return Math.floor((now.getTime() - target.getTime()) / 1000);
+  }
+  const parts = new Intl.DateTimeFormat('en-US', {
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: timezone,
+  }).formatToParts(now);
+  const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value ?? '0');
+  const venueNowSecs = get('hour') * 3600 + get('minute') * 60 + get('second');
+  const venueTargetSecs = th * 3600 + tm * 60;
+  return Math.floor((now.getTime() - (now.getTime() - venueNowSecs * 1000 + venueTargetSecs * 1000)) / 1000);
+}
+
+function seedsToBlocks(seeds: BlockSeed[], now: Date, timezone?: string): Block[] {
+  const { h, m } = getVenueHM(now, timezone);
+  const currentMinutes = h * 60 + m;
   let nowIndex = -1;
   for (let i = 0; i < seeds.length; i++) {
     if (toMinutes(seeds[i].time) <= currentMinutes) nowIndex = i;
@@ -67,10 +98,10 @@ function seedsToBlocks(seeds: BlockSeed[], now: Date): Block[] {
   }));
 }
 
-export function getBlocks(now: Date = new Date(), regatId?: string, dayIndex?: number): Block[] {
-  if (regatId === 'newyork' && dayIndex === 2) return seedsToBlocks(NYC_SAT_SEEDS, now);
-  if (regatId === 'newyork' && dayIndex === 3) return seedsToBlocks(NYC_SUN_SEEDS, now);
-  return seedsToBlocks(GENERIC_SEEDS, now);
+export function getBlocks(now: Date = new Date(), regatId?: string, dayIndex?: number, timezone?: string): Block[] {
+  if (regatId === 'newyork' && dayIndex === 2) return seedsToBlocks(NYC_SAT_SEEDS, now, timezone);
+  if (regatId === 'newyork' && dayIndex === 3) return seedsToBlocks(NYC_SUN_SEEDS, now, timezone);
+  return seedsToBlocks(GENERIC_SEEDS, now, timezone);
 }
 
 // Static snapshot kept for any non-time-sensitive imports

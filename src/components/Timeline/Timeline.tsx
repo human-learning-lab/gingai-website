@@ -14,6 +14,7 @@ interface Props {
   venueCity?: string;
   blocks?: Block[];
   selectedDate?: Date;
+  onLive?: () => void;
 }
 
 function formatTZero(offset: number): string {
@@ -53,7 +54,7 @@ function secsRelTZero(targetTime: string, now: Date): number {
   return Math.floor((now.getTime() - target.getTime()) / 1000);
 }
 
-export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity, blocks: propBlocks, selectedDate }: Props) {
+export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity, blocks: propBlocks, selectedDate, onLive }: Props) {
   const now = useNow();
   const blocks = propBlocks ?? getBlocks(now);
   const listRef = useRef<HTMLDivElement>(null);
@@ -96,6 +97,12 @@ export default function Timeline({ selectedId, onSelect, renderExpanded, venueLa
         <WeatherPanel lat={venueLat} lon={venueLon} city={venueCity} />
         <TidePanel date={selectedDate} />
         <EquipmentPanel />
+        {onLive && (
+          <button className="tl-live-btn" onClick={onLive}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5"/></svg>
+            Live Mode
+          </button>
+        )}
       </div>
       <div className="tl-list" ref={listRef}>
         {blocks.map(block => (
@@ -104,7 +111,8 @@ export default function Timeline({ selectedId, onSelect, renderExpanded, venueLa
               block={block}
               selected={selectedId === block.id}
               countdown={countdownStr}
-              onClick={() => onSelect(block.id)}
+              onClick={() => block.panel === 'future' && onLive ? onLive() : onSelect(block.id)}
+              onLive={block.panel === 'future' ? onLive : undefined}
             />
             {renderExpanded && selectedId === block.id && (
               <div style={{
@@ -136,17 +144,21 @@ function EquipmentPanel() {
   );
 }
 
-function TimelineItem({ block, selected, countdown, onClick }: {
+function TimelineItem({ block, selected, countdown, onClick, onLive }: {
   block: Block;
   selected: boolean;
   countdown: string;
   onClick: () => void;
+  onLive?: () => void;
 }) {
+  const isLiveBlock = block.panel === 'future' && !!onLive;
+
   const classes = [
     'tl-item',
     block.status === 'past' ? 'past' : '',
     block.status === 'now' ? 'now' : '',
     selected ? 'sel' : '',
+    isLiveBlock ? 'tl-item--live' : '',
   ].filter(Boolean).join(' ');
 
   const showTZero = block.status !== 'past' && block.tZeroOffset !== undefined;
@@ -172,6 +184,17 @@ function TimelineItem({ block, selected, countdown, onClick }: {
         {block.tag && (
           <div className="tl-tag" style={{ color: block.tagColor || 'var(--text3)' }}>
             {block.tag}
+          </div>
+        )}
+        {isLiveBlock && (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3,
+            fontSize: 10, fontWeight: 700, color: 'var(--green)',
+            fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+          }}>
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor"><circle cx="3" cy="3" r="3"/></svg>
+            Open Live Mode
           </div>
         )}
         {block.status === 'now' && (
