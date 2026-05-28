@@ -17,6 +17,7 @@ interface Regatta {
 	id: string; city: string; short: string; dates: string;
 	start: string; end: string; lat: number; lon: number;
 	photo: string; photoPos: string; days: string[];
+	timezone?: string;
 	raceDayIndices?: number[];
 	raceSchedule?: Record<number, { broadcast: string; races: RaceEntry[] }>;
 	weekAgenda?:  Record<number, AgendaItem[]>;
@@ -31,6 +32,7 @@ const REGATTAS: Regatta[] = [
 	{
 		id: 'newyork', city: 'New York', short: 'New York', dates: 'May 28–Jun 1',
 		start: '2026-05-28', end: '2026-06-01',
+		timezone: 'America/New_York',
 		lat: 40.65, lon: -74.02, photo: '/images/boat-newyork.jpg', photoPos: 'center 70%',
 		days: ['Thu · 28', 'Fri · 29', 'Sat · 30', 'Sun · 31', 'Mon · 1'],
 		raceDayIndices: [2, 3],
@@ -467,8 +469,10 @@ export default function DayBackbone() {
 	const [isLiveMode, setIsLiveMode]   = useState(false);
 	const activeVenue = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[5];
 
+	const venueTimezone = activeVenue.timezone;
+
 	// Blocks depend on which regatta + day is selected
-	const blocks = getBlocks(new Date(), activeRegat, activeDay);
+	const blocks = getBlocks(new Date(), activeRegat, activeDay, venueTimezone);
 	const nowBlock = blocks.find(b => b.status === 'now');
 	const [selectedId, setSelectedId] = useState(nowBlock?.id ?? blocks[0]?.id ?? '1430');
 	const userSelectedRef = useRef(false);
@@ -484,20 +488,20 @@ export default function DayBackbone() {
 	// Reset selection when regatta or day changes
 	useEffect(() => {
 		userSelectedRef.current = false;
-		const freshBlocks = getBlocks(new Date(), activeRegat, activeDay);
+		const freshBlocks = getBlocks(new Date(), activeRegat, activeDay, venueTimezone);
 		const live = freshBlocks.find(b => b.status === 'now');
 		setSelectedId(live?.id ?? freshBlocks[0]?.id ?? '1430');
-	}, [activeRegat, activeDay]);
+	}, [activeRegat, activeDay]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	// Follow the live "now" block automatically unless the user has manually selected one
 	useEffect(() => {
 		const interval = setInterval(() => {
 			if (userSelectedRef.current) return;
-			const live = getBlocks(new Date(), activeRegat, activeDay).find(b => b.status === 'now');
+			const live = getBlocks(new Date(), activeRegat, activeDay, venueTimezone).find(b => b.status === 'now');
 			if (live) setSelectedId(live.id);
 		}, 30_000);
 		return () => clearInterval(interval);
-	}, [activeRegat, activeDay]);
+	}, [activeRegat, activeDay]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	function handleSelect(id: string) {
 		userSelectedRef.current = true;
@@ -541,6 +545,7 @@ export default function DayBackbone() {
 			venueCity={activeVenue.city}
 			venueLat={activeVenue.lat}
 			venueLon={activeVenue.lon}
+			venueTimezone={venueTimezone}
 			selectedDate={selectedDate}
 			onExit={handleExitLive}
 			renderContent={(blockId) => blockContentForPanel(
@@ -599,7 +604,7 @@ export default function DayBackbone() {
 		</div>
 		</div>
 
-		<StatusRail regatId={activeRegat} dayIndex={activeDay} />
+		<StatusRail regatId={activeRegat} dayIndex={activeDay} venueTimezone={venueTimezone} />
 		</div>
 	);
 }

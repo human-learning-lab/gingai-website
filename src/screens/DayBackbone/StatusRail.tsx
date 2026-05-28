@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Avatar from '@/components/Avatar';
-import { getBlocks } from '@/data/blocks';
+import { getBlocks, getVenueHM } from '@/data/blocks';
 
 const TEAM_AVATARS: Record<string, string> = {
   Martine: '/images/team/martine.png',
@@ -24,7 +24,7 @@ function DemoBadge() {
   );
 }
 
-function NextUp({ regatId, dayIndex }: { regatId?: string; dayIndex?: number }) {
+function NextUp({ regatId, dayIndex, venueTimezone }: { regatId?: string; dayIndex?: number; venueTimezone?: string }) {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -32,13 +32,14 @@ function NextUp({ regatId, dayIndex }: { regatId?: string; dayIndex?: number }) 
     return () => clearInterval(t);
   }, []);
 
-  const blocks = getBlocks(now, regatId, dayIndex);
+  const blocks = getBlocks(now, regatId, dayIndex, venueTimezone);
   const next = blocks.find(b => b.status === 'future');
 
   if (!next) return null;
 
   const [h, m] = next.time.split(':').map(Number);
-  const diffMins = (h * 60 + m) - (now.getHours() * 60 + now.getMinutes());
+  const { h: nowH, m: nowM } = getVenueHM(now, venueTimezone);
+  const diffMins = (h * 60 + m) - (nowH * 60 + nowM);
   const inLabel = diffMins <= 0 ? 'now'
     : diffMins < 60 ? `in ${diffMins} min`
     : `in ${Math.floor(diffMins / 60)}h ${diffMins % 60}m`;
@@ -52,7 +53,7 @@ function NextUp({ regatId, dayIndex }: { regatId?: string; dayIndex?: number }) 
   );
 }
 
-export default function StatusRail({ regatId, dayIndex }: { regatId?: string; dayIndex?: number }) {
+export default function StatusRail({ regatId, dayIndex, venueTimezone }: { regatId?: string; dayIndex?: number; venueTimezone?: string }) {
   const team = [
     { init: 'MG', name: 'Martine', state: 'At tent',  dot: 'sd-g' },
     { init: 'RK', name: 'Rasmus',  state: 'At tent',  dot: 'sd-g' },
@@ -88,7 +89,7 @@ export default function StatusRail({ regatId, dayIndex }: { regatId?: string; da
           </div>
         ))}
       </div>
-      <NextUp regatId={regatId} dayIndex={dayIndex} />
+      <NextUp regatId={regatId} dayIndex={dayIndex} venueTimezone={venueTimezone} />
       <div className="srl-sec">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div className="srl-lbl" style={{ marginBottom: 0 }}>Open Items</div>

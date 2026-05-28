@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { getBlocks } from '@/data/blocks';
+import { getBlocks, getVenueHM, secsRelTZeroTZ } from '@/data/blocks';
 import { getTideNow } from '@/data/tides';
+import { addCapture } from '@/data/captureStore';
 import type { Block } from '@/types';
 import './LiveMode.css';
 
@@ -12,18 +13,10 @@ interface Props {
   venueCity: string;
   venueLat?: number;
   venueLon?: number;
+  venueTimezone?: string;
   selectedDate: Date;
   onExit: () => void;
   renderContent: (blockId: string) => React.ReactNode;
-}
-
-// ── Helpers ───────────────────────────────────────────────────
-
-function secsRelTZero(targetTime: string, now: Date): number {
-  const [h, m] = targetTime.split(':').map(Number);
-  const target = new Date(now);
-  target.setHours(h, m, 0, 0);
-  return Math.floor((now.getTime() - target.getTime()) / 1000);
 }
 
 function formatTicker(secs: number): { label: string; elapsed: boolean } {
@@ -132,7 +125,110 @@ function AlarmOverlay({ block, onDismiss }: { block: Block; onDismiss: () => voi
 
 // ── Main component ────────────────────────────────────────────
 
-export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venueLon, selectedDate, onExit, renderContent }: Props) {
+// ── Mini capture widget ───────────────────────────────────────
+
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    SpeechRecognition: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    webkitSpeechRecognition: any;
+  }
+}
+
+type CapturePhase = 'closed' | 'recording' | 'saved';
+
+function MiniCapture() {
+  const [phase, setPhase] = useState<CapturePhase>('closed');
+  const [text, setText] = useState('');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recRef = useRef<any>(null);
+
+  function startRec() {
+    setText('');
+    setPhase('recording');
+    const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = 'en-US';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      let final = '';
+      for (let i = 0; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
+      }
+      if (final.trim()) setText(final.trim());
+    };
+    rec.start();
+    recRef.current = rec;
+  }
+
+  function stopRec() {
+    recRef.current?.stop();
+    recRef.current = null;
+    const saved = text.trim();
+    if (saved) {
+      const ts = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      addCapture({
+        id: `capture-live-${Date.now()}`,
+        source: 'capture',
+        regatta: '',
+        race: '',
+        team: '',
+        title: `Live note · ${ts}`,
+        duration: '—',
+        lines: [{ speaker: 'Live', text: saved }],
+      });
+    }
+    setPhase('saved');
+    setTimeout(() => { setPhase('closed'); setText(''); }, 1800);
+  }
+
+  if (phase === 'closed') {
+    return (
+      <button
+        onClick={startRec}
+        className="lm-cap-fab"
+        title="Quick capture"
+        aria-label="Start quick capture"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
+    );
+  }
+
+  if (phase === 'saved') {
+    return (
+      <div className="lm-cap-fab lm-cap-fab--saved">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Saved
+      </div>
+    );
+  }
+
+  return (
+    <div className="lm-cap-panel">
+      <div className="lm-cap-pulse" />
+      <div className="lm-cap-text">{text || 'Listening…'}</div>
+      <button onClick={stopRec} className="lm-cap-stop">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+        </svg>
+        Stop &amp; save
+      </button>
+    </div>
+  );
+}
+
+export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venueLon, venueTimezone, selectedDate, onExit, renderContent }: Props) {
   const [now, setNow] = useState(() => new Date());
   const [alarmBlock, setAlarmBlock] = useState<Block | null>(null);
   const [peekBlockId, setPeekBlockId] = useState<string | null>(null);
@@ -154,7 +250,7 @@ export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venue
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, [onExit]);
 
-  const blocks = getBlocks(now, regatId, dayIndex);
+  const blocks = getBlocks(now, regatId, dayIndex, venueTimezone);
   const nowBlock = blocks.find(b => b.status === 'now') ?? null;
   const futureBlocks = blocks.filter(b => b.status === 'future');
   const tZeroBlock = blocks.find(b => b.tZeroOffset === 0) ?? null;
@@ -187,12 +283,13 @@ export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venue
   const dismissAlarm = useCallback(() => setAlarmBlock(null), []);
 
   // T-Zero ticker
-  const ticker = tZeroBlock ? formatTicker(secsRelTZero(tZeroBlock.time, now)) : null;
+  const ticker = tZeroBlock ? formatTicker(secsRelTZeroTZ(tZeroBlock.time, now, venueTimezone)) : null;
 
   // Countdown to next block
   function minsUntil(time: string): number {
     const [h, m] = time.split(':').map(Number);
-    return Math.max(0, (h * 60 + m) - (now.getHours() * 60 + now.getMinutes()));
+    const { h: nowH, m: nowM } = getVenueHM(now, venueTimezone);
+    return Math.max(0, (h * 60 + m) - (nowH * 60 + nowM));
   }
 
   const handleExit = useCallback(async () => {
@@ -322,6 +419,9 @@ export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venue
 
       {/* Conditions */}
       <ConditionsBar lat={venueLat} lon={venueLon} date={selectedDate} />
+
+      {/* Quick capture FAB */}
+      <MiniCapture />
 
       {/* Alarm overlay */}
       {alarmBlock && <AlarmOverlay block={alarmBlock} onDismiss={dismissAlarm} />}
