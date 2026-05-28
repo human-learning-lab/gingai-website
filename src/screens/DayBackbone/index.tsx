@@ -8,6 +8,7 @@ import Block1430 from './views/Block1430';
 import BlockContent from './BlockContent';
 import StatusRail from './StatusRail';
 import LiveMode from './LiveMode';
+import { MobConditionsBar } from '@/components/Timeline/ConditionsPanel';
 import { getBlocks } from '@/data/blocks';
 
 type AgendaItem = { time: string; title: string; tag?: string; tagColor?: string };
@@ -568,6 +569,7 @@ export default function DayBackbone() {
 			Live Mode
 		</button>
 	)}
+	<MobConditionsBar lat={activeVenue.lat} lon={activeVenue.lon} city={activeVenue.city} />
 	{isAgendaDay && agendaItems ? (
 		<div style={{ padding: '12px 16px' }}>
 			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1} />
