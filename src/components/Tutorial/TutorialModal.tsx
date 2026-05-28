@@ -23,6 +23,27 @@ function PreviewWelcome() {
   );
 }
 
+function PreviewLiveMode() {
+  return (
+    <div className="tut-prev-livemode">
+      <div className="tut-prev-lm-header">
+        <span className="tut-prev-lm-dot">●</span>
+        <span className="tut-prev-lm-venue">NEW YORK · RACE DAY</span>
+        <span className="tut-prev-lm-ticker">T– 00:42:11</span>
+      </div>
+      <div className="tut-prev-lm-now">
+        <div className="tut-prev-lm-eyebrow">NOW · 15:39</div>
+        <div className="tut-prev-lm-name">R1 Start — T-Zero</div>
+      </div>
+      <div className="tut-prev-lm-strip">
+        {['R2 Start', 'Dock In', 'Debrief'].map(n => (
+          <div key={n} className="tut-prev-lm-chip">{n}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PreviewSchedule() {
   const rows = [
     { time: '07:30', label: 'Team Briefing', dot: 'var(--navy)'   },
@@ -142,6 +163,7 @@ function PreviewTranscripts() {
 const PREVIEWS: Record<string, React.ReactElement> = {
   welcome:     <PreviewWelcome />,
   backbone:    <PreviewSchedule />,
+  livemode:    <PreviewLiveMode />,
   gingai:      <PreviewGingAI />,
   capture:     <PreviewCapture />,
   debrief:     <PreviewDebrief />,
