@@ -1539,6 +1539,26 @@ body {
   .mob-bb-tl .tl { display: flex !important; flex-direction: column; width: 100%; border-right: none; }
   .mob-bb-tl .tl-top { display: none; }
 
+  .mob-live-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0 12px 10px;
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--gb);
+    background: var(--gg);
+    color: var(--green);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    width: calc(100% - 24px);
+    justify-content: center;
+  }
+
   .mob-bb-detail { overflow-y: auto; flex: 1; }
   .mob-bb-detail .block-view { display: flex; flex-direction: column; }
   .mob-bb-detail .pane { padding: 14px 18px; }

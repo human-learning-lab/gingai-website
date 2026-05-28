@@ -14,6 +14,7 @@ interface Props {
   venueCity?: string;
   blocks?: Block[];
   selectedDate?: Date;
+  onLive?: () => void;
 }
 
 function formatTZero(offset: number): string {
@@ -53,7 +54,7 @@ function secsRelTZero(targetTime: string, now: Date): number {
   return Math.floor((now.getTime() - target.getTime()) / 1000);
 }
 
-export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity, blocks: propBlocks, selectedDate }: Props) {
+export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity, blocks: propBlocks, selectedDate, onLive }: Props) {
   const now = useNow();
   const blocks = propBlocks ?? getBlocks(now);
   const listRef = useRef<HTMLDivElement>(null);
@@ -96,6 +97,12 @@ export default function Timeline({ selectedId, onSelect, renderExpanded, venueLa
         <WeatherPanel lat={venueLat} lon={venueLon} city={venueCity} />
         <TidePanel date={selectedDate} />
         <EquipmentPanel />
+        {onLive && (
+          <button className="tl-live-btn" onClick={onLive}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5"/></svg>
+            Live Mode
+          </button>
+        )}
       </div>
       <div className="tl-list" ref={listRef}>
         {blocks.map(block => (

@@ -1,0 +1,395 @@
+/* ── LIVE MODE ── */
+
+.lm-root {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* ── Header ── */
+.lm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  gap: 16px;
+  background: var(--bg2);
+}
+.lm-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.lm-logo {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.85;
+}
+.lm-venue {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text3);
+}
+
+/* T-Zero ticker */
+.lm-tzero {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: 'Barlow Condensed', sans-serif;
+}
+.lm-tzero-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text4);
+  letter-spacing: 0.06em;
+}
+.lm-tzero-value {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--text2);
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+.lm-tzero.elapsed .lm-tzero-label { color: var(--green); }
+.lm-tzero.elapsed .lm-tzero-value { color: var(--green); }
+
+/* Exit button */
+.lm-exit {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--line2);
+  background: var(--bg3);
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+.lm-exit:hover { background: var(--bg4); color: var(--text); }
+
+/* ── Current block ── */
+.lm-current {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 40px;
+  text-align: center;
+}
+.lm-now-eyebrow {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--text4);
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.lm-now-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--bg3);
+  color: var(--text3);
+  letter-spacing: 0.08em;
+}
+.lm-now-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(40px, 8vw, 80px);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.05;
+  color: var(--text);
+}
+
+/* ── Upcoming strip ── */
+.lm-upcoming-row {
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+  background: var(--bg2);
+}
+.lm-strip {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.lm-strip::-webkit-scrollbar { display: none; }
+.lm-strip-item {
+  min-width: 130px;
+  padding: 14px 20px;
+  border-right: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.lm-strip-item:last-child { border-right: none; }
+.lm-strip-item.lm-strip-now { border-right: 2px solid var(--green); background: var(--gg); }
+.lm-strip-item.lm-strip-now.lm-peeking { background: rgba(0,155,58,0.12); }
+.lm-strip-now-label { color: var(--green) !important; font-weight: 800; }
+
+.lm-back-live {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--green);
+  background: var(--gg);
+  border: 1px solid var(--gb);
+  border-radius: 4px;
+  padding: 2px 7px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s;
+}
+.lm-back-live:hover { background: rgba(0,155,58,0.14); }
+.lm-strip-time {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text4);
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+.lm-next-in { color: var(--green); }
+.lm-strip-name { font-size: 13px; font-weight: 500; color: var(--text3); line-height: 1.3; }
+.lm-strip-tag  { font-size: 10px; margin-top: 3px; }
+
+/* ── Conditions bar ── */
+.lm-cond-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 11px 28px;
+  border-top: 1px solid var(--line);
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+.lm-cond-item {
+  font-size: 12px;
+  color: var(--text3);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+.lm-cond-sep {
+  margin: 0 8px;
+  color: var(--line2);
+}
+
+/* ── Alarm overlay ── */
+.lm-alarm {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(247, 242, 234, 0.88);
+  z-index: 10;
+  animation: lm-alarm-in 0.2s ease;
+}
+@keyframes lm-alarm-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.lm-alarm-inner {
+  text-align: center;
+  padding: 48px 60px;
+  border-radius: 16px;
+  border: 2px solid var(--green);
+  background: var(--gg);
+  box-shadow: 0 0 0 4px var(--gb), 0 4px 40px rgba(0,155,58,0.12);
+  animation: lm-pulse 1.4s ease-in-out infinite;
+}
+@keyframes lm-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px var(--gb), 0 4px 30px rgba(0,155,58,0.10); }
+  50%       { box-shadow: 0 0 0 7px var(--gb), 0 4px 60px rgba(0,155,58,0.22); }
+}
+.lm-alarm-eyebrow {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--green);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.lm-alarm-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(32px, 6vw, 60px);
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.05;
+  margin-bottom: 10px;
+}
+.lm-alarm-time {
+  font-size: 14px;
+  color: var(--text4);
+  margin-bottom: 28px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.lm-alarm-ok {
+  padding: 9px 32px;
+  border-radius: 8px;
+  border: 1px solid var(--line2);
+  background: var(--bg3);
+  color: var(--text2);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+.lm-alarm-ok:hover { background: var(--bg4); }
+
+/* ── Clickable blocks ── */
+.lm-clickable { cursor: pointer; transition: background 0.12s; }
+.lm-current.lm-clickable:hover { background: var(--bg2); }
+.lm-next.lm-clickable:hover     { background: var(--bg3); }
+.lm-next.lm-peeking             { background: var(--bg3); }
+.lm-strip-item.lm-clickable:hover { background: var(--bg3); }
+.lm-strip-item.lm-strip-next .lm-strip-name { color: var(--text); font-weight: 600; }
+.lm-strip-item.lm-peeking { background: var(--bg3); }
+
+.lm-peek-hint {
+  font-size: 11px;
+  color: var(--text4);
+  margin-top: 10px;
+  font-family: 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.06em;
+}
+
+/* ── Full-height content panel ── */
+.lm-content-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: lm-peek-in 0.15s ease;
+}
+.lm-content-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 28px;
+}
+@keyframes lm-peek-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Live mode button (inside Timeline tl-top) ── */
+.tl-live-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 12px;
+  width: 100%;
+  padding: 7px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--gb);
+  background: var(--gg);
+  color: var(--green);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.tl-live-btn:hover {
+  background: rgba(0,155,58,0.12);
+  border-color: var(--green);
+}
+.tl-live-btn svg { flex-shrink: 0; }
+
+/* ── lm-body (portrait: display:contents, landscape: flex row) ── */
+.lm-body {
+  display: contents; /* transparent in portrait — children flow into lm-root */
+}
+
+/* ── Mobile portrait ── */
+@media (max-width: 640px) and (orientation: portrait) {
+  .lm-header { padding: 12px 16px; }
+  .lm-venue { display: none; }
+  .lm-tzero-value { font-size: 22px; }
+  .lm-current { padding: 24px 20px; }
+  .lm-cond-bar { padding: 9px 16px; }
+  .lm-alarm-inner { padding: 32px 28px; }
+}
+
+/* ── Mobile landscape ── */
+@media (orientation: landscape) and (max-height: 520px) {
+  .lm-root { flex-direction: column; }
+  .lm-header { padding: 8px 16px; flex-shrink: 0; }
+  .lm-logo { height: 24px; }
+  .lm-tzero-value { font-size: 20px; }
+  .lm-exit { padding: 5px 12px; font-size: 12px; }
+
+  /* Body becomes a flex row filling the remaining height */
+  .lm-body {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* Left: current/content takes all remaining width */
+  .lm-current {
+    flex: 1;
+    padding: 14px 20px;
+    justify-content: flex-start;
+    align-items: flex-start;
+    text-align: left;
+    overflow: hidden;
+  }
+  .lm-content-panel { flex: 1; overflow: hidden; }
+  .lm-now-name { font-size: clamp(26px, 5vw, 44px); }
+
+  /* Right: upcoming column, fixed width, scrolls vertically */
+  .lm-upcoming-row {
+    width: 175px;
+    flex-shrink: 0;
+    border-top: none;
+    border-left: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .lm-strip {
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: 100%;
+  }
+  .lm-strip-item {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    min-width: 0;
+    padding: 10px 14px;
+  }
+
+  /* Conditions stays outside lm-body, always at the bottom */
+  .lm-cond-bar { padding: 7px 16px; flex-shrink: 0; }
+}

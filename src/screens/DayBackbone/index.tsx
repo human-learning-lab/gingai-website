@@ -7,6 +7,7 @@ import AgendaTimeline from '@/components/Timeline/AgendaTimeline';
 import Block1430 from './views/Block1430';
 import BlockContent from './BlockContent';
 import StatusRail from './StatusRail';
+import LiveMode from './LiveMode';
 import { getBlocks } from '@/data/blocks';
 
 type AgendaItem = { time: string; title: string; tag?: string; tagColor?: string };
@@ -463,6 +464,7 @@ function blockContentForPanel(panel: string, selectedId: string, blocks?: import
 export default function DayBackbone() {
 	const [activeRegat, setActiveRegat] = useState(getDefaultRegat);
 	const [activeDay, setActiveDay]     = useState(0);
+	const [isLiveMode, setIsLiveMode]   = useState(false);
 	const activeVenue = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[5];
 
 	// Blocks depend on which regatta + day is selected
@@ -502,6 +504,17 @@ export default function DayBackbone() {
 		setSelectedId(id);
 	}
 
+	async function handleEnterLive() {
+		try {
+			await document.documentElement.requestFullscreen();
+		} catch (_) { /* fullscreen may be blocked */ }
+		setIsLiveMode(true);
+	}
+
+	function handleExitLive() {
+		setIsLiveMode(false);
+	}
+
 	const selected = blocks.find(b => b.id === selectedId);
 	const panel = selected?.panel ?? 'future';
 	const blockContent = blockContentForPanel(panel, selectedId, blocks);
@@ -509,6 +522,8 @@ export default function DayBackbone() {
 	// Date for the selected regatta day (used for tides lookup)
 	const selectedDate = new Date(activeVenue.start);
 	selectedDate.setDate(selectedDate.getDate() + activeDay);
+
+	const isRaceDay = !isAgendaDay;
 
 	function renderMobExpanded(blockId: string) {
 		const b = blocks.find(bl => bl.id === blockId);
@@ -519,19 +534,42 @@ export default function DayBackbone() {
 	return (
 		<div className="s-backbone">
 
+	{isLiveMode && (
+		<LiveMode
+			regatId={activeRegat}
+			dayIndex={activeDay}
+			venueCity={activeVenue.city}
+			venueLat={activeVenue.lat}
+			venueLon={activeVenue.lon}
+			selectedDate={selectedDate}
+			onExit={handleExitLive}
+			renderContent={(blockId) => blockContentForPanel(
+				blocks.find(b => b.id === blockId)?.panel ?? 'future',
+				blockId,
+				blocks,
+			)}
+		/>
+	)}
+
 	{/* Mobile layout */}
 	<div className="mob-only mob-backbone">
 	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
 	<div style={{ padding: '0 0 4px' }}>
 		<AskMeBar />
 	</div>
+	{isRaceDay && (
+		<button className="mob-live-btn" onClick={handleEnterLive}>
+			<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
+			Live Mode
+		</button>
+	)}
 	{isAgendaDay && agendaItems ? (
 		<div style={{ padding: '12px 16px' }}>
 			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1} />
 		</div>
 	) : (
 		<div className="mob-bb-tl">
-			<Timeline selectedId={selectedId} onSelect={handleSelect} renderExpanded={renderMobExpanded} blocks={blocks} />
+			<Timeline selectedId={selectedId} onSelect={handleSelect} renderExpanded={renderMobExpanded} blocks={blocks} onLive={isRaceDay ? handleEnterLive : undefined} />
 		</div>
 	)}
 	</div>
@@ -548,7 +586,7 @@ export default function DayBackbone() {
 			selectedDate={selectedDate}
 		/>
 	) : (
-		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} />
+		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} onLive={isRaceDay ? handleEnterLive : undefined} />
 	)}
 	<div className="main">
 	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
