@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { type Transcript, type TranscriptSource } from '@/data/transcripts';
 import { getCaptured, subscribeCapture } from '@/data/captureStore';
-import { fetchAllTranscripts } from '@/lib/transcriptApi';
+import { fetchAllTranscripts, deleteTranscript, updateTranscript } from '@/lib/transcriptApi';
 const TEAM_FLAGS: Record<string, string> = {
   AUS: '🇦🇺', BRA: '🇧🇷', CAN: '🇨🇦', DEN: '🇩🇰', ESP: '🇪🇸',
   FRA: '🇫🇷', GBR: '🇬🇧', GER: '🇩🇪', ITA: '🇮🇹', JPN: '🇯🇵',
@@ -103,12 +103,13 @@ function EditableLine({ speaker, text, editing, onUpdate }: {
   );
 }
 
-function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, searchQuery }: {
+function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, onEditDone, searchQuery }: {
   t: Transcript;
   expanded: boolean;
   onToggle: () => void;
   onDelete: () => void;
   onUpdateLine: (lineIdx: number, speaker: string, text: string) => void;
+  onEditDone: () => void;
   searchQuery: string;
 }) {
   const [editing, setEditing] = useState(false);
@@ -208,7 +209,11 @@ function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, searchQ
               <>
                 {/* Edit toggle */}
                 <button
-                  onClick={e => { e.stopPropagation(); setEditing(v => !v); }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (editing) onEditDone();
+                    setEditing(v => !v);
+                  }}
                   title={editing ? 'Done editing' : 'Edit transcript'}
                   style={{ ...iconBtnStyle, color: editing ? 'var(--green)' : 'var(--text3)', borderColor: editing ? 'var(--gb)' : 'var(--line)', background: editing ? 'var(--gg)' : 'none' }}
                 >
@@ -580,6 +585,7 @@ export default function Transcripts() {
   function handleDelete(id: string) {
     setDeletedIds(prev => new Set([...prev, id]));
     setExpandedId(null);
+    deleteTranscript(id).catch(err => console.error('Delete failed:', err));
   }
 
   function handleUpdateLine(id: string, lineIdx: number, speaker: string, text: string) {
@@ -590,6 +596,11 @@ export default function Transcripts() {
       lines: base.lines.map((l, i) => i === lineIdx ? { speaker, text } : l),
     };
     setEdits(prev => new Map([...prev, [id, updated]]));
+  }
+
+  function handleEditDone(id: string) {
+    const updated = edits.get(id);
+    if (updated) updateTranscript(updated).catch(err => console.error('Update failed:', err));
   }
 
   function handleUploadSubmit(form: UploadForm) {
@@ -758,6 +769,7 @@ export default function Transcripts() {
                   onToggle={() => setExpandedId(expandedId === t.id ? null : t.id)}
                   onDelete={() => handleDelete(t.id)}
                   onUpdateLine={(lineIdx, speaker, text) => handleUpdateLine(t.id, lineIdx, speaker, text)}
+                  onEditDone={() => handleEditDone(t.id)}
                   searchQuery={q}
                 />
               ))}
