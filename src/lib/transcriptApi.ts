@@ -39,6 +39,49 @@ function parseContent(content: string, defaultSpeaker: string): TranscriptLine[]
   });
 }
 
+/** Parse "source-id" → { type, numericId } — only for DB-backed transcripts */
+function parseDbId(id: string): { type: string; numericId: string } | null {
+  const match = id.match(/^(race|capture|debrief)-(\d+)$/);
+  if (!match) return null;
+  return { type: match[1], numericId: match[2] };
+}
+
+function linesToContent(lines: TranscriptLine[]): string {
+  return lines.map(l => `${l.speaker}: ${l.text}`).join('\n');
+}
+
+export async function deleteTranscript(id: string): Promise<void> {
+  const parsed = parseDbId(id);
+  if (!parsed) return; // local-only (live capture / upload), nothing to delete in DB
+  const res = await fetch(`/api/transcripts?type=${parsed.type}&id=${parsed.numericId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok && res.status !== 204) throw new Error(`Delete failed (${res.status})`);
+}
+
+export async function updateTranscript(t: Transcript): Promise<void> {
+  const parsed = parseDbId(t.id);
+  if (!parsed) return; // local-only, nothing to persist
+  const content = linesToContent(t.lines);
+
+  let body: Record<string, unknown>;
+  if (parsed.type === 'race') {
+    const raceNum = parseInt(t.race.replace(/\D/g, '')) || 0;
+    body = { eventid: 0, racenum: raceNum, team: t.team, content };
+  } else if (parsed.type === 'capture') {
+    body = { user: t.team || 'unknown', text: content };
+  } else {
+    body = { event: t.regatta || t.title, summary: t.title, content, metadata: {} };
+  }
+
+  const res = await fetch(`/api/transcripts?type=${parsed.type}&id=${parsed.numericId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Update failed (${res.status})`);
+}
+
 export async function fetchAllTranscripts(): Promise<Transcript[]> {
   const res = await fetch('/api/transcripts', { cache: 'no-store' });
   if (!res.ok) throw new Error(`Failed to load (${res.status})`);
