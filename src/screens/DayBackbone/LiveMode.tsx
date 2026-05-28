@@ -279,16 +279,6 @@ export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venue
 
   const dismissAlarm = useCallback(() => setAlarmBlock(null), []);
 
-  // T-Zero ticker — tracks selected race block, falls back to canonical T-Zero
-  const ticker = clockBlock ? formatTicker(secsRelTZeroTZ(clockBlock.time, now, venueTimezone)) : null;
-
-  // Countdown to next block
-  function minsUntil(time: string): number {
-    const [h, m] = time.split(':').map(Number);
-    const { h: nowH, m: nowM } = getVenueHM(now, venueTimezone);
-    return Math.max(0, (h * 60 + m) - (nowH * 60 + nowM));
-  }
-
   const handleExit = useCallback(async () => {
     if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
     onExit();
@@ -302,6 +292,16 @@ export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venue
 
   // T-Zero for the selected race block (falls back to the canonical T-Zero block)
   const clockBlock = (peekBlock?.panel === 'future' ? peekBlock : null) ?? tZeroBlock;
+
+  // T-Zero ticker — tracks selected race block, falls back to canonical T-Zero
+  const ticker = clockBlock ? formatTicker(secsRelTZeroTZ(clockBlock.time, now, venueTimezone)) : null;
+
+  // Countdown to next block
+  function minsUntil(time: string): number {
+    const [h, m] = time.split(':').map(Number);
+    const { h: nowH, m: nowM } = getVenueHM(now, venueTimezone);
+    return Math.max(0, (h * 60 + m) - (nowH * 60 + nowM));
+  }
 
   return (
     <div className="lm-root">
