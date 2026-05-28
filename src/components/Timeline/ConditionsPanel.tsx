@@ -177,6 +177,76 @@ export function WeatherPanel({ lat, lon, city }: { lat?: number; lon?: number; c
   );
 }
 
+// ── Mobile compact conditions strip ───────────────────────────
+
+export function MobConditionsBar({ lat, lon, city }: { lat?: number; lon?: number; city?: string }) {
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [tide, setTide] = useState(() => getTideNow(new Date()));
+
+  useEffect(() => {
+    if (!lat || !lon) return;
+    fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+      `&current=wind_speed_10m,wind_gusts_10m,wind_direction_10m,temperature_2m,weather_code` +
+      `&wind_speed_unit=kn&timezone=auto`
+    )
+      .then(r => r.json())
+      .then(d => {
+        const c = d.current;
+        setWeather({
+          wind:    Math.round(c.wind_speed_10m),
+          gusts:   Math.round(c.wind_gusts_10m),
+          bearing: Math.round(c.wind_direction_10m),
+          temp:    Math.round(c.temperature_2m),
+          sky:     wmoToSky(c.weather_code),
+        });
+      })
+      .catch(() => {});
+    const t = setInterval(() => setTide(getTideNow(new Date())), 60_000);
+    return () => clearInterval(t);
+  }, [lat, lon]);
+
+  const Divider = () => (
+    <div style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)', margin: '0 4px', flexShrink: 0 }} />
+  );
+
+  const Chip = ({ label, value, color }: { label: string; value: string; color?: string }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text4)' }}>{label}</span>
+      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 800, color: color ?? 'var(--text2)', letterSpacing: '-0.01em' }}>{value}</span>
+    </div>
+  );
+
+  if (!weather && !tide) return null;
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '8px 16px',
+      background: 'var(--bg2)',
+      borderTop: '1px solid var(--line)',
+      borderBottom: '1px solid var(--line)',
+      overflowX: 'auto',
+      scrollbarWidth: 'none',
+    }}>
+      {weather && <>
+        <WindArrow bearing={weather.bearing} />
+        <Chip label="Wind" value={`${weather.wind} kts`} />
+        <Chip label="Dir" value={bearingToCardinal(weather.bearing)} color="var(--green)" />
+        <Chip label="Gusts" value={`${weather.gusts} kts`} color={weather.gusts > 25 ? 'var(--red)' : weather.gusts > 18 ? 'var(--yellow)' : undefined} />
+        <Chip label="Temp" value={`${weather.temp}°C`} />
+        <Chip label="Sky" value={weather.sky} />
+      </>}
+      {weather && tide && <Divider />}
+      {tide && <>
+        <TideArrow dir={tide.dir} />
+        <Chip label="Tide" value={`${tide.speed.toFixed(1)} kn`} />
+        {tide.turningAt && <Chip label="Turns" value={`~${tide.turningAt}`} color="var(--yellow)" />}
+      </>}
+    </div>
+  );
+}
+
 // ── Tide panel ────────────────────────────────────────────────
 
 export function TidePanel({ date }: { date?: Date }) {
