@@ -111,7 +111,8 @@ export default function Timeline({ selectedId, onSelect, renderExpanded, venueLa
               block={block}
               selected={selectedId === block.id}
               countdown={countdownStr}
-              onClick={() => onSelect(block.id)}
+              onClick={() => block.panel === 'future' && onLive ? onLive() : onSelect(block.id)}
+              onLive={block.panel === 'future' ? onLive : undefined}
             />
             {renderExpanded && selectedId === block.id && (
               <div style={{
@@ -143,17 +144,21 @@ function EquipmentPanel() {
   );
 }
 
-function TimelineItem({ block, selected, countdown, onClick }: {
+function TimelineItem({ block, selected, countdown, onClick, onLive }: {
   block: Block;
   selected: boolean;
   countdown: string;
   onClick: () => void;
+  onLive?: () => void;
 }) {
+  const isLiveBlock = block.panel === 'future' && !!onLive;
+
   const classes = [
     'tl-item',
     block.status === 'past' ? 'past' : '',
     block.status === 'now' ? 'now' : '',
     selected ? 'sel' : '',
+    isLiveBlock ? 'tl-item--live' : '',
   ].filter(Boolean).join(' ');
 
   const showTZero = block.status !== 'past' && block.tZeroOffset !== undefined;
@@ -179,6 +184,17 @@ function TimelineItem({ block, selected, countdown, onClick }: {
         {block.tag && (
           <div className="tl-tag" style={{ color: block.tagColor || 'var(--text3)' }}>
             {block.tag}
+          </div>
+        )}
+        {isLiveBlock && (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3,
+            fontSize: 10, fontWeight: 700, color: 'var(--green)',
+            fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+          }}>
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor"><circle cx="3" cy="3" r="3"/></svg>
+            Open Live Mode
           </div>
         )}
         {block.status === 'now' && (
