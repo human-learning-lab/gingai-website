@@ -504,37 +504,44 @@
   bottom: 56px;
   right: 20px;
   z-index: 120;
-  width: 48px;
   height: 48px;
-  border-radius: 50%;
-  background: var(--bg2);
-  border: 1px solid var(--line);
-  color: var(--text3);
+  padding: 0 16px 0 14px;
+  border-radius: 24px;
+  background: var(--red);
+  border: none;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-  transition: background 0.15s, color 0.15s, transform 0.12s;
+  box-shadow: 0 4px 18px rgba(200,20,20,0.45);
+  transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 .lm-cap-fab:hover {
-  background: var(--rg);
-  color: var(--red);
-  border-color: var(--rb);
-  transform: scale(1.06);
+  background: #c0392b;
+  transform: scale(1.04);
+  box-shadow: 0 6px 22px rgba(200,20,20,0.55);
 }
 
 .lm-cap-fab--saved {
-  width: auto;
+  background: #1a7a3a;
   border-radius: 24px;
-  padding: 0 16px;
-  gap: 7px;
+  gap: 8px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--green);
-  border-color: var(--gb);
-  background: var(--gg);
+  font-weight: 700;
+  color: #fff;
   cursor: default;
+  box-shadow: 0 4px 16px rgba(0,120,50,0.4);
+}
+.lm-cap-fab--saved:hover {
+  transform: none;
+  background: #1a7a3a;
 }
 
 .lm-cap-panel {
