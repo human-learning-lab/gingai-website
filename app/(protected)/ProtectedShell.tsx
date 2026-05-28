@@ -16,14 +16,23 @@ export default function ProtectedShell({ children }: { children: React.ReactNode
   const router = useRouter();
   const { isOpen, setIsOpen, handleClose } = useTutorialState();
 
+  // Always reload on mount to get fresh publicMetadata from Clerk
   useEffect(() => {
-    if (!isLoaded) return;
-    if (!user) return;
+    if (!isLoaded || !user) return;
+    user.reload();
+  }, [isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!isLoaded || !user) return;
 
     const roleId = (user.publicMetadata as { roleId?: string }).roleId;
     const isKnown = roleId && ROLES.some(r => r.id === roleId);
+
     if (!isKnown) {
-      router.replace('/backbone');
+      // Try to auto-assign a role based on email
+      fetch('/api/assign-role', { method: 'POST' })
+        .then(res => res.ok ? user.reload() : Promise.reject())
+        .catch(() => router.replace('/pending'));
     }
   }, [user, isLoaded, router]);
 
