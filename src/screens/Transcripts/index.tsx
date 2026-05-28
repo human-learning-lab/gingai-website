@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { getTranscripts, type Transcript, type TranscriptSource } from '@/data/transcripts';
+import { type Transcript, type TranscriptSource } from '@/data/transcripts';
 import { getCaptured, subscribeCapture } from '@/data/captureStore';
-
-const ALL_REGATTAS = ['All', 'Perth', 'Auckland', 'Sydney', 'Rio', 'Bermuda'];
+import { fetchAllTranscripts } from '@/lib/transcriptApi';
 const TEAM_FLAGS: Record<string, string> = {
   AUS: '🇦🇺', BRA: '🇧🇷', CAN: '🇨🇦', DEN: '🇩🇰', ESP: '🇪🇸',
   FRA: '🇫🇷', GBR: '🇬🇧', GER: '🇩🇪', ITA: '🇮🇹', JPN: '🇯🇵',
@@ -554,28 +553,43 @@ export default function Transcripts() {
   const [search, setSearch]   = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showUpload, setShowUpload]   = useState(false);
-  const [transcripts, setTranscripts] = useState<Transcript[]>(() => [...getCaptured(), ...getTranscripts()]);
+  const [dbTranscripts, setDbTranscripts] = useState<Transcript[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState<string | null>(null);
+  const [liveCaptures, setLiveCaptures] = useState<Transcript[]>(() => getCaptured());
 
   useEffect(() => {
-    return subscribeCapture(() => {
-      setTranscripts([...getCaptured(), ...getTranscripts()]);
-    });
+    fetchAllTranscripts()
+      .then(data => { setDbTranscripts(data); setLoading(false); })
+      .catch(err => { setError(err.message ?? 'Failed to load'); setLoading(false); });
   }, []);
 
-  const all = transcripts;
+  useEffect(() => {
+    return subscribeCapture(() => setLiveCaptures([...getCaptured()]));
+  }, []);
+
+  const transcripts = [...liveCaptures, ...dbTranscripts];
+
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+  const [edits, setEdits] = useState<Map<string, Transcript>>(new Map());
+  const [uploaded, setUploaded] = useState<Transcript[]>([]);
+
+  const all = [...uploaded, ...transcripts].filter(t => !deletedIds.has(t.id))
+    .map(t => edits.get(t.id) ?? t);
 
   function handleDelete(id: string) {
-    setTranscripts(prev => prev.filter(t => t.id !== id));
+    setDeletedIds(prev => new Set([...prev, id]));
     setExpandedId(null);
   }
 
   function handleUpdateLine(id: string, lineIdx: number, speaker: string, text: string) {
-    setTranscripts(prev => prev.map(t =>
-      t.id !== id ? t : {
-        ...t,
-        lines: t.lines.map((l, i) => i === lineIdx ? { speaker, text } : l),
-      }
-    ));
+    const base = all.find(t => t.id === id);
+    if (!base) return;
+    const updated = {
+      ...base,
+      lines: base.lines.map((l, i) => i === lineIdx ? { speaker, text } : l),
+    };
+    setEdits(prev => new Map([...prev, [id, updated]]));
   }
 
   function handleUploadSubmit(form: UploadForm) {
@@ -590,10 +604,13 @@ export default function Transcripts() {
       duration: '—',
       lines: [{ speaker: form.team, text: `Audio file: ${form.file!.name}. Transcription pending.` }],
     };
-    setTranscripts(prev => [newT, ...prev]);
+    setUploaded(prev => [newT, ...prev]);
     setShowUpload(false);
-    // TODO: send form.file + metadata to /api/transcribe
   }
+
+  const dynamicRegattas = ['All', ...Array.from(new Set(
+    all.map(t => t.regatta).filter(Boolean)
+  )).sort()];
 
   const q = search.trim().toLowerCase();
   const filtered = all.filter(t => {
@@ -609,7 +626,9 @@ export default function Transcripts() {
     return true;
   });
 
-  const allTeams = ['All', ...Object.keys(TEAM_FLAGS).sort()];
+  const allTeams = ['All', ...Array.from(new Set(
+    ['All', ...Object.keys(TEAM_FLAGS), ...all.map(t => t.team).filter(Boolean)]
+  )).filter(t => t !== 'All').sort()];
   const showRegattaFilter = source === 'all' || source === 'race';
   const showTeamFilter    = source === 'all' || source === 'race';
 
@@ -694,7 +713,7 @@ export default function Transcripts() {
                 <Dropdown
                   value={regatta}
                   onChange={setRegatta}
-                  options={ALL_REGATTAS.map(r => ({ value: r, label: r === 'All' ? 'All events' : r }))}
+                  options={dynamicRegattas.map(r => ({ value: r, label: r === 'All' ? 'All events' : r }))}
                 />
 
                 <Dropdown
@@ -712,7 +731,15 @@ export default function Transcripts() {
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 24px 24px' }}>
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text4)', fontSize: 14 }}>
+              Loading transcripts…
+            </div>
+          ) : error ? (
+            <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--red)', fontSize: 14 }}>
+              Could not load transcripts: {error}
+            </div>
+          ) : filtered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text4)', fontSize: 14 }}>
               {source === 'capture' || source === 'debrief' || source === 'upload'
                 ? 'No transcripts yet'
