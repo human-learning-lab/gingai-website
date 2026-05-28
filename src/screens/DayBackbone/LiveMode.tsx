@@ -133,16 +133,42 @@ interface PerfAlarm {
 
 function PerfAlarmOverlay({ alarm, onDismiss }: { alarm: PerfAlarm; onDismiss: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onDismiss, 6000);
+    const t = setTimeout(onDismiss, 7000);
     return () => clearTimeout(t);
   }, [onDismiss]);
 
-  const colors = {
-    positive: { bg: '#0d3d20', border: '#1a6b38', accent: '#00c84a', icon: '✓' },
-    negative: { bg: '#3d0d0d', border: '#6b1a1a', accent: '#ff4444', icon: '✕' },
-    neutral:  { bg: '#1a1610', border: '#3d3428', accent: '#b07800', icon: '!' },
+  const styles = {
+    positive: { accent: '#00c24a', label: 'GREAT WORK' },
+    negative: { accent: '#e8001c', label: 'WATCH OUT'  },
+    neutral:  { accent: '#e07800', label: 'NOTE'        },
   };
-  const c = colors[alarm.type];
+  const s = styles[alarm.type];
+
+  const Icon = () => {
+    const size = 72;
+    const stroke = '#fff';
+    const sw = 5;
+    if (alarm.type === 'positive') return (
+      <svg width={size} height={size} viewBox="0 0 72 72" fill="none">
+        <circle cx="36" cy="36" r="34" stroke={s.accent} strokeWidth={sw} />
+        <polyline points="18,37 30,50 54,24" stroke={s.accent} strokeWidth={sw + 1} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+    if (alarm.type === 'negative') return (
+      <svg width={size} height={size} viewBox="0 0 72 72" fill="none">
+        <circle cx="36" cy="36" r="34" stroke={s.accent} strokeWidth={sw} />
+        <line x1="22" y1="22" x2="50" y2="50" stroke={s.accent} strokeWidth={sw + 1} strokeLinecap="round" />
+        <line x1="50" y1="22" x2="22" y2="50" stroke={s.accent} strokeWidth={sw + 1} strokeLinecap="round" />
+      </svg>
+    );
+    return (
+      <svg width={size} height={size} viewBox="0 0 72 72" fill="none">
+        <circle cx="36" cy="36" r="34" stroke={s.accent} strokeWidth={sw} />
+        <line x1="36" y1="22" x2="36" y2="42" stroke={s.accent} strokeWidth={sw + 1} strokeLinecap="round" />
+        <circle cx="36" cy="52" r={sw / 2 + 1} fill={s.accent} />
+      </svg>
+    );
+  };
 
   return (
     <div
@@ -150,36 +176,52 @@ function PerfAlarmOverlay({ alarm, onDismiss }: { alarm: PerfAlarm; onDismiss: (
       style={{
         position: 'absolute', inset: 0, zIndex: 150,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+        background: 'rgba(0,0,0,0.55)',
         cursor: 'pointer',
       }}
     >
       <div style={{
-        background: c.bg, border: `2px solid ${c.border}`,
-        borderRadius: 20, padding: '40px 48px', textAlign: 'center',
-        maxWidth: 480, width: '90%',
-        boxShadow: `0 0 60px ${c.accent}33`,
-        animation: 'lm-alarm-in 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+        background: '#fff',
+        borderRadius: 16,
+        overflow: 'hidden',
+        maxWidth: 600,
+        width: '94%',
+        boxShadow: '0 16px 80px rgba(0,0,0,0.55)',
+        animation: 'lm-alarm-in 0.22s cubic-bezier(0.34,1.56,0.64,1)',
       }}>
-        <div style={{
-          width: 56, height: 56, borderRadius: '50%',
-          background: `${c.accent}22`, border: `2px solid ${c.accent}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 20px',
-          fontSize: 26, color: c.accent, fontWeight: 700,
-        }}>{c.icon}</div>
-        <div style={{
-          fontFamily: "'Barlow Condensed', sans-serif",
-          fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
-          textTransform: 'uppercase', color: c.accent, marginBottom: 12,
-        }}>
-          {alarm.type === 'positive' ? 'Great work' : alarm.type === 'negative' ? 'Watch out' : 'Note'}
+        {/* Accent top bar */}
+        <div style={{ background: s.accent, height: 12 }} />
+
+        <div style={{ padding: '40px 52px 36px', textAlign: 'center' }}>
+          {/* Icon */}
+          <div style={{ marginBottom: 20 }}>
+            <Icon />
+          </div>
+
+          {/* Label */}
+          <div style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 11, fontWeight: 800, letterSpacing: '0.28em',
+            textTransform: 'uppercase', color: s.accent,
+            marginBottom: 16,
+          }}>{s.label}</div>
+
+          {/* Message */}
+          <div style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 52, fontWeight: 900, color: '#0a0a0a',
+            lineHeight: 1.08, marginBottom: 36,
+            letterSpacing: '-0.02em',
+          }}>{alarm.message}</div>
+
+          {/* Dismiss hint */}
+          <div style={{
+            fontSize: 12, fontWeight: 600,
+            color: 'rgba(0,0,0,0.3)',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+          }}>tap to dismiss</div>
         </div>
-        <div style={{
-          fontSize: 22, fontWeight: 700, color: '#fff',
-          lineHeight: 1.3, marginBottom: 24,
-        }}>{alarm.message}</div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>tap to dismiss</div>
       </div>
     </div>
   );
@@ -212,9 +254,9 @@ function usePerfAlarms() {
 
   function triggerTest(type: PerfAlarm['type']) {
     const testMessages = {
-      positive: 'Clean tack — best time this regatta 🔥',
-      negative: 'Wing cant angle too late on port',
-      neutral:  'Wind shift detected — port tack lifting',
+      positive: 'Clean tack — best time this regatta',
+      negative: 'Activate diff now — speed above 25',
+      neutral:  'Turn diff OFF — speed below 18',
     };
     const alarm: PerfAlarm = { id: `test-${Date.now()}`, type, message: testMessages[type] };
     seenIds.current.add(alarm.id);
