@@ -279,8 +279,8 @@ export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venue
 
   const dismissAlarm = useCallback(() => setAlarmBlock(null), []);
 
-  // T-Zero ticker
-  const ticker = tZeroBlock ? formatTicker(secsRelTZeroTZ(tZeroBlock.time, now, venueTimezone)) : null;
+  // T-Zero ticker — tracks selected race block, falls back to canonical T-Zero
+  const ticker = clockBlock ? formatTicker(secsRelTZeroTZ(clockBlock.time, now, venueTimezone)) : null;
 
   // Countdown to next block
   function minsUntil(time: string): number {
@@ -296,13 +296,12 @@ export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venue
 
   const peekBlock = peekBlockId ? blocks.find(b => b.id === peekBlockId) : null;
 
-  // "Race action" view: on-water blocks with no content (Race tag or tZeroOffset ≥ 0)
-  const isRaceAction = !!(
-    nowBlock && nowBlock.panel === 'future' &&
-    (nowBlock.tag?.toLowerCase().startsWith('race') || (nowBlock.tZeroOffset ?? -999) >= 0)
-  );
-  // When in race action, override peek to show the race view (not stale content)
-  const showRaceView = isRaceAction && (!peekBlock || peekBlock.panel === 'future');
+  // Show race view when the peeked block (or current nowBlock) has no content
+  const activeDisplayBlock = peekBlock ?? nowBlock;
+  const showRaceView = !!(activeDisplayBlock && activeDisplayBlock.panel === 'future');
+
+  // T-Zero for the selected race block (falls back to the canonical T-Zero block)
+  const clockBlock = (peekBlock?.panel === 'future' ? peekBlock : null) ?? tZeroBlock;
 
   return (
     <div className="lm-root">
@@ -343,14 +342,14 @@ export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venue
         ) : showRaceView ? (
           /* ── Race action view — clean elapsed timer ── */
           <div className="lm-race-view">
-            {nowBlock?.tag && <div className="lm-race-tag">{nowBlock.tag}</div>}
-            <div className="lm-race-name">{nowBlock?.name?.replace('🏁 ', '') ?? ''}</div>
+            {activeDisplayBlock?.tag && <div className="lm-race-tag">{activeDisplayBlock.tag}</div>}
+            <div className="lm-race-name">{activeDisplayBlock?.name?.replace('🏁 ', '') ?? ''}</div>
             {ticker && (
               <div className={`lm-race-ticker${ticker.elapsed ? ' elapsed' : ''}`}>
                 {ticker.elapsed ? '+' : '–'}{ticker.label.replace(/^[+]/, '')}
               </div>
             )}
-            <div className="lm-race-hint">tap a block below to preview</div>
+            <div className="lm-race-hint">tap a block below to switch</div>
           </div>
         ) : (
           /* Current block — big display when nothing selected */
@@ -383,31 +382,28 @@ export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venue
               {/* NOW entry */}
               {nowBlock && (
                 <div
-                  className={`lm-strip-item lm-strip-now${nowBlock.panel !== 'future' ? ' lm-clickable' : ''}${peekBlockId === nowBlock.id ? ' lm-peeking' : ''}`}
-                  onClick={nowBlock.panel !== 'future' ? () => handlePickBlock(nowBlock.id) : undefined}
+                  className={`lm-strip-item lm-strip-now lm-clickable${peekBlockId === nowBlock.id ? ' lm-peeking' : ''}`}
+                  onClick={() => handlePickBlock(nowBlock.id)}
                 >
                   <div className="lm-strip-time lm-strip-now-label">● NOW</div>
                   <div className="lm-strip-name">{nowBlock.name}</div>
                 </div>
               )}
               {/* Future entries */}
-              {futureBlocks.map((b, i) => {
-                const hasContent = b.panel !== 'future';
-                return (
-                  <div
-                    key={b.id}
-                    className={`lm-strip-item${hasContent ? ' lm-clickable' : ''}${peekBlockId === b.id ? ' lm-peeking' : ''}${i === 0 ? ' lm-strip-next' : ''}`}
-                    onClick={hasContent ? () => handlePickBlock(b.id) : undefined}
-                  >
-                    <div className="lm-strip-time">
-                      {b.time}
-                      {i === 0 && minsUntil(b.time) > 0 && <span className="lm-next-in"> · {minsUntil(b.time)}m</span>}
-                    </div>
-                    <div className="lm-strip-name">{b.name}</div>
-                    {b.tag && <div className="lm-strip-tag" style={{ color: b.tagColor || 'var(--text4)' }}>{b.tag}</div>}
+              {futureBlocks.map((b, i) => (
+                <div
+                  key={b.id}
+                  className={`lm-strip-item lm-clickable${peekBlockId === b.id ? ' lm-peeking' : ''}${i === 0 ? ' lm-strip-next' : ''}`}
+                  onClick={() => handlePickBlock(b.id)}
+                >
+                  <div className="lm-strip-time">
+                    {b.time}
+                    {i === 0 && minsUntil(b.time) > 0 && <span className="lm-next-in"> · {minsUntil(b.time)}m</span>}
                   </div>
-                );
-              })}
+                  <div className="lm-strip-name">{b.name}</div>
+                  {b.tag && <div className="lm-strip-tag" style={{ color: b.tagColor || 'var(--text4)' }}>{b.tag}</div>}
+                </div>
+              ))}
             </div>
           </div>
         )}
