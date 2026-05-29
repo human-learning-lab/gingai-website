@@ -67,7 +67,7 @@ function EditableLine({ speaker, text, editing, onUpdate }: {
 
   // Sync if parent resets
   React.useEffect(() => { setSpVal(speaker); setTxVal(text); }, [speaker, text]);
-Ah, he was saying that it's quite hard um yeah, just actually seeing the breeze uh for those that uh know what we're looking at. Yeah, try to look at different gradients on the water and as soon as you get a lot of rain uh it's really hard to tell what what you're going into. So, you're just really uh flying by your seat of the pants a little bit. So, um super tricky day with the current. Uh whenever you got stuck outside someone, it made it super painful, but uh feel like we got through the day day really well and looking forward to tomorrow
+
   if (!editing) {
     return (
       <div style={{ marginBottom: 10, fontSize: 13, lineHeight: 1.6 }}>
