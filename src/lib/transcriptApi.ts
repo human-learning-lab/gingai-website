@@ -23,6 +23,7 @@ interface ApiCapture {
 interface ApiEvent {
   eventid: number;
   name: string;
+  season: number;
 }
 
 function parseContent(content: string, defaultSpeaker: string): TranscriptLine[] {
