@@ -90,7 +90,7 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
   if (error) throw new Error(error);
 
   const eventMap = new Map<number, string>(
-    (events as ApiEvent[]).map(e => [e.eventid, e.name])
+    (events as ApiEvent[]).map(e => [e.eventid, e.name + " S" + e.season])
   );
 
   const raceTranscripts: Transcript[] = (races as ApiRace[]).map(r => ({
