@@ -7,7 +7,7 @@ import { fetchAllTranscripts, deleteTranscript, updateTranscript } from '@/lib/t
 const TEAM_FLAGS: Record<string, string> = {
   AUS: '🇦🇺', BRA: '🇧🇷', CAN: '🇨🇦', DEN: '🇩🇰', ESP: '🇪🇸',
   FRA: '🇫🇷', GBR: '🇬🇧', GER: '🇩🇪', ITA: '🇮🇹', JPN: '🇯🇵',
-  NZL: '🇳🇿', SUI: '🇨🇭', UAE: '🇦🇪', USA: '🇺🇸',
+  NZL: '🇳🇿', SUI: '🇨🇭', UAE: '🇦🇪', USA: '🇺🇸', SWE: '🇸🇪', 
 };
 
 const SOURCE_LABELS: Record<TranscriptSource, string> = {
