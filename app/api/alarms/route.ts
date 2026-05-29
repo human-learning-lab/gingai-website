@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 // Viktor: replace this URL with your alarm server endpoint when deployed
-const ALARM_URL = 'https://alarm-service-742926686826.europe-north1.run.app/get_alarm';
+const ALARM_URL = 'https://alarm-service-742926686826.europe-north1.run.app/check_alarm';
 
 // Expected alarm shape from Viktor's server:
 // [{ "id": "string", "type": "positive"|"negative"|"neutral", "message": "string" }]
