@@ -26,8 +26,8 @@ export async function GET() {
   }
 }
 
-// PUT /api/transcripts?type=race|capture|debrief&id=N — update
-export async function PUT(req: NextRequest) {
+// PATCH /api/transcripts?type=race|capture|debrief&id=N — update
+export async function PATCH(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type');
   const id   = searchParams.get('id');
@@ -43,7 +43,7 @@ export async function PUT(req: NextRequest) {
 
   const body = await req.json();
   const res = await upstream(path, {
-    method: 'PUT',
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });

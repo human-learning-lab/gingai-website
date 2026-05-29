@@ -75,7 +75,7 @@ export async function updateTranscript(t: Transcript): Promise<void> {
   }
 
   const res = await fetch(`/api/transcripts?type=${parsed.type}&id=${parsed.numericId}`, {
-    method: 'PUT',
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
