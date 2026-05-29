@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 // Viktor: replace this URL with your alarm server endpoint when deployed
-const ALARM_URL = 'https://wriggly-tutu-groin.ngrok-free.dev/alarms';
+const ALARM_URL = 'https://alarm-service-742926686826.europe-north1.run.app/get_alarm';
 const HEADERS = { 'ngrok-skip-browser-warning': '1' };
 
 // Expected alarm shape from Viktor's server:
