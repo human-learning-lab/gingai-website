@@ -39,7 +39,7 @@ interface CaptureTabProps {
 }
 
 
-export default function Capture({ transcriptLines: transcriptLines, sentimentpts: _sentimentpts, topics: _topics, onRecordingChange: onRecordingChange }: CaptureTabProps) {
+export default function Capture({ transcriptLines: transcriptLines, sentimentPts: sentimentPts, topics: topics, onRecordingChange: onRecordingChange }: CaptureTabProps) {
   const { role } = useRole();
   const { user } = useUser();
   const imgUrl = user?.imageUrl;
@@ -61,7 +61,7 @@ export default function Capture({ transcriptLines: transcriptLines, sentimentpts
     setRecTime(0);
     onRecordingChange?.(true);
     timerRef.current = setInterval(() => setRecTime(p => p + 1), 1000);
-  });
+  },  []);
 
 
   const stopRecording = useCallback(async () => {
@@ -69,7 +69,7 @@ export default function Capture({ transcriptLines: transcriptLines, sentimentpts
     onRecordingChange?.(false);
     setPhase('review');
 	setTranscript(lines.join('\n'));
-  }, [transcript]);
+  }, []);
 
   function handleSave() {
     const text = transcript.trim();
