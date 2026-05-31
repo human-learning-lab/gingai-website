@@ -202,7 +202,7 @@ interface SessionTabProps {
   onRecordingChange?: (recording: boolean) => void;
 }
 
-function SessionTab({ transcriptlines, sentimentpts: _sentimentpts, topics: _topics, onrecordingchange }: sessiontabprops) {
+function SessionTab({ transcriptLines: transcriptLines, sentimentpts: _sentimentpts, topics: _topics, onRecordinChange: onRecordingChange }: sessiontabprops) {
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const lines = transcriptLines ?? [];

@@ -39,15 +39,15 @@ interface SessionTabProps {
 }
 
 
-export default function Capture({ transcriptlines, sentimentpts: _sentimentpts, topics: _topics, onrecordingchange }: sessiontabprops) {
+export default function Capture({ transcriptLines: transcriptLines, sentimentpts: _sentimentpts, topics: _topics, onRecordingChange: onRecordingChange }: sessiontabprops) {
   const { role } = useRole();
   const { user } = useUser();
   const imgUrl = user?.imageUrl;
   const [phase, setPhase] = useState<Phase>('idle');
-  const [transcript, setTranscript] = useState('');
-  const [interim, setInterim] = useState('');
   const [saved, setSaved] = useState<{ text: string; ts: string }[]>([]);
   const [recTime, setRecTime] = useState(0);
+  const lines = transcriptLines ?? [];
+  const [transcript, setTranscript] = useState('');
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
@@ -59,8 +59,6 @@ export default function Capture({ transcriptlines, sentimentpts: _sentimentpts, 
   const startRecording = useCallback(async () => {
     setPhase('recording');
     setRecTime(0);
-    setTranscript('');
-    setInterim('');
     onRecordingChange?.(true);
     timerRef.current = setInterval(() => setRecTime(p => p + 1), 1000);
   });
@@ -68,9 +66,9 @@ export default function Capture({ transcriptlines, sentimentpts: _sentimentpts, 
 
   const stopRecording = useCallback(async () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    setInterim('');
     onRecordingChange?.(false);
     setPhase('review');
+	setTranscript(lines.join('\n'));
   }, [transcript]);
 
   function handleSave() {
@@ -148,15 +146,9 @@ export default function Capture({ transcriptlines, sentimentpts: _sentimentpts, 
         <div className="ai-q">
           <GingAIAvatar />
           <div className="ai-q-bub" style={{ color: 'var(--text3)', fontStyle: 'italic' }}>
-            {transcript || interim ? (transcript + interim) : 'Listening…'}
+        	{lines.length === 0 && ( 'Listening…')}
+            {lines.map((line, i) => <p key={i} className="dbd-line">{line}</p>)}
           </div>
-        </div>
-      )}
-
-      {phase === 'transcribing' && (
-        <div className="ai-q">
-          <GingAIAvatar />
-          <div className="ai-q-bub" style={{ color: 'var(--text3)', fontStyle: 'italic' }}>Transcribing…</div>
         </div>
       )}
 
