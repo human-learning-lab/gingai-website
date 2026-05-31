@@ -31,7 +31,7 @@ function GingAIAvatar() {
 }
 
 
-interface SessionTabProps {
+interface CaptureTabProps {
   transcriptLines?: string[];
   sentimentPts?: number[];
   topics?: string[];
@@ -39,7 +39,7 @@ interface SessionTabProps {
 }
 
 
-export default function Capture({ transcriptLines: transcriptLines, sentimentpts: _sentimentpts, topics: _topics, onRecordingChange: onRecordingChange }: sessiontabprops) {
+export default function Capture({ transcriptLines: transcriptLines, sentimentpts: _sentimentpts, topics: _topics, onRecordingChange: onRecordingChange }: CaptureTabProps) {
   const { role } = useRole();
   const { user } = useUser();
   const imgUrl = user?.imageUrl;
