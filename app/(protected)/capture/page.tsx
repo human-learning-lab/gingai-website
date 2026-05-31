@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Capture from '@/screens/Capture';
+import CaptureClient from './CaptureClient';
 
 export const metadata: Metadata = {
   title: 'Capture',
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function CapturePage() {
-  return <Capture />;
+  return <CaptureClient />;
 }

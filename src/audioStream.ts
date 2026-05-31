@@ -33,22 +33,12 @@ export default async function startAudioStreaming() {
 			"audio-processor"
 	)
 
-	const vad = await MicVAD.new({
-		onSpeechStart: () => {
-			workletNode.port.onmessage = (event) => {
-				if (ws.readyState === WebSocket.OPEN){
-					const pcm16 = event.data
-					ws.send(pcm16.buffer)
-				}
+	workletNode.port.onmessage = (event) => {
+		if (ws.readyState === WebSocket.OPEN){
+			const pcm16 = event.data;
+			ws.send(pcm16.buffer);
 			}
-
-		},
-		onSpeechEnd: () => {
-			workletNode.port.onmessage = () => {}
-		}
-	});
-
-	vad.start();
+	}
 
 	source.connect(workletNode)
 

@@ -8,14 +8,6 @@ import { addCapture } from '@/data/captureStore';
 
 type Phase = 'idle' | 'recording' | 'transcribing' | 'review';
 
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    SpeechRecognition: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    webkitSpeechRecognition: any;
-  }
-}
 
 function UserAvatar({ imgUrl, initial }: { imgUrl?: string; initial?: string }) {
   return (
@@ -38,7 +30,16 @@ function GingAIAvatar() {
   );
 }
 
-export default function Capture() {
+
+interface SessionTabProps {
+  transcriptLines?: string[];
+  sentimentPts?: number[];
+  topics?: string[];
+  onRecordingChange?: (recording: boolean) => void;
+}
+
+
+export default function Capture({ transcriptlines, sentimentpts: _sentimentpts, topics: _topics, onrecordingchange }: sessiontabprops) {
   const { role } = useRole();
   const { user } = useUser();
   const imgUrl = user?.imageUrl;
@@ -53,79 +54,22 @@ export default function Capture() {
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  const hasSpeechAPI = typeof window !== 'undefined' &&
-    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+
 
   const startRecording = useCallback(async () => {
+    setPhase('recording');
+    setRecTime(0);
     setTranscript('');
     setInterim('');
-    setRecTime(0);
-    setPhase('recording');
-
+    onRecordingChange?.(true);
     timerRef.current = setInterval(() => setRecTime(p => p + 1), 1000);
+  });
 
-    if (hasSpeechAPI) {
-      const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-      const rec = new SR();
-      rec.continuous = true;
-      rec.interimResults = true;
-      rec.lang = 'en-US';
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      rec.onresult = (e: any) => {
-        let final = '';
-        let inter = '';
-        for (let i = 0; i < e.results.length; i++) {
-          if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
-          else inter += e.results[i][0].transcript;
-        }
-        setTranscript(final);
-        setInterim(inter);
-      };
-      rec.start();
-      recognitionRef.current = rec;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
-      chunksRef.current = [];
-      mr.ondataavailable = (e) => chunksRef.current.push(e.data);
-      mr.start();
-      mediaRef.current = mr;
-    } catch { /* mic denied — speech API fallback still works */ }
-  }, [hasSpeechAPI]);
 
   const stopRecording = useCallback(async () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    recognitionRef.current?.stop();
-    recognitionRef.current = null;
     setInterim('');
-
-    if (mediaRef.current && mediaRef.current.state !== 'inactive') {
-      mediaRef.current.stop();
-      mediaRef.current.stream.getTracks().forEach(t => t.stop());
-    }
-
-    if (!transcript.trim() && chunksRef.current.length > 0) {
-      setPhase('transcribing');
-      try {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        const form = new FormData();
-        form.append('audio', blob, 'capture.webm');
-        const res = await fetch('/api/transcribe', { method: 'POST', body: form });
-        if (res.ok) {
-          const { text } = await res.json();
-          setTranscript(text ?? '');
-        }
-      } catch { /* fall through */ }
-    }
-
-    // Nothing captured at all — go back to idle instead of showing empty review
-    if (!transcript.trim()) {
-      setPhase('idle');
-      return;
-    }
-
+    onRecordingChange?.(false);
     setPhase('review');
   }, [transcript]);
 
