@@ -66,10 +66,10 @@ export default function Capture({ transcriptLines: transcriptLines, sentimentPts
 
   const stopRecording = useCallback(async () => {
     if (timerRef.current) clearInterval(timerRef.current);
+	setTranscript(lines.join('\n'));
     onRecordingChange?.(false);
     setPhase('review');
-	setTranscript(lines.join('\n'));
-  }, []);
+  }, [transcript]);
 
   function handleSave() {
     const text = transcript.trim();
