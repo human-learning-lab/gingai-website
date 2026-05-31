@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getBlocks, getVenueHM, secsRelTZeroTZ } from '@/data/blocks';
 import { getTideNow } from '@/data/tides';
-import { addCapture } from '@/data/captureStore';
 import type { Block } from '@/types';
 import './LiveMode.css';
 
@@ -314,17 +313,14 @@ function MiniCapture() {
     const saved = text.trim();
     if (saved) {
       const ts = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-      addCapture({
-        id: `capture-live-${Date.now()}`,
-        source: 'capture',
-        regatta: '',
-        race: '',
-        team: '',
-        title: `Live note · ${ts}`,
-        duration: '—',
-        lines: [{ speaker: 'Live', text: saved }],
-      });
-    }
+      fetch('api/transcripts', {
+		method: 'POST',
+		headers:  {'Content-Type': 'application/json'},
+		body: JSON.stringify({
+			type: 'capture',
+	  		user: 'Live',
+      		text: saved,})
+    });    }
     setPhase('saved');
     setTimeout(() => { setPhase('closed'); setText(''); }, 1800);
   }

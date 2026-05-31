@@ -4,7 +4,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRole } from '@/context/RoleContext';
 import { useUser } from '@clerk/nextjs';
 import { IconStop } from '@/components/Icons';
-import { addCapture } from '@/data/captureStore';
 
 type Phase = 'idle' | 'recording' | 'transcribing' | 'review';
 
@@ -75,17 +74,13 @@ export default function Capture({ transcriptLines: transcriptLines, sentimentPts
     const text = transcript.trim();
     if (!text) return;
     const ts = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    const id = `capture-${Date.now()}`;
-    addCapture({
-      id,
-      source: 'capture',
-      regatta: '',
-      race: '',
-      team: role?.initial ?? 'BRA',
-      title: 'Capture',
-      duration: `${mm}:${ss}`,
-      lines: [{ speaker: role?.name ?? 'Me', text }],
-      avatarUrl: imgUrl,
+    fetch('api/transcripts', {
+		method: 'POST',
+		headers:  {'Content-Type': 'application/json'},
+		body: JSON.stringify({
+			type: 'capture',
+	  		user: role?.name,
+      		text: text,})
     });
     setSaved(prev => [{ text, ts }, ...prev]);
     setTranscript('');

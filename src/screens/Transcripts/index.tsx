@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { type Transcript, type TranscriptSource } from '@/data/transcripts';
-import { getCaptured, subscribeCapture } from '@/data/captureStore';
 import { fetchAllTranscripts, deleteTranscript, updateTranscript } from '@/lib/transcriptApi';
 const TEAM_FLAGS: Record<string, string> = {
   AUS: '🇦🇺', BRA: '🇧🇷', CAN: '🇨🇦', DEN: '🇩🇰', ESP: '🇪🇸',
@@ -561,7 +560,6 @@ export default function Transcripts() {
   const [dbTranscripts, setDbTranscripts] = useState<Transcript[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
-  const [liveCaptures, setLiveCaptures] = useState<Transcript[]>(() => getCaptured());
 
   useEffect(() => {
     fetchAllTranscripts()
@@ -569,11 +567,8 @@ export default function Transcripts() {
       .catch(err => { setError(err.message ?? 'Failed to load'); setLoading(false); });
   }, []);
 
-  useEffect(() => {
-    return subscribeCapture(() => setLiveCaptures([...getCaptured()]));
-  }, []);
 
-  const transcripts = [...liveCaptures, ...dbTranscripts];
+  const transcripts = [...dbTranscripts];
 
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [edits, setEdits] = useState<Map<string, Transcript>>(new Map());

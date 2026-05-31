@@ -7,6 +7,32 @@ async function upstream(path: string, init?: RequestInit) {
   return fetch(`${BASE}${path}`, { ...init, headers: { ...HEADERS, ...(init?.headers ?? {}) } });
 }
 
+
+// POST /api/transcripts?type=race|capture|debrief Upload a transcription
+export async function POST(req: NextRequest){
+  const { searchParams } = new URL(req.url);
+  const type = searchParams.get('type');
+  if (!type) return NextResponse.json({ error: 'Missing type' }, { status: 400 });
+
+  const pathMap: Record<string, string> = {
+    race:    `/races/`,
+    capture: `/captures/`,
+    debrief: `/debriefs/`,
+  };
+  const path = pathMap[type];
+  if (!path) return NextResponse.json({ error: 'Unknown type' }, { status: 400 });
+
+  const body = await req.json();
+  const res = await upstream(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  return NextResponse.json(data, { status: res.status });
+}
+
+
 // GET /api/transcripts — fetch all data
 export async function GET() {
   try {
