@@ -70,11 +70,10 @@ export default function Capture({ transcriptLines: transcriptLines, sentimentPts
     setPhase('review');
   }, [lines, onRecordingChange]);
 
-  function handleSave() {
+  async function handleSave() {
     const text = transcript.trim();
-    if (!text) return;
     const ts = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    fetch('api/transcripts', {
+    const res = await fetch('api/transcripts', {
 		method: 'POST',
 		headers:  {'Content-Type': 'application/json'},
 		body: JSON.stringify({
@@ -82,6 +81,7 @@ export default function Capture({ transcriptLines: transcriptLines, sentimentPts
 	  		user: role?.name,
       		text: text,})
     });
+  	if (!res.ok) throw new Error(`Saving failed (${res.status})`);
     setSaved(prev => [{ text, ts }, ...prev]);
     setTranscript('');
     setPhase('idle');
