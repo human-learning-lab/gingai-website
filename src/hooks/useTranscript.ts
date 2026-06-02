@@ -34,7 +34,11 @@ export function useTranscript() {
 			try {
 				const msg: TranscriptMessage = JSON.parse(e.data as string);
 				if (msg.text) {
-					setLines(prev => [...prev, msg.text]);
+					setLines(prev => {
+						// Skip consecutive duplicates (streaming ASR sends partial + final)
+						if (prev[prev.length - 1] === msg.text) return prev;
+						return [...prev, msg.text];
+					});
 				}
 				if (msg.category) {
 					setTopics(prev =>

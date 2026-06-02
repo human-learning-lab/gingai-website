@@ -65,10 +65,10 @@ export default function Capture({ transcriptLines: transcriptLines, sentimentPts
 
   const stopRecording = useCallback(async () => {
     if (timerRef.current) clearInterval(timerRef.current);
-	setTranscript(lines.join('\n'));
+    setTranscript(lines.join('\n'));
     onRecordingChange?.(false);
     setPhase('review');
-  }, [transcript]);
+  }, [lines, onRecordingChange]);
 
   function handleSave() {
     const text = transcript.trim();
@@ -140,9 +140,11 @@ export default function Capture({ transcriptLines: transcriptLines, sentimentPts
       {phase === 'recording' && (
         <div className="ai-q">
           <GingAIAvatar />
-          <div className="ai-q-bub" style={{ color: 'var(--text3)', fontStyle: 'italic' }}>
-        	{lines.length === 0 && ( 'Listening…')}
-            {lines.map((line, i) => <p key={i} className="dbd-line">{line}</p>)}
+          <div className="ai-q-bub">
+            {lines.length === 0
+              ? <span style={{ color: 'var(--text4)', fontStyle: 'italic' }}>Listening…</span>
+              : lines.map((line, i) => <p key={i} style={{ margin: '0 0 4px', fontSize: 13, lineHeight: 1.6, color: 'var(--text2)' }}>{line}</p>)
+            }
           </div>
         </div>
       )}
