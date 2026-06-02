@@ -71,9 +71,10 @@ export default function Capture({ transcriptLines: transcriptLines, sentimentPts
   }, [lines, onRecordingChange]);
 
   async function handleSave() {
+	console.log("Saving Capture");
     const text = transcript.trim();
     const ts = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    const res = await fetch('api/transcripts', {
+    const res = await fetch('api/transcripts?type=capture', {
 		method: 'POST',
 		headers:  {'Content-Type': 'application/json'},
 		body: JSON.stringify({
