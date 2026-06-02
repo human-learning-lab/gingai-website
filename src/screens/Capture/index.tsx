@@ -153,20 +153,20 @@ export default function Capture({ transcriptLines: transcriptLines, sentimentPts
       {phase === 'review' && (
         <div className="sailor-r" style={{ alignItems: 'flex-start' }}>
           <UserAvatar imgUrl={imgUrl} initial={role?.initial} />
-          <div
-            contentEditable
-            suppressContentEditableWarning
-            onInput={e => setTranscript(e.currentTarget.textContent ?? '')}
+          <textarea
+            value={transcript}
+            onChange={e => setTranscript(e.target.value)}
+            rows={Math.max(3, transcript.split('\n').length + 1)}
             style={{
               flex: 1, background: 'var(--gg)', border: '1px solid var(--gb)',
               borderRadius: '12px 3px 12px 12px', padding: '11px 13px',
               fontSize: 13, color: 'var(--text)', lineHeight: 1.6,
-              fontFamily: 'inherit', outline: 'none', whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word', cursor: 'text',
+              fontFamily: 'inherit', outline: 'none', resize: 'none',
+              whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+              direction: 'ltr', textAlign: 'left', width: '100%',
+              boxSizing: 'border-box',
             }}
-          >
-            {transcript}
-          </div>
+          />
         </div>
       )}
     </>
