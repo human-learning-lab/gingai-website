@@ -15,14 +15,15 @@ export async function POST(req: NextRequest){
   if (!type) return NextResponse.json({ error: 'Missing type' }, { status: 400 });
 
   const pathMap: Record<string, string> = {
-    race:    `/races/`,
-    capture: `/captures/`,
-    debrief: `/debriefs/`,
+    race:    `/upload_race/`,
+    capture: `/upload_capture/`,
+    debrief: `/upload_debrief/`,
   };
   const path = pathMap[type];
   if (!path) return NextResponse.json({ error: 'Unknown type' }, { status: 400 });
 
   const body = await req.json();
+  delete body.test;
   const res = await upstream(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
