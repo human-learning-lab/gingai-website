@@ -5,7 +5,7 @@ import { useRole } from '@/context/RoleContext';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { useState, useRef, useEffect } from 'react';
 import type { ScreenId } from '@/types';
-import { IconCalendar, IconMic, IconDebrief, IconTranscript, IconFolder, IconHelp } from '@/components/Icons';
+import { IconCalendar, IconMic, IconDebrief, IconTranscript, IconFolder, IconHelp, IconBell } from '@/components/Icons';
 import { useTutorial } from '@/context/TutorialContext';
 
 const NAV_ITEMS: { id: ScreenId; title: string; icon: React.ReactElement }[] = [
@@ -14,6 +14,7 @@ const NAV_ITEMS: { id: ScreenId; title: string; icon: React.ReactElement }[] = [
   { id: 'debrief',     title: 'Debrief',     icon: <IconDebrief /> },
   { id: 'transcripts', title: 'Transcripts', icon: <IconTranscript /> },
   { id: 'library',     title: 'Library',     icon: <IconFolder /> },
+  { id: 'alarms',      title: 'Alarms',      icon: <IconBell /> },
 ];
 
 export default function LeftNav() {
