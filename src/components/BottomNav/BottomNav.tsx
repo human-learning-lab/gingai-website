@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useRole } from '@/context/RoleContext';
 import { useTutorial } from '@/context/TutorialContext';
 import type { ScreenId } from '@/types';
-import { IconCalendar, IconMic, IconDebrief, IconTranscript, IconFolder, IconHelp } from '@/components/Icons';
+import { IconCalendar, IconMic, IconDebrief, IconTranscript, IconFolder, IconHelp, IconBell } from '@/components/Icons';
 
 const NAV_ITEMS: { id: ScreenId; label: string; icon: React.ReactElement }[] = [
   { id: 'backbone',    label: 'Schedule',    icon: <IconCalendar size={22} /> },
@@ -12,6 +12,7 @@ const NAV_ITEMS: { id: ScreenId; label: string; icon: React.ReactElement }[] = [
   { id: 'debrief',     label: 'Debrief',     icon: <IconDebrief size={22} /> },
   { id: 'transcripts', label: 'Transcripts', icon: <IconTranscript size={22} /> },
   { id: 'library',     label: 'Library',     icon: <IconFolder size={22} /> },
+  { id: 'alarms',      label: 'Alarms',      icon: <IconBell size={22} /> },
 ];
 
 export default function BottomNav() {
