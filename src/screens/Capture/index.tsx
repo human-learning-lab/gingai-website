@@ -165,12 +165,10 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
   async function handleOfflineStart() {
     setOfflineSaved(false);
     await offline.startRecording();
-    onRecordingChange?.(true);
   }
 
   async function handleOfflineStop() {
     await offline.stopRecording();
-    onRecordingChange?.(false);
     setOfflineSaved(true);
     setTimeout(() => setOfflineSaved(false), 3000);
   }

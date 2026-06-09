@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { type Transcript, type TranscriptSource } from '@/data/transcripts';
+import { useRole } from '@/context/RoleContext';
 import { fetchAllTranscripts, deleteTranscript, updateTranscript } from '@/lib/transcriptApi';
 const TEAM_FLAGS: Record<string, string> = {
   AUS: '🇦🇺', BRA: '🇧🇷', CAN: '🇨🇦', DEN: '🇩🇰', ESP: '🇪🇸',
@@ -350,18 +351,16 @@ const UPLOAD_TAGS = ['Debrief', 'Race', 'Training', 'Practice', 'Hot Wash', 'Bri
 interface UploadForm {
   file: File | null;
   title: string;
-  regatta: string;
-  race: string;
-  team: string;
-  tags: string[];
+  user: string;
 }
 
 function UploadModal({ onClose, onSubmit }: {
   onClose: () => void;
   onSubmit: (form: UploadForm) => void;
 }) {
+  const { role } = useRole();
   const [form, setForm] = useState<UploadForm>({
-    file: null, title: '', regatta: '', race: '', team: 'BRA', tags: [],
+  	file: null, title: '', user: role!.name,
   });
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -371,13 +370,8 @@ function UploadModal({ onClose, onSubmit }: {
     setForm(p => ({ ...p, file: f, title: p.title || f.name.replace(/\.[^.]+$/, '') }));
   }
 
-  function toggleTag(tag: string) {
-    setForm(p => ({
-      ...p,
-      tags: p.tags.includes(tag) ? p.tags.filter(t => t !== tag) : [...p.tags, tag],
-    }));
-  }
-
+	
+  
   const canSubmit = !!form.file && !!form.title.trim();
 
   const fieldStyle: React.CSSProperties = {
@@ -462,70 +456,7 @@ function UploadModal({ onClose, onSubmit }: {
               onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
             />
           </div>
-
-          {/* Regatta + Race in a row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={labelStyle}>Regatta</label>
-              <select style={{ ...fieldStyle, appearance: 'none' }} value={form.regatta} onChange={e => setForm(p => ({ ...p, regatta: e.target.value }))}>
-                <option value="">— none —</option>
-                {UPLOAD_REGATTAS.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>Race</label>
-              <input style={fieldStyle} placeholder="e.g. R4" value={form.race} onChange={e => setForm(p => ({ ...p, race: e.target.value }))} />
-            </div>
-          </div>
-
-          {/* Team */}
-          <div>
-            <label style={labelStyle}>Team</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {UPLOAD_TEAMS.map(t => (
-                <button
-                  key={t}
-                  onClick={() => setForm(p => ({ ...p, team: t }))}
-                  style={{
-                    height: 28, padding: '0 9px', borderRadius: 5,
-                    border: `1px solid ${form.team === t ? 'var(--navy)' : 'var(--line)'}`,
-                    background: form.team === t ? 'var(--navy)' : 'var(--bg)',
-                    color: form.team === t ? '#fff' : 'var(--text2)',
-                    fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
-                    display: 'flex', alignItems: 'center', gap: 4,
-                  }}
-                >
-                  <span>{TEAM_FLAGS[t]}</span>
-                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.05em' }}>{t}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Tags */}
-          <div>
-            <label style={labelStyle}>Tags</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {UPLOAD_TAGS.map(tag => {
-                const on = form.tags.includes(tag);
-                return (
-                  <button
-                    key={tag}
-                    onClick={() => toggleTag(tag)}
-                    style={{
-                      height: 26, padding: '0 9px', borderRadius: 5,
-                      border: `1px solid ${on ? 'var(--gb)' : 'var(--line)'}`,
-                      background: on ? 'var(--gg)' : 'var(--bg)',
-                      color: on ? 'var(--green)' : 'var(--text3)',
-                      fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', fontWeight: on ? 600 : 400,
-                    }}
-                  >
-                    {tag}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+   
         </div>
 
         {/* Footer */}
@@ -598,21 +529,11 @@ export default function Transcripts() {
     if (updated) updateTranscript(updated).catch(err => console.error('Update failed:', err));
   }
 
-  function handleUploadSubmit(form: UploadForm) {
-    const id = `upload-${Date.now()}`;
-    const newT: Transcript = {
-      id,
-      source: 'upload',
-      regatta: form.regatta,
-      race: form.race,
-      team: form.team,
-      title: form.title,
-      duration: '—',
-      lines: [{ speaker: form.team, text: `Audio file: ${form.file!.name}. Transcription pending.` }],
-    };
-    setUploaded(prev => [newT, ...prev]);
-    setShowUpload(false);
+  function handleUploadSubmit(form: UploadForm){
+	  fetch('/api/transcripts',
+			{method: 'POST', body: JSON.stringify({title: form.title, user: form.user, data: form.file})});
   }
+
 
   const dynamicRegattas = ['All', ...Array.from(new Set(
     all.map(t => t.regatta).filter(Boolean)

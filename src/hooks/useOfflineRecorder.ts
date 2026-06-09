@@ -120,7 +120,7 @@ export function useOfflineRecorder() {
       if (userName) form.append('user', userName);
       form.append('title', rec.title);
 
-      const res = await fetch('/api/offline-upload', { method: 'POST', body: form });
+      const res = await fetch('/api/transcription?type=offline_capture', { method: 'POST', body: form });
       if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
 
       await updateRecordingStatus(id, 'done');
