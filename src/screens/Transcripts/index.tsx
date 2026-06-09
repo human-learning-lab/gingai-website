@@ -530,7 +530,7 @@ export default function Transcripts() {
   }
 
   function handleUploadSubmit(form: UploadForm){
-	  fetch('/api/transcripts',
+	  fetch('/api/transcripts?type=media',
 			{method: 'POST', body: JSON.stringify({title: form.title, user: form.user, data: form.file})});
   }
 
