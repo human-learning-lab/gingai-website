@@ -95,14 +95,20 @@ function AlarmOverlay({ block, onDismiss }: { block: Block; onDismiss: () => voi
     return () => clearTimeout(t);
   }, [onDismiss]);
 
-  const isRace = block.tag?.toLowerCase().startsWith('race') || (block.tZeroOffset ?? -999) >= 0;
+  const isSim  = block.tag?.toLowerCase().startsWith('sim');
+  const isRace = block.tag?.toLowerCase().startsWith('race') || isSim || (block.tZeroOffset ?? -999) >= 0;
+
+  // Use the block's own tagColor, falling back to green for races and teal for sim
+  const accentColor = block.tagColor?.replace('var(', '').replace(')', '')
+    ? block.tagColor
+    : isSim ? 'var(--sim)' : 'var(--green)';
 
   if (isRace) {
     return (
-      <div className="lm-alarm lm-alarm--race" onClick={onDismiss}>
+      <div className="lm-alarm lm-alarm--race" style={{ background: accentColor }} onClick={onDismiss}>
         <div className="lm-alarm-race-inner">
           {block.tag && <div className="lm-alarm-race-tag">{block.tag}</div>}
-          <div className="lm-alarm-race-name">{block.name.replace('🏁 ', '')}</div>
+          <div className="lm-alarm-race-name">{block.name.replace('🏁 ', '').replace('🎮 ', '')}</div>
           <div className="lm-alarm-race-time">{block.time}</div>
           <div className="lm-alarm-race-tap">tap to dismiss</div>
         </div>
@@ -450,7 +456,7 @@ export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venue
       <div className="lm-header">
         <div className="lm-header-left">
           <img src="/images/logo/team_logo.png" alt="Ginga" className="lm-logo" />
-          <span className="lm-venue">{venueCity.toUpperCase()} · RACE DAY</span>
+          <span className="lm-venue">{venueCity.toUpperCase()} · {blocks.some(b => b.tag?.toLowerCase().startsWith('sim ')) ? 'SIM DAY' : 'RACE DAY'}</span>
         </div>
         {ticker && (
           <div className={`lm-tzero${ticker.elapsed ? ' elapsed' : ''}`}>
@@ -501,7 +507,7 @@ export default function LiveMode({ regatId, dayIndex, venueCity, venueLat, venue
           /* ── Race action view — clean elapsed timer ── */
           <div className="lm-race-view">
             {activeDisplayBlock?.tag && <div className="lm-race-tag">{activeDisplayBlock.tag}</div>}
-            <div className="lm-race-name">{activeDisplayBlock?.name?.replace('🏁 ', '') ?? ''}</div>
+            <div className="lm-race-name">{activeDisplayBlock?.name?.replace('🏁 ', '').replace('🎮 ', '') ?? ''}</div>
             {ticker && (
               <div className={`lm-race-ticker${ticker.elapsed ? ' elapsed' : ''}`}>
                 {ticker.elapsed ? '+' : '–'}{ticker.label.replace(/^[+]/, '')}
