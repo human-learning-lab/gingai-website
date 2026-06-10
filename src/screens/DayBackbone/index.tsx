@@ -83,7 +83,7 @@ const REGATTAS: Regatta[] = [
 			],
 		},
 	},
-	{ id: 'halifax',     city: 'Halifax',        short: 'Halifax',      dates: 'Jun 20–21',     start: '2026-06-20', end: '2026-06-21', lat:  44.65,  lon: -63.58,  photo: '/images/boat-halifax.jpg',      photoPos: 'center 50%',    days: ['Day 1', 'Day 2'] },
+	{ id: 'halifax', city: 'Halifax', short: 'Halifax', dates: 'Jun 20–21', start: '2026-06-20', end: '2026-06-21', lat: 44.65, lon: -63.58, timezone: 'America/Halifax', photo: '/images/boat-halifax.jpg', photoPos: 'center 50%', days: ['Day 1', 'Day 2'], raceDayIndices: [0, 1] },
 	{ id: 'portsmouth',  city: 'Portsmouth',     short: 'Portsmouth',   dates: 'Jul 25–26',     start: '2026-07-25', end: '2026-07-26', lat:  50.80,  lon:  -1.08,  photo: '/images/boat-portsmouth.jpg',   photoPos: 'center 50%',    days: ['Day 1', 'Day 2'] },
 	{ id: 'sassnitz',    city: 'Sassnitz',       short: 'Sassnitz',     dates: 'Aug 22–23',     start: '2026-08-22', end: '2026-08-23', lat:  54.52,  lon:  13.64,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 	{ id: 'valencia',    city: 'Valencia',       short: 'Valencia',     dates: 'Sep 5–6',       start: '2026-09-05', end: '2026-09-06', lat:  39.47,  lon:  -0.38,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
@@ -173,9 +173,11 @@ function DemoBadge() {
 	);
 }
 
-function RegatNav({ activeRegat, setActiveRegat, activeDay, setActiveDay }: {
+
+function RegatNav({ activeRegat, setActiveRegat, activeDay, setActiveDay, simMode, setSimMode }: {
 	activeRegat: string; setActiveRegat: (id: string) => void;
 	activeDay: number;   setActiveDay:   (i: number)  => void;
+	simMode: boolean;    setSimMode:     (v: boolean) => void;
 }) {
 	const tier1Ref = useRef<HTMLDivElement>(null);
 	const regat = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[0];
@@ -210,7 +212,7 @@ function RegatNav({ activeRegat, setActiveRegat, activeDay, setActiveDay }: {
 				<button
 				key={r.id}
 				className={`regat-tab${activeRegat === r.id ? ' on' : ''}${res === 'Past' ? ' past' : ''}`}
-				onClick={() => { setActiveRegat(r.id); setActiveDay(0); }}
+				onClick={() => { setActiveRegat(r.id); setActiveDay(0); setSimMode(false); }}
 				>
 				<div className="regat-tab-city">{r.short}</div>
 				<div className="regat-tab-result">{r.dates}</div>
@@ -233,13 +235,29 @@ function RegatNav({ activeRegat, setActiveRegat, activeDay, setActiveDay }: {
 		))}
 		</div>
 		<div className="regat-tier2">
+		{activeRegat === 'halifax' && (
+			<button
+				className={`regat-day-tab${simMode ? ' on' : ''}`}
+				style={simMode
+					? { background: 'var(--sim)', borderColor: 'var(--sim)', color: '#fff' }
+					: { color: 'var(--text4)', borderColor: 'var(--sb)' }
+				}
+				onClick={() => setSimMode(true)}
+			>
+				<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 3 }}>
+					<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+					<path d="M7 8l3 3-3 3M13 14h4"/>
+				</svg>
+				Sim
+			</button>
+		)}
 		{regat.days.map((d, i) => {
 			const isRace = regat.raceDayIndices?.includes(i);
 			return (
 				<button
 				key={d}
-				className={`regat-day-tab${activeDay === i ? ' on' : ''}${isRace ? ' race-day' : ''}`}
-				onClick={() => setActiveDay(i)}
+				className={`regat-day-tab${!simMode && activeDay === i ? ' on' : ''}${isRace ? ' race-day' : ''}`}
+				onClick={() => { setSimMode(false); setActiveDay(i); }}
 				>
 				{isRace && <span className="rd-dot" />}
 				{d}
@@ -490,45 +508,55 @@ function blockContentForPanel(panel: string, selectedId: string, blocks?: import
 	return <BlockContent panel={panel} selectedId={selectedId} blocks={blocks} />;
 }
 
+function getDefaultSimMode(): boolean {
+	const defaultRegat = getDefaultRegat();
+	if (defaultRegat !== 'halifax') return false;
+	// Auto-enable sim mode when Halifax is "next up" but hasn't started yet
+	const halifaxStart = new Date('2026-06-20T00:00:00');
+	return new Date() < halifaxStart;
+}
+
 export default function DayBackbone() {
 	const [activeRegat, setActiveRegat] = useState(getDefaultRegat);
 	const [activeDay, setActiveDay]     = useState(0);
 	const [isLiveMode, setIsLiveMode]   = useState(false);
+	const [simMode, setSimMode]         = useState(getDefaultSimMode);
 	const activeVenue = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[5];
 
 	const venueTimezone = activeVenue.timezone;
 
-	// Blocks depend on which regatta + day is selected
-	const blocks = getBlocks(new Date(), activeRegat, activeDay, venueTimezone);
+	// In sim mode, always use sim-camp blocks regardless of regatta selection
+	const effectiveRegatId = simMode ? 'sim-camp' : activeRegat;
+	const blocks = getBlocks(new Date(), effectiveRegatId, activeDay, venueTimezone);
 	const nowBlock = blocks.find(b => b.status === 'now');
 	const [selectedId, setSelectedId] = useState(nowBlock?.id ?? blocks[0]?.id ?? '1430');
 	const userSelectedRef = useRef(false);
 
-	// Derived: is the selected day a non-race agenda day?
-	const isAgendaDay = !!(
+	// Derived: agenda days don't apply in sim mode
+	const isAgendaDay = !simMode && !!(
 		activeVenue.weekAgenda?.[activeDay] &&
 		!activeVenue.raceDayIndices?.includes(activeDay)
 	);
 	const agendaItems  = activeVenue.weekAgenda?.[activeDay];
 	const raceSchedule = activeVenue.raceSchedule?.[activeDay];
 
-	// Reset selection when regatta or day changes
+	// Reset selection when regatta, day, or sim mode changes
 	useEffect(() => {
 		userSelectedRef.current = false;
-		const freshBlocks = getBlocks(new Date(), activeRegat, activeDay, venueTimezone);
+		const freshBlocks = getBlocks(new Date(), effectiveRegatId, activeDay, venueTimezone);
 		const live = freshBlocks.find(b => b.status === 'now');
 		setSelectedId(live?.id ?? freshBlocks[0]?.id ?? '1430');
-	}, [activeRegat, activeDay]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [activeRegat, activeDay, simMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	// Follow the live "now" block automatically unless the user has manually selected one
 	useEffect(() => {
 		const interval = setInterval(() => {
 			if (userSelectedRef.current) return;
-			const live = getBlocks(new Date(), activeRegat, activeDay, venueTimezone).find(b => b.status === 'now');
+			const live = getBlocks(new Date(), effectiveRegatId, activeDay, venueTimezone).find(b => b.status === 'now');
 			if (live) setSelectedId(live.id);
 		}, 30_000);
 		return () => clearInterval(interval);
-	}, [activeRegat, activeDay]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [activeRegat, activeDay, simMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	function handleSelect(id: string) {
 		userSelectedRef.current = true;
@@ -554,7 +582,7 @@ export default function DayBackbone() {
 	const selectedDate = new Date(activeVenue.start);
 	selectedDate.setDate(selectedDate.getDate() + activeDay);
 
-	const isRaceDay = !isAgendaDay;
+	const isRaceDay = simMode || !isAgendaDay;
 
 	function renderMobExpanded(blockId: string) {
 		const b = blocks.find(bl => bl.id === blockId);
@@ -567,9 +595,9 @@ export default function DayBackbone() {
 
 	{isLiveMode && (
 		<LiveMode
-			regatId={activeRegat}
+			regatId={effectiveRegatId}
 			dayIndex={activeDay}
-			venueCity={activeVenue.city}
+			venueCity={simMode ? 'Simulator' : activeVenue.city}
 			venueLat={activeVenue.lat}
 			venueLon={activeVenue.lon}
 			venueTimezone={venueTimezone}
@@ -585,15 +613,15 @@ export default function DayBackbone() {
 
 	{/* Mobile layout */}
 	<div className="mob-only mob-backbone">
-	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
+	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} simMode={simMode} setSimMode={setSimMode} />
 	<div style={{ padding: '0 0 4px' }}>
 		<AskMeBar />
 	</div>
-	{isRaceDay && (
-		<button className="mob-live-btn" onClick={handleEnterLive}>
-			<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
-			Live Mode
-		</button>
+	{isRaceDay && !simMode && (
+	<button className="mob-live-btn" onClick={handleEnterLive}>
+		<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
+		Live Mode
+	</button>
 	)}
 	<MobConditionsBar lat={activeVenue.lat} lon={activeVenue.lon} city={activeVenue.city} />
 	{isAgendaDay && agendaItems ? (
@@ -602,7 +630,7 @@ export default function DayBackbone() {
 		</div>
 	) : (
 		<div className="mob-bb-tl">
-			<Timeline selectedId={selectedId} onSelect={handleSelect} renderExpanded={renderMobExpanded} blocks={blocks} onLive={isRaceDay ? handleEnterLive : undefined} />
+			<Timeline selectedId={selectedId} onSelect={handleSelect} renderExpanded={renderMobExpanded} blocks={blocks} onLive={isRaceDay && !simMode ? handleEnterLive : undefined} />
 		</div>
 	)}
 	</div>
@@ -619,10 +647,10 @@ export default function DayBackbone() {
 			selectedDate={selectedDate}
 		/>
 	) : (
-		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} onLive={isRaceDay ? handleEnterLive : undefined} />
+		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} onLive={isRaceDay && !simMode ? handleEnterLive : undefined} />
 	)}
 	<div className="main">
-	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
+	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} simMode={simMode} setSimMode={setSimMode} />
 		<div className="block-view on">
 		{isAgendaDay && agendaItems ? (
 			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1} />

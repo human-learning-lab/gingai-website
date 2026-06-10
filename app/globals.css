@@ -25,6 +25,10 @@
   --red:   #E8574A;
   --rg:    rgba(232,87,74,0.10);
   --rb:    rgba(232,87,74,0.28);
+  /* Simulator — teal/cyan */
+  --sim:   #0098A6;
+  --sg:    rgba(0,152,166,0.12);
+  --sb:    rgba(0,152,166,0.30);
 }
 
 html, body {

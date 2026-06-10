@@ -50,6 +50,33 @@ const NYC_SUN_SEEDS: BlockSeed[] = [
   { id: 'nu-1900', time: '19:00', name: 'Team Debrief',         panel: '1930',   tag: 'Debrief', tagColor: 'var(--text3)',  tZeroOffset: 202  },
 ];
 
+// ── Halifax simulator training day ────────────────────────────
+// Each sim run uses panel:'future' so Live Mode shows the countdown clock.
+// tZeroOffset is relative to Run 1 (Sim 1 = T-Zero for this day).
+// Adjust times to match the actual Halifax sim schedule.
+export const HALIFAX_SIM_SEEDS: BlockSeed[] = [
+  { id: 'hs-0930', time: '09:30', name: 'Sim Brief & Objectives',  panel: 'sim-brief',   tag: 'Brief',   tagColor: 'var(--text3)', tZeroOffset: -30 },
+  { id: 'hs-1000', time: '10:00', name: 'Simulator Session',       panel: 'future',      tag: 'Sim',     tagColor: 'var(--sim)',   tZeroOffset: 0   },
+  { id: 'hs-1430', time: '14:30', name: 'Capture Window',          panel: '1818',        tag: 'Capture', tagColor: 'var(--red)',   tZeroOffset: 270 },
+  { id: 'hs-1500', time: '15:00', name: 'Sim Debrief',             panel: 'sim-debrief', tag: 'Debrief', tagColor: 'var(--text3)', tZeroOffset: 300 },
+];
+
+// ── Halifax race day (R1–R4, placeholder times — adjust when schedule confirmed) ──
+export const HALIFAX_RACE_SEEDS: BlockSeed[] = [
+  { id: 'hr-1000', time: '10:00', name: 'All Team — Tent',               panel: 'tent',   tag: '',        tagColor: '',              tZeroOffset: -318 },
+  { id: 'hr-1030', time: '10:30', name: 'Brief & Sim Brief',             panel: '1330',   tag: 'Learn',   tagColor: 'var(--text3)',   tZeroOffset: -288 },
+  { id: 'hr-1200', time: '12:00', name: 'Simulator Session',             panel: 'sim',    tag: '',        tagColor: '',              tZeroOffset: -198 },
+  { id: 'hr-1300', time: '13:00', name: 'Warm Up',                       panel: '1500',   tag: '',        tagColor: '',              tZeroOffset: -138 },
+  { id: 'hr-1350', time: '13:50', name: 'Transfer to Yacht',             panel: '1550',   tag: 'Race',    tagColor: 'var(--yellow)', tZeroOffset: -88  },
+  { id: 'hr-1420', time: '14:20', name: 'Dock Off',                      panel: 'future', tag: 'Race',    tagColor: 'var(--yellow)', tZeroOffset: -58  },
+  { id: 'hr-1518', time: '15:18', name: '🏁 R1 Start — T-Zero',           panel: 'future', tag: 'Race 1',  tagColor: 'var(--green)',  tZeroOffset: 0    },
+  { id: 'hr-1538', time: '15:38', name: 'R2 Start',                      panel: 'future', tag: 'Race 2',  tagColor: 'var(--green)',  tZeroOffset: 20   },
+  { id: 'hr-1558', time: '15:58', name: 'R3 Start',                      panel: 'future', tag: 'Race 3',  tagColor: 'var(--green)',  tZeroOffset: 40   },
+  { id: 'hr-1620', time: '16:20', name: 'R4 Start',                      panel: 'future', tag: 'Race 4',  tagColor: 'var(--green)',  tZeroOffset: 62   },
+  { id: 'hr-1700', time: '17:00', name: 'Dock In → Capture',             panel: '1818',   tag: 'Capture', tagColor: 'var(--red)',    tZeroOffset: 102  },
+  { id: 'hr-1900', time: '19:00', name: 'Team Debrief',                  panel: '1930',   tag: 'Debrief', tagColor: 'var(--text3)',  tZeroOffset: 222  },
+];
+
 function toMinutes(time: string): number {
   const [h, m] = time.split(':').map(Number);
   return h * 60 + m;
@@ -101,6 +128,8 @@ function seedsToBlocks(seeds: BlockSeed[], now: Date, timezone?: string): Block[
 export function getBlocks(now: Date = new Date(), regatId?: string, dayIndex?: number, timezone?: string): Block[] {
   if (regatId === 'newyork' && dayIndex === 2) return seedsToBlocks(NYC_SAT_SEEDS, now, timezone);
   if (regatId === 'newyork' && dayIndex === 3) return seedsToBlocks(NYC_SUN_SEEDS, now, timezone);
+  if (regatId === 'sim-camp') return seedsToBlocks(HALIFAX_SIM_SEEDS, now, timezone);
+  if (regatId === 'halifax')  return seedsToBlocks(HALIFAX_RACE_SEEDS, now, timezone);
   return seedsToBlocks(GENERIC_SEEDS, now, timezone);
 }
 
