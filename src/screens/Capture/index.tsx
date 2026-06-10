@@ -150,7 +150,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
     const text = transcript.trim();
     if (!text) return;
     const ts = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    fetch('api/transcripts', {
+    fetch('api/transcripts?type=capture', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type: 'capture', user: role?.name, text }),
@@ -165,12 +165,10 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
   async function handleOfflineStart() {
     setOfflineSaved(false);
     await offline.startRecording();
-    onRecordingChange?.(true);
   }
 
   async function handleOfflineStop() {
     await offline.stopRecording();
-    onRecordingChange?.(false);
     setOfflineSaved(true);
     setTimeout(() => setOfflineSaved(false), 3000);
   }

@@ -8,7 +8,7 @@ async function upstream(path: string, init?: RequestInit) {
 }
 
 
-// POST /api/transcripts?type=race|capture|debrief Upload a transcription
+// POST /api/transcripts?type=race|capture|debrief|media Upload a transcription
 export async function POST(req: NextRequest){
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type');
@@ -17,7 +17,9 @@ export async function POST(req: NextRequest){
   const pathMap: Record<string, string> = {
     race:    `/upload_race/`,
     capture: `/upload_capture/`,
+	offline_capture: `/upload_offline_capture/`,
     debrief: `/upload_debrief/`,
+	media:  `/upload_media`,
   };
   const path = pathMap[type];
   if (!path) return NextResponse.json({ error: 'Unknown type' }, { status: 400 });
@@ -37,23 +39,24 @@ export async function POST(req: NextRequest){
 // GET /api/transcripts — fetch all data
 export async function GET() {
   try {
-    const [racesRes, debriefsRes, capturesRes, eventsRes] = await Promise.all([
+    const [racesRes, debriefsRes, capturesRes, uploadsRes, eventsRes] = await Promise.all([
       upstream('/races', { cache: 'no-store' }),
       upstream('/debriefs/', { cache: 'no-store' }),
       upstream('/captures/', { cache: 'no-store' }),
+      upstream('/uploads/', { cache: 'no-store' }),
       upstream('/events', { cache: 'no-store' }),
     ]);
-    const [races, debriefs, captures, events] = await Promise.all([
-      racesRes.json(), debriefsRes.json(), capturesRes.json(), eventsRes.json(),
+    const [races, debriefs, captures, uploads, events] = await Promise.all([
+      racesRes.json(), debriefsRes.json(), capturesRes.json(), uploadsRes.json(), eventsRes.json(),
     ]);
-    return NextResponse.json({ races, debriefs, captures, events });
+    return NextResponse.json({ races, debriefs, captures, uploads, events });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 }
 
-// PATCH /api/transcripts?type=race|capture|debrief&id=N — update
+// PATCH /api/transcripts?type=race|capture|debrief|media&id=N — update
 export async function PATCH(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type');
@@ -64,6 +67,7 @@ export async function PATCH(req: NextRequest) {
     race:    `/races/${id}`,
     capture: `/captures/${id}`,
     debrief: `/debriefs/${id}`,
+	media:   `/uploads/${id}`,
   };
   const path = pathMap[type];
   if (!path) return NextResponse.json({ error: 'Unknown type' }, { status: 400 });
@@ -78,7 +82,7 @@ export async function PATCH(req: NextRequest) {
   return NextResponse.json(data, { status: res.status });
 }
 
-// DELETE /api/transcripts?type=race|capture|debrief&id=N — delete
+// DELETE /api/transcripts?type=race|capture|debrief|media&id=N — delete
 export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type');
@@ -89,6 +93,7 @@ export async function DELETE(req: NextRequest) {
     race:    `/races/${id}`,
     capture: `/captures/${id}`,
     debrief: `/debriefs/${id}`,
+	media:	 `/uploads/${id}`,
   };
   const path = pathMap[type];
   if (!path) return NextResponse.json({ error: 'Unknown type' }, { status: 400 });
