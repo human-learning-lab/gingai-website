@@ -372,7 +372,7 @@ function BlockSim() {
 
 // ─── Sim Session — Brief & Documents ─────────────────────────
 
-type SimDoc = {
+export type SimDoc = {
   date: string;
   title: string;
   subtitle: string;
@@ -380,7 +380,7 @@ type SimDoc = {
   type: 'pdf' | 'gdoc';
 };
 
-const SIM_DOCS: SimDoc[] = [
+export const SIM_DOCS: SimDoc[] = [
   { date: 'Mon 8 Jun', title: 'Team Meeting Agenda',         subtitle: 'Sim programme · Objectives · Accountability',          externalHref: '/sim-docs/sim-meeting-mon-8-june.pdf',      type: 'pdf' },
   { date: 'Mon 8 Jun', title: 'Week Objectives & Programme', subtitle: 'The six-step start process · Weekly cycle',             externalHref: '/sim-docs/week-objectives.pdf',             type: 'pdf' },
   { date: 'Mon 8 Jun', title: 'Simulator Training Review',   subtitle: 'Research findings — brief/sim/debrief protocol',        externalHref: '/sim-docs/simulator-training-review.pdf',   type: 'pdf' },
@@ -639,7 +639,7 @@ function DocObservationsHypotheses() {
   );
 }
 
-const DOC_CONTENT: Record<string, React.ReactNode> = {
+export const DOC_CONTENT: Record<string, React.ReactNode> = {
   'Team Meeting Agenda':         <DocTeamMeetingAgenda />,
   'Week Objectives & Programme': <DocWeekObjectives />,
   'Simulator Training Review':   <DocSimTrainingReview />,
@@ -680,12 +680,12 @@ function DocViewer({ doc, onClose }: { doc: SimDoc; onClose: () => void }) {
   );
 }
 
-function DocCard({ doc, onOpen }: { doc: SimDoc; onOpen: () => void }) {
+export function DocCard({ doc, onOpen, active = false }: { doc: SimDoc; onOpen: () => void; active?: boolean }) {
   const isPdf = doc.type === 'pdf';
   return (
     <button
       onClick={onOpen}
-      style={{ textDecoration: 'none', display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', background: 'var(--bg3)', borderRadius: 8, border: '1px solid var(--line)', transition: 'border-color 0.12s, background 0.12s', cursor: 'pointer', width: '100%', textAlign: 'left', fontFamily: 'inherit' }}
+      style={{ textDecoration: 'none', display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', background: active ? 'var(--sg)' : 'var(--bg3)', borderRadius: 8, border: `1px solid ${active ? 'var(--sb)' : 'var(--line)'}`, transition: 'border-color 0.12s, background 0.12s', cursor: 'pointer', width: '100%', textAlign: 'left', fontFamily: 'inherit' }}
     >
       <div style={{ width: 30, height: 30, borderRadius: 6, background: isPdf ? 'rgba(232,87,74,0.12)' : 'rgba(66,133,244,0.12)', border: `1px solid ${isPdf ? 'rgba(232,87,74,0.25)' : 'rgba(66,133,244,0.25)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         {isPdf ? (
@@ -706,66 +706,48 @@ function DocCard({ doc, onOpen }: { doc: SimDoc; onOpen: () => void }) {
   );
 }
 
-export function BlockSimBrief() {
-  const [openDoc, setOpenDoc]     = useState<SimDoc | null>(null);
+// Shared brief overview content (used by both BlockSimBrief and Sim screen)
+export function SimBriefOverview({ onOpenDoc, activeDoc }: { onOpenDoc: (doc: SimDoc) => void; activeDoc?: SimDoc | null }) {
   const [notesOpen, setNotesOpen] = useState(false);
-
-  // When a document is open, render the viewer full-height instead of the brief
-  if (openDoc) {
-    return (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <DocViewer doc={openDoc} onClose={() => setOpenDoc(null)} />
-      </div>
-    );
-  }
-
   return (
-    <>
-      <BlockHeader
-        eyebrow="Week 24 · Jun 8–14 · Onboarding & Sim Evaluation"
-        title="Sim Brief & Objectives"
-        tag="Sim"
-        tagStyle={{ color: 'var(--sim)', background: 'var(--sg)', border: '1px solid var(--sb)' }}
-      />
-      <div className="gen-panel">
+    <div>
+      {/* Friday objective banner */}
+      <div style={{ background: 'color-mix(in srgb, var(--sim) 8%, var(--bg))', border: '1px solid var(--sb)', borderRadius: 8, padding: '12px 14px', marginBottom: 20 }}>
+        <div style={{ fontSize: 10, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--sim)', marginBottom: 6 }}>
+          Fri 12 Jun — Today's Objectives
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+          Objectives being set by Rasmus — check here when session starts.
+        </div>
+      </div>
 
-        {/* Friday objective banner */}
-        <div style={{ background: 'color-mix(in srgb, var(--sim) 8%, var(--bg))', border: '1px solid var(--sb)', borderRadius: 8, padding: '12px 14px', marginBottom: 20 }}>
-          <div style={{ fontSize: 10, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--sim)', marginBottom: 6 }}>
-            Fri 12 Jun — Today's Objectives
+      {/* Quick actions */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
+        <ActionButton href="/capture" icon={<IconMic size={15} />} label="Capture note" style={{ fontSize: 12, padding: '9px 12px' }} />
+        <ActionButton href="/alarms"
+          icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>}
+          label="Alarms"
+          style={{ fontSize: 12, padding: '9px 12px', color: 'var(--text2)', borderColor: 'var(--line)', background: 'var(--bg3)' }}
+        />
+      </div>
+
+      {/* Documents */}
+      <div style={{ fontSize: 10, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 8 }}>
+        Session Documents
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+        {SIM_DOCS.map((doc, i) => <DocCard key={i} doc={doc} onOpen={() => onOpenDoc(doc)} active={activeDoc?.title === doc.title} />)}
+        {/* Friday objectives placeholder */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg2)', borderRadius: 8, border: '1px dashed var(--line2)', opacity: 0.7 }}>
+          <div style={{ width: 30, height: 30, borderRadius: 6, background: 'var(--bg3)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
-            Objectives being set by Rasmus — check here when session starts.
-          </div>
-        </div>
-
-        {/* Quick actions */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
-          <ActionButton href="/capture" icon={<IconMic size={15} />} label="Capture note" style={{ fontSize: 12, padding: '9px 12px' }} />
-          <ActionButton href="/alarms"
-            icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>}
-            label="Alarms"
-            style={{ fontSize: 12, padding: '9px 12px', color: 'var(--text2)', borderColor: 'var(--line)', background: 'var(--bg3)' }}
-          />
-        </div>
-
-        {/* Documents */}
-        <div style={{ fontSize: 10, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 8 }}>
-          Session Documents
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
-          {SIM_DOCS.map((doc, i) => <DocCard key={i} doc={doc} onOpen={() => setOpenDoc(doc)} />)}
-          {/* Friday objectives placeholder */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg2)', borderRadius: 8, border: '1px dashed var(--line2)', opacity: 0.7 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 6, background: 'var(--bg3)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-            </div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)' }}>Friday Objectives</div>
-              <div style={{ fontSize: 11, color: 'var(--text4)' }}>Fri 12 Jun · Rasmus will post before 08:30</div>
-            </div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)' }}>Friday Objectives</div>
+            <div style={{ fontSize: 11, color: 'var(--text4)' }}>Fri 12 Jun · Rasmus will post before 08:30</div>
           </div>
         </div>
+      </div>
 
         {/* Tuesday debrief notes — collapsible */}
         <button
@@ -784,6 +766,43 @@ export function BlockSimBrief() {
             {TUESDAY_NOTES}
           </div>
         )}
+    </div>
+  );
+}
+
+// Used in DayBackbone block panel — handles its own doc navigation
+export function BlockSimBrief() {
+  const [openDoc, setOpenDoc] = useState<SimDoc | null>(null);
+  if (openDoc) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
+          <button onClick={() => setOpenDoc(null)} style={{ display: 'flex', alignItems: 'center', gap: 5, height: 28, padding: '0 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', cursor: 'pointer', fontSize: 12, color: 'var(--text3)', fontFamily: 'inherit' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Back
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{openDoc.title}</div>
+            <div style={{ fontSize: 10, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em' }}>{openDoc.date}</div>
+          </div>
+          {openDoc.externalHref && (
+            <a href={openDoc.externalHref} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 4, height: 28, padding: '0 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', fontSize: 11, color: 'var(--text4)', textDecoration: 'none', fontFamily: 'inherit', flexShrink: 0 }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Open
+            </a>
+          )}
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 32px' }}>
+          {DOC_CONTENT[openDoc.title]}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <>
+      <BlockHeader eyebrow="Week 24 · Jun 8–14 · Onboarding & Sim Evaluation" title="Sim Brief & Objectives" tag="Sim" tagStyle={{ color: 'var(--sim)', background: 'var(--sg)', border: '1px solid var(--sb)' }} />
+      <div className="gen-panel">
+        <SimBriefOverview onOpenDoc={setOpenDoc} activeDoc={null} />
       </div>
     </>
   );
