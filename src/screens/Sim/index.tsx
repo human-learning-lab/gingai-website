@@ -99,61 +99,116 @@ function FileBrowser({ selected, onSelect }: { selected: SimDoc; onSelect: (d: S
   );
 }
 
-// ── Brief phase — always split ────────────────────────────────
+// ── Shared doc header ─────────────────────────────────────────
+
+function DocHeader({ doc }: { doc: SimDoc }) {
+  return (
+    <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.title}</div>
+        <div style={{ fontSize: 10, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.06em', marginTop: 1 }}>{doc.date} · {doc.type === 'pdf' ? 'PDF' : 'Google Doc'}</div>
+      </div>
+      {doc.externalHref && (
+        <a href={doc.externalHref} target="_blank" rel="noopener noreferrer"
+          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg3)', color: 'var(--text4)', textDecoration: 'none', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Open
+        </a>
+      )}
+    </div>
+  );
+}
+
+// ── Shared objectives + quick actions ─────────────────────────
+
+function BriefObjectives({ compact = false }: { compact?: boolean }) {
+  return (
+    <div style={{ padding: compact ? '12px 14px 10px' : '16px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
+      <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--sim)', marginBottom: 3 }}>
+        Fri 12 Jun — Objectives
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.5, marginBottom: 10 }}>
+        Being set by Rasmus — check here when session starts.
+      </div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <Link href="/capture" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px 0', background: 'var(--green)', color: '#fff', borderRadius: 7, textDecoration: 'none', fontWeight: 700, fontSize: 11 }}>
+          <IconMic size={12} />Capture
+        </Link>
+        <Link href="/alarms" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px 0', background: 'var(--bg3)', color: 'var(--text2)', borderRadius: 7, textDecoration: 'none', fontWeight: 600, fontSize: 11, border: '1px solid var(--line)' }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Alarms
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ── Brief phase ───────────────────────────────────────────────
 
 function PhaseBrief() {
   const [selected, setSelected] = useState<SimDoc>(SIM_DOCS[0]);
+  const [mobileDocOpen, setMobileDocOpen] = useState(false);
+
+  function selectDoc(doc: SimDoc) {
+    setSelected(doc);
+    setMobileDocOpen(true);
+  }
 
   return (
-    <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-
-      {/* Left: file browser */}
-      <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--line)', overflow: 'hidden' }}>
-        {/* Objectives banner (compact) */}
-        <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
-          <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--sim)', marginBottom: 3 }}>
-            Fri 12 Jun — Objectives
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.5 }}>
-            Being set by Rasmus — check here when session starts.
-          </div>
-          <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-            <Link href="/capture" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px 0', background: 'var(--green)', color: '#fff', borderRadius: 7, textDecoration: 'none', fontWeight: 700, fontSize: 11 }}>
-              <IconMic size={12} />Capture
-            </Link>
-            <Link href="/alarms" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px 0', background: 'var(--bg3)', color: 'var(--text2)', borderRadius: 7, textDecoration: 'none', fontWeight: 600, fontSize: 11, border: '1px solid var(--line)' }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              Alarms
-            </Link>
+    <>
+      {/* ── Desktop: always-split layout ── */}
+      <div className="desk-only" style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+        {/* Left: objectives + file browser */}
+        <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--line)', overflow: 'hidden' }}>
+          <BriefObjectives compact />
+          <div style={{ flex: 1, overflowY: 'auto', padding: '10px 6px' }}>
+            <FileBrowser selected={selected} onSelect={setSelected} />
           </div>
         </div>
-
-        {/* File browser */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '10px 6px' }}>
-          <FileBrowser selected={selected} onSelect={setSelected} />
+        {/* Right: doc content */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+          <DocHeader doc={selected} />
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px 40px' }}>
+            {DOC_CONTENT[selected.title]}
+          </div>
         </div>
       </div>
 
-      {/* Right: doc content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-        <div style={{ padding: '14px 24px 12px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected.title}</div>
-            <div style={{ fontSize: 10, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.06em', marginTop: 2 }}>{selected.date} · {selected.type === 'pdf' ? 'PDF' : 'Google Doc'}</div>
+      {/* ── Mobile: list → full-screen doc ── */}
+      <div className="mob-only" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+        {mobileDocOpen ? (
+          /* Full-screen doc view */
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
+              <button onClick={() => setMobileDocOpen(false)}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', cursor: 'pointer', fontSize: 12, color: 'var(--text3)', fontFamily: 'inherit', flexShrink: 0 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+                Documents
+              </button>
+              <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected.title}</span>
+              {selected.externalHref && (
+                <a href={selected.externalHref} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'var(--text4)', textDecoration: 'none', fontSize: 11, flexShrink: 0 }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  Open
+                </a>
+              )}
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 40px' }}>
+              {DOC_CONTENT[selected.title]}
+            </div>
           </div>
-          {selected.externalHref && (
-            <a href={selected.externalHref} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg3)', color: 'var(--text4)', textDecoration: 'none', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-              Open
-            </a>
-          )}
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px 40px' }}>
-          {DOC_CONTENT[selected.title]}
-        </div>
+        ) : (
+          /* Doc list */
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <BriefObjectives />
+            <div style={{ padding: '10px 10px' }}>
+              <FileBrowser selected={selected} onSelect={selectDoc} />
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }
 
