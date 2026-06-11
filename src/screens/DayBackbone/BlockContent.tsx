@@ -798,11 +798,16 @@ const SIM_REFLECTION_PROMPTS = [
   'One hypothesis: "If we change X, then Y will improve, because Z."',
 ];
 
-type PlotFigure = { data: Plotly.Data[]; layout: Partial<Plotly.Layout> };
-type SessionResult = { status: 'processing' | 'done' | 'error'; plots?: PlotFigure[]; scoreboard?: Record<string, unknown>[] };
+// Viktor's API base — direct from browser to avoid Vercel's 4.5 MB proxy limit
+const VIKTOR_BASE = process.env.NEXT_PUBLIC_VIKTOR_API_URL ?? 'https://wriggly-tutu-groin.ngrok-free.dev';
+const VIKTOR_HEADERS = { 'ngrok-skip-browser-warning': '1', 'Content-Type': 'application/json' };
 
-function SimPlots({ sessionId }: { sessionId: string }) {
-  const [result, setResult] = useState<SessionResult | null>(null);
+// SimOut from API: { scoreboard: object, plots: object }
+// plots is a dict of name → Plotly figure JSON
+type SimOut = { scoreboard: Record<string, unknown>; plots: Record<string, { data: Plotly.Data[]; layout: Partial<Plotly.Layout> }> };
+
+function SimPlots({ sessId }: { sessId: number }) {
+  const [result, setResult] = useState<SimOut | null>(null);
   const [error, setError]   = useState(false);
 
   useEffect(() => {
@@ -812,15 +817,17 @@ function SimPlots({ sessionId }: { sessionId: string }) {
     async function poll() {
       if (cancelled) return;
       try {
-        const res  = await fetch(`/api/sim-session/${sessionId}`);
-        const data: SessionResult = await res.json();
+        const res  = await fetch(`${VIKTOR_BASE}/sim_session/${sessId}`, { headers: { 'ngrok-skip-browser-warning': '1' } });
+        if (!res.ok) { setTimeout(poll, delay = Math.min(delay * 1.5, 15000)); return; }
+        const data: SimOut = await res.json();
         if (cancelled) return;
-        if (data.status === 'done' || data.status === 'error') {
+        // If plots is empty the server is still processing
+        if (!data.plots || Object.keys(data.plots).length === 0) {
           setResult(data);
+          setTimeout(poll, delay = Math.min(delay * 1.5, 15000));
           return;
         }
         setResult(data);
-        setTimeout(poll, delay = Math.min(delay * 1.5, 15000));
       } catch {
         if (!cancelled) setError(true);
       }
@@ -828,13 +835,13 @@ function SimPlots({ sessionId }: { sessionId: string }) {
 
     poll();
     return () => { cancelled = true; };
-  }, [sessionId]);
+  }, [sessId]);
 
   if (error) return (
     <div style={{ fontSize: 12, color: 'var(--red)', padding: '12px 0' }}>Could not reach server — try refreshing.</div>
   );
 
-  if (!result || result.status === 'processing') return (
+  if (!result || Object.keys(result.plots ?? {}).length === 0) return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 0', color: 'var(--text3)', fontSize: 12 }}>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--sim)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
         <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
@@ -844,34 +851,23 @@ function SimPlots({ sessionId }: { sessionId: string }) {
     </div>
   );
 
-  if (result.status === 'error') return (
-    <div style={{ fontSize: 12, color: 'var(--red)', padding: '12px 0' }}>Server error processing file.</div>
-  );
-
-  const plots = result.plots ?? [];
-  const board = result.scoreboard;
+  const plots  = Object.entries(result.plots);
+  const board  = result.scoreboard;
+  const boardRows = board ? Object.entries(board) : [];
 
   return (
     <div style={{ marginTop: 16 }}>
-      {/* Scoreboard table */}
-      {board && board.length > 0 && (
+      {/* Scoreboard */}
+      {boardRows.length > 0 && (
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 10, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--sim)', marginBottom: 8 }}>Scoreboard</div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-              <thead>
-                <tr>
-                  {Object.keys(board[0]).map(k => (
-                    <th key={k} style={{ textAlign: 'left', padding: '6px 10px', borderBottom: '1px solid var(--line)', color: 'var(--text3)', fontWeight: 700, whiteSpace: 'nowrap' }}>{k}</th>
-                  ))}
-                </tr>
-              </thead>
               <tbody>
-                {board.map((row, i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg3)' }}>
-                    {Object.values(row).map((v, j) => (
-                      <td key={j} style={{ padding: '6px 10px', color: 'var(--text)', borderBottom: '1px solid var(--line)' }}>{String(v)}</td>
-                    ))}
+                {boardRows.map(([k, v]) => (
+                  <tr key={k}>
+                    <td style={{ padding: '5px 10px', color: 'var(--text3)', fontWeight: 600, borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' }}>{k}</td>
+                    <td style={{ padding: '5px 10px', color: 'var(--text)', borderBottom: '1px solid var(--line)' }}>{String(v)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -881,15 +877,16 @@ function SimPlots({ sessionId }: { sessionId: string }) {
       )}
 
       {/* Plotly charts */}
-      {plots.map((fig, i) => (
-        <div key={i} style={{ marginBottom: 16, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--line)' }}>
+      {plots.map(([name, fig]) => (
+        <div key={name} style={{ marginBottom: 16, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--line)' }}>
+          {name && <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', padding: '8px 12px 0', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase' }}>{name}</div>}
           <Plot
             data={fig.data}
             layout={{
               paper_bgcolor: 'transparent',
               plot_bgcolor:  'transparent',
               font: { family: 'Barlow, sans-serif', size: 11, color: 'var(--text)' },
-              margin: { t: 32, r: 16, b: 40, l: 48 },
+              margin: { t: 24, r: 16, b: 40, l: 48 },
               ...fig.layout,
             }}
             config={{ displayModeBar: false, responsive: true }}
@@ -898,33 +895,38 @@ function SimPlots({ sessionId }: { sessionId: string }) {
           />
         </div>
       ))}
-
-      {plots.length === 0 && !board && (
-        <div style={{ fontSize: 12, color: 'var(--text4)', padding: '8px 0' }}>No plots returned — ask Viktor to check the output format.</div>
-      )}
     </div>
   );
 }
 
 function SimDataUpload({ userName }: { userName?: string }) {
-  const [file, setFile]           = useState<File | null>(null);
-  const [status, setStatus]       = useState<'idle' | 'uploading' | 'done' | 'error'>('idle');
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [file, setFile]       = useState<File | null>(null);
+  const [status, setStatus]   = useState<'idle' | 'uploading' | 'done' | 'error'>('idle');
+  const [sessId, setSessId]   = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const upload = useCallback(async (f: File) => {
     setFile(f);
     setStatus('uploading');
     try {
-      const form = new FormData();
-      form.append('file', f);
-      if (userName) form.append('user', userName);
-      form.append('session_date', new Date().toISOString().slice(0, 10));
+      // Encode file to base64 — API expects JSON { user, file: base64 }
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(f);
+      });
 
-      const res  = await fetch('/api/sim-session', { method: 'POST', body: form });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Upload failed');
-      setSessionId(data.id ?? null);
+      // Use timestamp as session ID (integer, unique per upload)
+      const id = Math.floor(Date.now() / 1000);
+
+      const res = await fetch(`${VIKTOR_BASE}/sim_session/${id}`, {
+        method:  'POST',
+        headers: VIKTOR_HEADERS,
+        body:    JSON.stringify({ user: userName ?? 'unknown', file: base64 }),
+      });
+      if (!res.ok) throw new Error(`Server responded ${res.status}`);
+      setSessId(id);
       setStatus('done');
     } catch {
       setStatus('error');
@@ -937,7 +939,7 @@ function SimDataUpload({ userName }: { userName?: string }) {
     if (f) upload(f);
   }
 
-  function reset() { setFile(null); setStatus('idle'); setSessionId(null); }
+  function reset() { setFile(null); setStatus('idle'); setSessId(null); }
 
   return (
     <div>
@@ -976,13 +978,13 @@ function SimDataUpload({ userName }: { userName?: string }) {
           <div style={{ padding: '12px 16px', background: 'var(--gg)', border: '1px solid var(--gb)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontSize: 13, color: 'var(--green)', fontWeight: 600 }}>✓ {file?.name}</div>
-              {sessionId && <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 2 }}>ID: {sessionId}</div>}
+              {sessId && <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 2 }}>Session #{sessId}</div>}
             </div>
             <button onClick={reset} style={{ fontSize: 11, color: 'var(--text4)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
               Upload another
             </button>
           </div>
-          {sessionId && <SimPlots sessionId={sessionId} />}
+          {sessId && <SimPlots sessId={sessId} />}
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BASE    = 'https://wriggly-tutu-groin.ngrok-free.dev';
+const BASE    = process.env.VIKTOR_API_URL ?? 'https://wriggly-tutu-groin.ngrok-free.dev';
 const HEADERS = { 'ngrok-skip-browser-warning': '1' };
 
 // POST /api/sim-session — upload a sim session file (multipart)
