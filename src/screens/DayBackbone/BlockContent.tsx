@@ -711,14 +711,28 @@ export function SimBriefOverview({ onOpenDoc, activeDoc }: { onOpenDoc: (doc: Si
   const [notesOpen, setNotesOpen] = useState(false);
   return (
     <div>
-      {/* Friday objective banner */}
+      {/* Session objectives */}
       <div style={{ background: 'color-mix(in srgb, var(--sim) 8%, var(--bg))', border: '1px solid var(--sb)', borderRadius: 8, padding: '12px 14px', marginBottom: 20 }}>
         <div style={{ fontSize: 10, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--sim)', marginBottom: 6 }}>
-          Fri 12 Jun — Today's Objectives
+          Fri 12 Jun · Session Objectives
         </div>
-        <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
-          Objectives being set by Rasmus — check here when session starts.
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Evaluate T2 timing & positioning</div>
+        <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, marginBottom: 10 }}>
+          Using courses 150° and 345° TWD — focus on M1 position and ability to get early gybe on northerly course.
         </div>
+        {[
+          'Best TTK / ratio for optimal final kill before trigger pull',
+          'Good T2 positioning — north/south, first/last in train',
+          'Bad T2 positioning — north/south, first/last in train',
+          'Compare to 2024 video — calibrate numbers if needed',
+        ].map((obs, i) => (
+          <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 5 }}>
+            <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--sg)', border: '1px solid var(--sb)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+              <span style={{ fontSize: 8, fontWeight: 800, color: 'var(--sim)', fontFamily: "'Barlow Condensed', sans-serif" }}>{i + 1}</span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>{obs}</div>
+          </div>
+        ))}
       </div>
 
       {/* Quick actions */}

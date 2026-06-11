@@ -119,17 +119,50 @@ function DocHeader({ doc }: { doc: SimDoc }) {
   );
 }
 
-// ── Shared objectives + quick actions ─────────────────────────
+// ── Objectives ────────────────────────────────────────────────
+
+const OBSERVATIONS = [
+  'What TTK / ratio was best for optimal final kill before trigger pull?',
+  'What positioning at T2 was good — north/south, first/last in train?',
+  'What positioning at T2 was bad — north/south, first/last in train?',
+  'Can we relate 2024 video observations to the sim, or do numbers need calibrating?',
+];
 
 function BriefObjectives({ compact = false }: { compact?: boolean }) {
   return (
-    <div style={{ padding: compact ? '12px 14px 10px' : '16px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
-      <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--sim)', marginBottom: 3 }}>
-        Fri 12 Jun — Objectives
+    <div style={{ padding: compact ? '12px 14px 12px' : '16px 16px 14px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
+      <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--sim)', marginBottom: 8 }}>
+        Fri 12 Jun · Session Objectives
       </div>
-      <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.5, marginBottom: 10 }}>
-        Being set by Rasmus — check here when session starts.
+
+      {/* Main objective */}
+      <div style={{ background: 'color-mix(in srgb, var(--sim) 8%, var(--bg))', border: '1px solid var(--sb)', borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
+        <div style={{ fontSize: compact ? 11 : 12, fontWeight: 700, color: 'var(--text)', lineHeight: 1.45, marginBottom: 4 }}>
+          Evaluate T2 timing & positioning
+        </div>
+        <div style={{ fontSize: compact ? 10 : 11, color: 'var(--text3)', lineHeight: 1.5 }}>
+          Using courses 150° and 345° TWD — focus on M1 position and ability to get early gybe on northerly course.
+        </div>
       </div>
+
+      {/* Observations */}
+      {!compact && (
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 6 }}>
+            What we're looking for
+          </div>
+          {OBSERVATIONS.map((obs, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 5 }}>
+              <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--sg)', border: '1px solid var(--sb)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+                <span style={{ fontSize: 8, fontWeight: 800, color: 'var(--sim)', fontFamily: "'Barlow Condensed', sans-serif" }}>{i + 1}</span>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text2)', lineHeight: 1.5 }}>{obs}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Quick actions */}
       <div style={{ display: 'flex', gap: 6 }}>
         <Link href="/capture" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px 0', background: 'var(--green)', color: '#fff', borderRadius: 7, textDecoration: 'none', fontWeight: 700, fontSize: 11 }}>
           <IconMic size={12} />Capture
