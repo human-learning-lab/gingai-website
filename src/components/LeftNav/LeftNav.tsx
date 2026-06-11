@@ -5,12 +5,16 @@ import { useRole } from '@/context/RoleContext';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { useState, useRef, useEffect } from 'react';
 import type { ScreenId } from '@/types';
-import { IconCalendar, IconMic, IconDebrief, IconTranscript, IconFolder, IconHelp, IconBell } from '@/components/Icons';
+import { IconCalendar, IconMic, IconSim, IconDebrief, IconTranscript, IconFolder, IconHelp, IconBell } from '@/components/Icons';
 import { useTutorial } from '@/context/TutorialContext';
 
-const NAV_ITEMS: { id: ScreenId; title: string; icon: React.ReactElement }[] = [
-  { id: 'backbone',    title: 'Schedule',    icon: <IconCalendar /> },
-  { id: 'capture',     title: 'Capture',     icon: <IconMic /> },
+const PRIMARY_ITEMS: { id: ScreenId; title: string; icon: React.ReactElement }[] = [
+  { id: 'backbone', title: 'Race',    icon: <IconCalendar /> },
+  { id: 'sim',      title: 'Sim',     icon: <IconSim /> },
+  { id: 'capture',  title: 'Capture', icon: <IconMic /> },
+];
+
+const MORE_ITEMS: { id: ScreenId; title: string; icon: React.ReactElement }[] = [
   { id: 'debrief',     title: 'Debrief',     icon: <IconDebrief /> },
   { id: 'transcripts', title: 'Transcripts', icon: <IconTranscript /> },
   { id: 'library',     title: 'Library',     icon: <IconFolder /> },
@@ -46,13 +50,32 @@ export default function LeftNav() {
         <img src="/images/logo/team_logo.png" alt="Team logo" />
       </div>
 
-      {NAV_ITEMS.map(item => {
+      {PRIMARY_ITEMS.map(item => {
         const accessible = canAccess(item.id);
         return (
           <div
             key={item.id}
             data-tutorial-id={item.id}
             className={`ii${activeScreen === item.id ? ' on' : ''}${!accessible ? ' disabled' : ''}`}
+            onClick={() => accessible && router.push('/' + item.id)}
+          >
+            {item.icon}
+            {item.title}
+          </div>
+        );
+      })}
+
+      {/* Divider before secondary items */}
+      <div style={{ height: 1, background: 'var(--line)', margin: '8px 10px' }} />
+
+      {MORE_ITEMS.map(item => {
+        const accessible = canAccess(item.id);
+        return (
+          <div
+            key={item.id}
+            data-tutorial-id={item.id}
+            className={`ii${activeScreen === item.id ? ' on' : ''}${!accessible ? ' disabled' : ''}`}
+            style={{ opacity: accessible ? 0.7 : 0.35, fontSize: 12 }}
             onClick={() => accessible && router.push('/' + item.id)}
           >
             {item.icon}

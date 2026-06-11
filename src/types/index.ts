@@ -1,5 +1,5 @@
 export type RoleId = string;
-export type ScreenId = 'backbone' | 'capture' | 'debrief' | 'transcripts' | 'library' | 'alarms';
+export type ScreenId = 'backbone' | 'sim' | 'capture' | 'debrief' | 'transcripts' | 'library' | 'alarms';
 
 export type RoleView = 'sailor' | 'coach' | 'analyst' | 'developer';
 
