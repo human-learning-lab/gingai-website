@@ -162,7 +162,7 @@ function PhaseBrief() {
   return (
     <>
       {/* ── Desktop: always-split layout ── */}
-      <div className="desk-only" style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+      <div className="desk-only" style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
         {/* Left: objectives + file browser */}
         <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--line)', overflow: 'hidden' }}>
           <BriefObjectives compact />
@@ -180,7 +180,7 @@ function PhaseBrief() {
       </div>
 
       {/* ── Mobile: list → full-screen doc ── */}
-      <div className="mob-only" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      <div className="mob-only" style={{ flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
         {mobileDocOpen ? (
           /* Full-screen doc view */
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
