@@ -151,19 +151,19 @@ function PhaseBrief() {
   return (
     <>
       {/* ── Desktop: always-split layout ── */}
-      <div className="desk-only" style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+      <div className="desk-only" style={{ display: 'flex', flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' }}>
         {/* Left: objectives + file browser */}
-        <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--line)', overflow: 'hidden' }}>
+        <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--line)', overflow: 'hidden', height: '100%' }}>
           <BriefObjectives compact />
           <div style={{ flex: 1, overflowY: 'auto', padding: '10px 6px' }}>
             <FileBrowser selected={selected} onSelect={setSelected} />
           </div>
         </div>
         {/* Right: doc content */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, height: '100%' }}>
           <DocHeader doc={selected} />
           {selected.type === 'video' && selected.embedSrc ? (
-            <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
               <iframe src={selected.embedSrc} allow="autoplay" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }} title={selected.title} />
             </div>
           ) : (
