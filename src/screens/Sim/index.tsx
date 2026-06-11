@@ -223,6 +223,7 @@ function PhaseBrief() {
                 ) : <div style={{ flex: 1 }} />}
               </div>
             </div>
+            )}
           </div>
         ) : (
           /* Doc list */
