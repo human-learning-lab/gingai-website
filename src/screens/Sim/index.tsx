@@ -16,8 +16,9 @@ type PhaseId = typeof PHASES[number]['id'];
 
 // Group docs by date for folder structure
 const DOC_GROUPS = [
-  { date: 'Mon 8 Jun', docs: SIM_DOCS.filter(d => d.date === 'Mon 8 Jun') },
-  { date: 'Tue 9 Jun', docs: SIM_DOCS.filter(d => d.date === 'Tue 9 Jun') },
+  { date: 'Mon 8 Jun',  docs: SIM_DOCS.filter(d => d.date === 'Mon 8 Jun')  },
+  { date: 'Tue 9 Jun',  docs: SIM_DOCS.filter(d => d.date === 'Tue 9 Jun')  },
+  { date: 'Fri 12 Jun', docs: SIM_DOCS.filter(d => d.date === 'Fri 12 Jun') },
 ];
 
 // ── File browser ──────────────────────────────────────────────
@@ -54,7 +55,11 @@ function FileBrowser({ selected, onSelect }: { selected: SimDoc; onSelect: (d: S
                 }}
               >
                 {/* File icon */}
-                {isGdoc ? (
+                {doc.type === 'video' ? (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--sim)' : '#e8574a'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                  </svg>
+                ) : isGdoc ? (
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4285f4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14 2 14 8 20 8"/>
@@ -76,6 +81,9 @@ function FileBrowser({ selected, onSelect }: { selected: SimDoc; onSelect: (d: S
                 </span>
                 {isGdoc && (
                   <span style={{ fontSize: 8, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#4285f4', flexShrink: 0 }}>LIVE</span>
+                )}
+                {doc.type === 'video' && (
+                  <span style={{ fontSize: 8, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#e8574a', flexShrink: 0 }}>MP4</span>
                 )}
               </button>
             );
@@ -106,7 +114,7 @@ function DocHeader({ doc }: { doc: SimDoc }) {
     <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.title}</div>
-        <div style={{ fontSize: 10, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.06em', marginTop: 1 }}>{doc.date} · {doc.type === 'pdf' ? 'PDF' : 'Google Doc'}</div>
+        <div style={{ fontSize: 10, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.06em', marginTop: 1 }}>{doc.date} · {{ pdf: 'PDF', gdoc: 'Google Doc', video: 'Video' }[doc.type]}</div>
       </div>
       {doc.externalHref && (
         <a href={doc.externalHref} target="_blank" rel="noopener noreferrer"
@@ -160,16 +168,6 @@ function BriefObjectives({ compact = false }: { compact?: boolean }) {
         ))}
       </div>
 
-      {/* Quick actions */}
-      <div style={{ display: 'flex', gap: 6 }}>
-        <Link href="/capture" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px 0', background: 'var(--green)', color: '#fff', borderRadius: 7, textDecoration: 'none', fontWeight: 700, fontSize: 11 }}>
-          <IconMic size={12} />Capture
-        </Link>
-        <Link href="/alarms" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px 0', background: 'var(--bg3)', color: 'var(--text2)', borderRadius: 7, textDecoration: 'none', fontWeight: 600, fontSize: 11, border: '1px solid var(--line)' }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          Alarms
-        </Link>
-      </div>
     </div>
   );
 }
@@ -204,8 +202,12 @@ function PhaseBrief() {
         {/* Right: doc content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
           <DocHeader doc={selected} />
-          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px 40px' }}>
-            {DOC_CONTENT[selected.title]}
+          <div style={{ flex: 1, overflow: selected.type === 'video' ? 'hidden' : 'auto', padding: selected.type === 'video' ? 0 : '20px 28px 40px' }}>
+            {selected.type === 'video' && selected.embedSrc ? (
+              <iframe src={selected.embedSrc} allow="autoplay" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title={selected.title} />
+            ) : (
+              DOC_CONTENT[selected.title]
+            )}
           </div>
         </div>
       </div>
@@ -230,8 +232,10 @@ function PhaseBrief() {
                 </a>
               )}
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 0' }}>
-              {DOC_CONTENT[selected.title]}
+            <div style={{ flex: 1, overflow: selected.type === 'video' ? 'hidden' : 'auto', padding: selected.type === 'video' ? 0 : '16px 20px 0' }}>
+              {selected.type === 'video' && selected.embedSrc ? (
+                <iframe src={selected.embedSrc} allow="autoplay" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title={selected.title} />
+              ) : DOC_CONTENT[selected.title]}
 
               {/* Prev / Next navigation */}
               <div style={{ display: 'flex', gap: 8, padding: '20px 0 40px', borderTop: '1px solid var(--line)', marginTop: 24 }}>
@@ -278,19 +282,10 @@ function PhaseBrief() {
 function PhaseInSim() {
   return (
     <div style={{ padding: '24px', maxWidth: 520 }}>
-      <div style={{ background: 'color-mix(in srgb, var(--sim) 8%, var(--bg))', border: '1px solid var(--sb)', borderRadius: 10, padding: '16px 18px', marginBottom: 20 }}>
+      <div style={{ background: 'color-mix(in srgb, var(--sim) 8%, var(--bg))', border: '1px solid var(--sb)', borderRadius: 10, padding: '16px 18px' }}>
         <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65 }}>
-          You're in the simulator. GingAI is here when you need it — capture thoughts between runs, or check your Alarms.
+          You're in the simulator. GingAI is here when you need it between runs.
         </div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <Link href="/capture" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 16px', background: 'var(--green)', color: '#fff', borderRadius: 10, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
-          <IconMic size={16} />Capture note
-        </Link>
-        <Link href="/alarms" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 16px', background: 'var(--bg3)', color: 'var(--text)', borderRadius: 10, textDecoration: 'none', fontWeight: 600, fontSize: 14, border: '1px solid var(--line)' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          Alarms
-        </Link>
       </div>
     </div>
   );

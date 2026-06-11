@@ -377,7 +377,8 @@ export type SimDoc = {
   title: string;
   subtitle: string;
   externalHref: string;
-  type: 'pdf' | 'gdoc';
+  type: 'pdf' | 'gdoc' | 'video';
+  embedSrc?: string;
 };
 
 export const SIM_DOCS: SimDoc[] = [
@@ -386,6 +387,7 @@ export const SIM_DOCS: SimDoc[] = [
   { date: 'Mon 8 Jun', title: 'Simulator Training Review',   subtitle: 'Research findings — brief/sim/debrief protocol',        externalHref: '/sim-docs/simulator-training-review.pdf',   type: 'pdf' },
   { date: 'Tue 9 Jun', title: "Martine's Weekly Reflection", subtitle: 'TTK observations · Onboarding week findings',           externalHref: '/sim-docs/martine-weekly-reflection.pdf',   type: 'pdf' },
   { date: 'Tue 9 Jun', title: 'Observations → Hypotheses',  subtitle: 'Live working doc — add your observations here',         externalHref: 'https://docs.google.com/document/d/1EMHci696tcldCJGU5qY_JCGvnUKAit8FE2mT4LESIbc/edit', type: 'gdoc' },
+  { date: 'Fri 12 Jun', title: '2024 Reference Video',       subtitle: 'Race replay — T2 positioning reference',               externalHref: 'https://drive.google.com/file/d/11LxvUdhFeCmaks08ouYxwRBrMm3Pf5Ks/view', embedSrc: 'https://drive.google.com/file/d/11LxvUdhFeCmaks08ouYxwRBrMm3Pf5Ks/preview', type: 'video' },
 ];
 
 const TUESDAY_NOTES = `Capture Goodie — needed to go 70s at T1 to get close to back of the box. From back of box gaining 3 TTK. TTK seemed good from slower speeds closer to the line. 1.4 Ratio seemed a good T2.
