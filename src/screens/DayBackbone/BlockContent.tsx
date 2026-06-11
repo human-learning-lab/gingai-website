@@ -706,7 +706,7 @@ function DocCard({ doc, onOpen }: { doc: SimDoc; onOpen: () => void }) {
   );
 }
 
-function BlockSimBrief() {
+export function BlockSimBrief() {
   const [openDoc, setOpenDoc]     = useState<SimDoc | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
 
@@ -991,7 +991,7 @@ function SimDataUpload({ userName }: { userName?: string }) {
   );
 }
 
-function BlockSimDebrief() {
+export function BlockSimDebrief() {
   return (
     <>
       <BlockHeader

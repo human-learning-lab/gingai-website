@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import DayBackbone from '@/screens/DayBackbone';
+import Sim from '@/screens/Sim';
 
 export const metadata: Metadata = {
   title: 'Sim',
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function SimPage() {
-  return <DayBackbone forceSim />;
+  return <Sim />;
 }

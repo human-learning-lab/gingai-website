@@ -239,7 +239,7 @@ function RegatNav({ activeRegat, setActiveRegat, activeDay, setActiveDay }: {
 			return (
 				<button
 				key={d}
-				className={`regat-day-tab${!simMode && activeDay === i ? ' on' : ''}${isRace ? ' race-day' : ''}`}
+				className={`regat-day-tab${activeDay === i ? ' on' : ''}${isRace ? ' race-day' : ''}`}
 				onClick={() => setActiveDay(i)}
 				>
 				{isRace && <span className="rd-dot" />}
@@ -491,19 +491,11 @@ function blockContentForPanel(panel: string, selectedId: string, blocks?: import
 	return <BlockContent panel={panel} selectedId={selectedId} blocks={blocks} />;
 }
 
-function getDefaultSimMode(): boolean {
-	const defaultRegat = getDefaultRegat();
-	if (defaultRegat !== 'halifax') return false;
-	// Auto-enable sim mode when Halifax is "next up" but hasn't started yet
-	const halifaxStart = new Date('2026-06-20T00:00:00');
-	return new Date() < halifaxStart;
-}
-
-export default function DayBackbone({ forceSim = false }: { forceSim?: boolean }) {
+export default function DayBackbone() {
 	const [activeRegat, setActiveRegat] = useState(getDefaultRegat);
 	const [activeDay, setActiveDay]     = useState(0);
 	const [isLiveMode, setIsLiveMode]   = useState(false);
-	const [simMode, setSimMode]         = useState(() => forceSim || getDefaultSimMode());
+	const [simMode]                     = useState(false);
 	const activeVenue = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[5];
 
 	const venueTimezone = activeVenue.timezone;
