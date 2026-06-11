@@ -174,10 +174,9 @@ function DemoBadge() {
 }
 
 
-function RegatNav({ activeRegat, setActiveRegat, activeDay, setActiveDay, simMode, setSimMode }: {
+function RegatNav({ activeRegat, setActiveRegat, activeDay, setActiveDay }: {
 	activeRegat: string; setActiveRegat: (id: string) => void;
 	activeDay: number;   setActiveDay:   (i: number)  => void;
-	simMode: boolean;    setSimMode:     (v: boolean) => void;
 }) {
 	const tier1Ref = useRef<HTMLDivElement>(null);
 	const regat = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[0];
@@ -212,7 +211,7 @@ function RegatNav({ activeRegat, setActiveRegat, activeDay, setActiveDay, simMod
 				<button
 				key={r.id}
 				className={`regat-tab${activeRegat === r.id ? ' on' : ''}${res === 'Past' ? ' past' : ''}`}
-				onClick={() => { setActiveRegat(r.id); setActiveDay(0); setSimMode(false); }}
+				onClick={() => { setActiveRegat(r.id); setActiveDay(0); }}
 				>
 				<div className="regat-tab-city">{r.short}</div>
 				<div className="regat-tab-result">{r.dates}</div>
@@ -235,29 +234,13 @@ function RegatNav({ activeRegat, setActiveRegat, activeDay, setActiveDay, simMod
 		))}
 		</div>
 		<div className="regat-tier2">
-		{activeRegat === 'halifax' && (
-			<button
-				className={`regat-day-tab${simMode ? ' on' : ''}`}
-				style={simMode
-					? { background: 'var(--sim)', borderColor: 'var(--sim)', color: '#fff' }
-					: { color: 'var(--text4)', borderColor: 'var(--sb)' }
-				}
-				onClick={() => setSimMode(true)}
-			>
-				<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 3 }}>
-					<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-					<path d="M7 8l3 3-3 3M13 14h4"/>
-				</svg>
-				Sim
-			</button>
-		)}
 		{regat.days.map((d, i) => {
 			const isRace = regat.raceDayIndices?.includes(i);
 			return (
 				<button
 				key={d}
-				className={`regat-day-tab${!simMode && activeDay === i ? ' on' : ''}${isRace ? ' race-day' : ''}`}
-				onClick={() => { setSimMode(false); setActiveDay(i); }}
+				className={`regat-day-tab${activeDay === i ? ' on' : ''}${isRace ? ' race-day' : ''}`}
+				onClick={() => setActiveDay(i)}
 				>
 				{isRace && <span className="rd-dot" />}
 				{d}
@@ -508,19 +491,11 @@ function blockContentForPanel(panel: string, selectedId: string, blocks?: import
 	return <BlockContent panel={panel} selectedId={selectedId} blocks={blocks} />;
 }
 
-function getDefaultSimMode(): boolean {
-	const defaultRegat = getDefaultRegat();
-	if (defaultRegat !== 'halifax') return false;
-	// Auto-enable sim mode when Halifax is "next up" but hasn't started yet
-	const halifaxStart = new Date('2026-06-20T00:00:00');
-	return new Date() < halifaxStart;
-}
-
 export default function DayBackbone() {
 	const [activeRegat, setActiveRegat] = useState(getDefaultRegat);
 	const [activeDay, setActiveDay]     = useState(0);
 	const [isLiveMode, setIsLiveMode]   = useState(false);
-	const [simMode, setSimMode]         = useState(getDefaultSimMode);
+	const [simMode]                     = useState(false);
 	const activeVenue = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[5];
 
 	const venueTimezone = activeVenue.timezone;
@@ -613,7 +588,7 @@ export default function DayBackbone() {
 
 	{/* Mobile layout */}
 	<div className="mob-only mob-backbone">
-	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} simMode={simMode} setSimMode={setSimMode} />
+	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
 	<div style={{ padding: '0 0 4px' }}>
 		<AskMeBar />
 	</div>
@@ -650,7 +625,7 @@ export default function DayBackbone() {
 		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} onLive={isRaceDay && !simMode ? handleEnterLive : undefined} />
 	)}
 	<div className="main">
-	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} simMode={simMode} setSimMode={setSimMode} />
+	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
 		<div className="block-view on">
 		{isAgendaDay && agendaItems ? (
 			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1} />

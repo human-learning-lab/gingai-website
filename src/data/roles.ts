@@ -1,15 +1,15 @@
 import type { Role } from '@/types';
 
-const ALL_SCREENS = ['backbone', 'capture', 'debrief', 'transcripts', 'library', 'alarms'] as const;
+const ALL_SCREENS = ['backbone', 'sim', 'capture', 'debrief', 'transcripts', 'library', 'alarms'] as const;
 
 export const ROLES: Role[] = [
   // ── Sailing Crew ──────────────────────────────────────────────
-  { id: 'martine', name: 'Martine', initial: 'MG', label: 'Helm / Driver',     view: 'sailor', avatar: '/images/team/martine.png',  screens: ['backbone', 'capture', 'transcripts', 'library', 'alarms'] },
-  { id: 'rasmus',  name: 'Rasmus',  initial: 'RK', label: 'Flight Controller', view: 'sailor', avatar: '/images/team/rasmus.png',   screens: ['backbone', 'capture', 'transcripts', 'library', 'alarms'] },
-  { id: 'pietro',  name: 'Pietro',  initial: 'PS', label: 'Wing Trimmer',      view: 'sailor', avatar: '/images/team/pietro.png',   screens: ['backbone', 'capture', 'transcripts', 'library', 'alarms'] },
-  { id: 'paul-g',  name: 'Paul G.', initial: 'PG', label: 'Strategist',        view: 'sailor', avatar: '/images/team/goodison.png', screens: ['backbone', 'capture', 'transcripts', 'library', 'alarms'] },
-  { id: 'mateus',  name: 'Mateus',  initial: 'MI', label: 'Grinder G1',        view: 'sailor', avatar: '/images/team/mateus.png',   screens: ['backbone', 'capture', 'transcripts', 'library', 'alarms'] },
-  { id: 'marco',   name: 'Marco',   initial: 'MC', label: 'Grinder G2',        view: 'sailor', avatar: '/images/team/marco.png',    screens: ['backbone', 'capture', 'transcripts', 'library', 'alarms'] },
+  { id: 'martine', name: 'Martine', initial: 'MG', label: 'Helm / Driver',     view: 'sailor', avatar: '/images/team/martine.png',  screens: ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms'] },
+  { id: 'rasmus',  name: 'Rasmus',  initial: 'RK', label: 'Flight Controller', view: 'sailor', avatar: '/images/team/rasmus.png',   screens: ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms'] },
+  { id: 'pietro',  name: 'Pietro',  initial: 'PS', label: 'Wing Trimmer',      view: 'sailor', avatar: '/images/team/pietro.png',   screens: ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms'] },
+  { id: 'paul-g',  name: 'Paul G.', initial: 'PG', label: 'Strategist',        view: 'sailor', avatar: '/images/team/goodison.png', screens: ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms'] },
+  { id: 'mateus',  name: 'Mateus',  initial: 'MI', label: 'Grinder G1',        view: 'sailor', avatar: '/images/team/mateus.png',   screens: ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms'] },
+  { id: 'marco',   name: 'Marco',   initial: 'MC', label: 'Grinder G2',        view: 'sailor', avatar: '/images/team/marco.png',    screens: ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms'] },
   // ── Coaching & Analysis ───────────────────────────────────────
   { id: 'paul-b',  name: 'Paul B.', initial: 'PB', label: 'Senior Coach',      view: 'coach',   screens: [...ALL_SCREENS] },
   { id: 'richard', name: 'Richard', initial: 'RM', label: 'Coach / Booth',     view: 'coach',   screens: [...ALL_SCREENS] },
