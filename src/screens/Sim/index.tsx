@@ -162,13 +162,13 @@ function PhaseBrief() {
         {/* Right: doc content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
           <DocHeader doc={selected} />
-          <div style={{ flex: 1, overflow: selected.type === 'video' ? 'hidden' : 'auto', padding: selected.type === 'video' ? 0 : '20px 28px 40px' }}>
-            {selected.type === 'video' && selected.embedSrc ? (
-              <iframe src={selected.embedSrc} allow="autoplay" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title={selected.title} />
-            ) : (
-              DOC_CONTENT[selected.title]
-            )}
-          </div>
+          {selected.type === 'video' && selected.embedSrc ? (
+            <iframe src={selected.embedSrc} allow="autoplay" style={{ flex: 1, width: '100%', border: 'none', display: 'block', minHeight: 0 }} title={selected.title} />
+          ) : (
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px 40px' }}>
+              {DOC_CONTENT[selected.title]}
+            </div>
+          )}
         </div>
       </div>
 
@@ -192,10 +192,11 @@ function PhaseBrief() {
                 </a>
               )}
             </div>
-            <div style={{ flex: 1, overflow: selected.type === 'video' ? 'hidden' : 'auto', padding: selected.type === 'video' ? 0 : '16px 20px 0' }}>
-              {selected.type === 'video' && selected.embedSrc ? (
-                <iframe src={selected.embedSrc} allow="autoplay" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} title={selected.title} />
-              ) : DOC_CONTENT[selected.title]}
+            {selected.type === 'video' && selected.embedSrc ? (
+              <iframe src={selected.embedSrc} allow="autoplay" style={{ flex: 1, width: '100%', border: 'none', display: 'block', minHeight: 0 }} title={selected.title} />
+            ) : (
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 0' }}>
+              {DOC_CONTENT[selected.title]}
 
               {/* Prev / Next navigation */}
               <div style={{ display: 'flex', gap: 8, padding: '20px 0 40px', borderTop: '1px solid var(--line)', marginTop: 24 }}>
