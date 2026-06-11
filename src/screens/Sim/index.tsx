@@ -163,7 +163,9 @@ function PhaseBrief() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
           <DocHeader doc={selected} />
           {selected.type === 'video' && selected.embedSrc ? (
-            <iframe src={selected.embedSrc} allow="autoplay" style={{ flex: 1, width: '100%', border: 'none', display: 'block', minHeight: 0 }} title={selected.title} />
+            <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+              <iframe src={selected.embedSrc} allow="autoplay" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }} title={selected.title} />
+            </div>
           ) : (
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px 40px' }}>
               {DOC_CONTENT[selected.title]}
@@ -193,7 +195,9 @@ function PhaseBrief() {
               )}
             </div>
             {selected.type === 'video' && selected.embedSrc ? (
-              <iframe src={selected.embedSrc} allow="autoplay" style={{ flex: 1, width: '100%', border: 'none', display: 'block', minHeight: 0 }} title={selected.title} />
+              <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+                <iframe src={selected.embedSrc} allow="autoplay" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }} title={selected.title} />
+              </div>
             ) : (
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 0' }}>
               {DOC_CONTENT[selected.title]}
