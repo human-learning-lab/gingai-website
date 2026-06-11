@@ -14,95 +14,55 @@ const PHASES = [
 ] as const;
 type PhaseId = typeof PHASES[number]['id'];
 
-// Group docs by date for folder structure
-const DOC_GROUPS = [
-  { date: 'Mon 8 Jun',  docs: SIM_DOCS.filter(d => d.date === 'Mon 8 Jun')  },
-  { date: 'Tue 9 Jun',  docs: SIM_DOCS.filter(d => d.date === 'Tue 9 Jun')  },
-  { date: 'Fri 12 Jun', docs: SIM_DOCS.filter(d => d.date === 'Fri 12 Jun') },
-];
 
 // ── File browser ──────────────────────────────────────────────
 
 function FileBrowser({ selected, onSelect }: { selected: SimDoc; onSelect: (d: SimDoc) => void }) {
   return (
     <div>
-      {DOC_GROUPS.map(group => (
-        <div key={group.date} style={{ marginBottom: 4 }}>
-          {/* Folder row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', marginBottom: 1 }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--text4)" stroke="none">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              {group.date}
-            </span>
-          </div>
-
-          {/* Files */}
-          {group.docs.map((doc, i) => {
-            const active = selected.title === doc.title;
-            const isGdoc = doc.type === 'gdoc';
-            return (
-              <button
-                key={i}
-                onClick={() => onSelect(doc)}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '6px 8px 6px 22px',
-                  background: active ? 'color-mix(in srgb, var(--sim) 12%, var(--bg))' : 'transparent',
-                  border: 'none', borderRadius: 6, cursor: 'pointer',
-                  fontFamily: 'inherit', textAlign: 'left', marginBottom: 1,
-                }}
-              >
-                {/* File icon */}
-                {doc.type === 'video' ? (
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--sim)' : '#e8574a'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                    <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-                  </svg>
-                ) : isGdoc ? (
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4285f4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-                  </svg>
-                ) : (
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--sim)' : 'var(--text4)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                  </svg>
-                )}
-                <span style={{
-                  fontSize: 12, lineHeight: 1.3, flex: 1, minWidth: 0,
-                  fontWeight: active ? 600 : 400,
-                  color: active ? 'var(--text)' : 'var(--text2)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
-                  {doc.title}
-                </span>
-                {isGdoc && (
-                  <span style={{ fontSize: 8, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#4285f4', flexShrink: 0 }}>LIVE</span>
-                )}
-                {doc.type === 'video' && (
-                  <span style={{ fontSize: 8, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#e8574a', flexShrink: 0 }}>MP4</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      ))}
-
-      {/* Friday objectives — pending */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px 6px 22px', opacity: 0.45 }}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text4)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
-        </svg>
-        <div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.2 }}>Friday Objectives</div>
-          <div style={{ fontSize: 10, color: 'var(--text4)', marginTop: 1 }}>Rasmus posts before 08:30</div>
-        </div>
+      <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text4)', padding: '4px 8px 6px' }}>
+        Session Documents
       </div>
+      {SIM_DOCS.map((doc, i) => {
+        const active = selected.title === doc.title;
+        const isGdoc = doc.type === 'gdoc';
+        const isVideo = doc.type === 'video';
+        return (
+          <button
+            key={i}
+            onClick={() => onSelect(doc)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+              padding: '7px 8px',
+              background: active ? 'color-mix(in srgb, var(--sim) 12%, var(--bg))' : 'transparent',
+              border: 'none', borderRadius: 6, cursor: 'pointer',
+              fontFamily: 'inherit', textAlign: 'left', marginBottom: 1,
+            }}
+          >
+            {isVideo ? (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--sim)' : '#e8574a'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              </svg>
+            ) : isGdoc ? (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4285f4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            ) : (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--sim)' : 'var(--text4)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+            )}
+            <span style={{ fontSize: 12, lineHeight: 1.3, flex: 1, minWidth: 0, fontWeight: active ? 600 : 400, color: active ? 'var(--text)' : 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {doc.title}
+            </span>
+            {isGdoc  && <span style={{ fontSize: 8, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#4285f4', flexShrink: 0 }}>LIVE</span>}
+            {isVideo && <span style={{ fontSize: 8, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#e8574a', flexShrink: 0 }}>VIDEO</span>}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -114,7 +74,7 @@ function DocHeader({ doc }: { doc: SimDoc }) {
     <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.title}</div>
-        <div style={{ fontSize: 10, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.06em', marginTop: 1 }}>{doc.date} · {{ pdf: 'PDF', gdoc: 'Google Doc', video: 'Video' }[doc.type]}</div>
+        <div style={{ fontSize: 10, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.06em', marginTop: 1 }}>{doc.subtitle}</div>
       </div>
       {doc.externalHref && (
         <a href={doc.externalHref} target="_blank" rel="noopener noreferrer"
