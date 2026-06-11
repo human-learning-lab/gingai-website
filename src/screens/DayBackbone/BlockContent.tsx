@@ -384,6 +384,7 @@ export type SimDoc = {
 export const SIM_DOCS: SimDoc[] = [
   { date: 'Mon 8 Jun', title: 'Team Meeting Agenda',         subtitle: 'Sim programme · Objectives · Accountability',          externalHref: '/sim-docs/sim-meeting-mon-8-june.pdf',      type: 'pdf' },
   { date: 'Mon 8 Jun', title: 'Week Objectives & Programme', subtitle: 'The six-step start process · Weekly cycle',             externalHref: '/sim-docs/week-objectives.pdf',             type: 'pdf' },
+  { date: 'Mon 8 Jun', title: 'Objectives Meeting Recording', subtitle: 'Recording — Mon 8 Jun 08:57',                          externalHref: 'https://drive.google.com/file/d/1QGXMBKDsRJIBTsWlK1Ct5GQ6PzW1lpNf/view', embedSrc: 'https://drive.google.com/file/d/1QGXMBKDsRJIBTsWlK1Ct5GQ6PzW1lpNf/preview', type: 'video' },
   { date: 'Mon 8 Jun', title: 'Simulator Training Review',   subtitle: 'Research findings — brief/sim/debrief protocol',        externalHref: '/sim-docs/simulator-training-review.pdf',   type: 'pdf' },
   { date: 'Tue 9 Jun', title: "Martine's Weekly Reflection", subtitle: 'TTK observations · Onboarding week findings',           externalHref: '/sim-docs/martine-weekly-reflection.pdf',   type: 'pdf' },
   { date: 'Tue 9 Jun', title: 'Observations → Hypotheses',  subtitle: 'Live working doc — add your observations here',         externalHref: 'https://docs.google.com/document/d/1EMHci696tcldCJGU5qY_JCGvnUKAit8FE2mT4LESIbc/edit', type: 'gdoc' },
