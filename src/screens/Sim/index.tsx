@@ -149,6 +149,11 @@ function PhaseBrief() {
   const [selected, setSelected] = useState<SimDoc>(SIM_DOCS[0]);
   const [mobileDocOpen, setMobileDocOpen] = useState(false);
 
+  const allDocs = SIM_DOCS;
+  const currentIdx = allDocs.findIndex(d => d.title === selected.title);
+  const prevDoc = currentIdx > 0 ? allDocs[currentIdx - 1] : null;
+  const nextDoc = currentIdx < allDocs.length - 1 ? allDocs[currentIdx + 1] : null;
+
   function selectDoc(doc: SimDoc) {
     setSelected(doc);
     setMobileDocOpen(true);
@@ -194,8 +199,33 @@ function PhaseBrief() {
                 </a>
               )}
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 40px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 0' }}>
               {DOC_CONTENT[selected.title]}
+
+              {/* Prev / Next navigation */}
+              <div style={{ display: 'flex', gap: 8, padding: '20px 0 40px', borderTop: '1px solid var(--line)', marginTop: 24 }}>
+                {prevDoc ? (
+                  <button onClick={() => setSelected(prevDoc)}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: 'var(--bg3)', border: '1px solid var(--line)', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 9, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 2 }}>Previous</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prevDoc.title}</div>
+                    </div>
+                  </button>
+                ) : <div style={{ flex: 1 }} />}
+
+                {nextDoc ? (
+                  <button onClick={() => setSelected(nextDoc)}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: 'var(--bg3)', border: '1px solid var(--line)', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'right', justifyContent: 'flex-end' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 9, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 2 }}>Next</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nextDoc.title}</div>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                  </button>
+                ) : <div style={{ flex: 1 }} />}
+              </div>
             </div>
           </div>
         ) : (
