@@ -1,43 +1,77 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { BlockSimDebrief, SIM_DOCS, DOC_CONTENT } from '@/screens/DayBackbone/BlockContent';
 import type { SimDoc } from '@/screens/DayBackbone/BlockContent';
-import { IconMic } from '@/components/Icons';
 
-const PHASES = [
-  { id: 'brief',   label: 'Brief',   time: '08:30', color: 'var(--sim)' },
-  { id: 'sim',     label: 'In Sim',  time: '09:00', color: 'var(--sim)' },
-  { id: 'capture', label: 'Capture', time: '14:30', color: 'var(--red)'  },
-  { id: 'debrief', label: 'Debrief', time: '15:00', color: 'var(--text3)' },
-] as const;
-type PhaseId = typeof PHASES[number]['id'];
+// ── Week config ────────────────────────────────────────────────
 
+const CURRENT_WEEK = 24;
+
+const WEEK_META: Record<number, { sublabel: string }> = {
+  23: { sublabel: 'Pre-Halifax' },
+  24: { sublabel: 'Onboarding' },
+};
+
+// ── Day config ─────────────────────────────────────────────────
+
+const DAYS = [
+  { id: 'mon'     as const, day: 'Mon', label: 'Objectives'   },
+  { id: 'tue'     as const, day: 'Tue', label: 'Practice'     },
+  { id: 'thu'     as const, day: 'Thu', label: 'Main Session' },
+  { id: 'debrief' as const, day: 'Fri', label: 'Debrief'      },
+];
+type DayId = 'mon' | 'tue' | 'thu' | 'debrief';
+
+const DOC_BY_DAY: Record<string, SimDoc[]> = {
+  mon:     SIM_DOCS.filter(d => d.date?.startsWith('Mon')),
+  tue:     SIM_DOCS.filter(d => d.date?.startsWith('Tue')),
+  thu:     SIM_DOCS.filter(d => d.date?.startsWith('Fri')), // Fri ref material shown as Thu pre-sim prep
+  debrief: [],
+};
+
+// ── Session observations (for Mon Objectives panel) ────────────
+
+const OBSERVATIONS = [
+  'What TTK / ratio was best for optimal final kill before trigger pull?',
+  'What positioning at T2 was good — north/south, first/last in train?',
+  'What positioning at T2 was bad — north/south, first/last in train?',
+  'Can we relate 2024 video observations to the sim, or do numbers need calibrating?',
+];
 
 // ── File browser ──────────────────────────────────────────────
 
-function FileBrowser({ selected, onSelect }: { selected: SimDoc; onSelect: (d: SimDoc) => void }) {
+function FileBrowser({
+  docs,
+  selected,
+  onSelect,
+}: {
+  docs: SimDoc[];
+  selected: SimDoc | null;
+  onSelect: (d: SimDoc) => void;
+}) {
+  if (docs.length === 0) {
+    return (
+      <div style={{ padding: '16px 12px', color: 'var(--text4)', fontSize: 12 }}>
+        No documents added yet.
+      </div>
+    );
+  }
   return (
     <div>
       <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text4)', padding: '4px 8px 6px' }}>
         Session Documents
       </div>
-      {SIM_DOCS.map((doc, i) => {
-        const active = selected.title === doc.title;
-        const isGdoc = doc.type === 'gdoc';
+      {docs.map((doc, i) => {
+        const active = selected?.title === doc.title;
+        const isGdoc  = doc.type === 'gdoc';
         const isVideo = doc.type === 'video';
         return (
           <button
             key={i}
             onClick={() => onSelect(doc)}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-              padding: '7px 8px',
-              background: active ? 'color-mix(in srgb, var(--sim) 12%, var(--bg))' : 'transparent',
-              border: 'none', borderRadius: 6, cursor: 'pointer',
-              fontFamily: 'inherit', textAlign: 'left', marginBottom: 1,
-            }}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', background: active ? 'color-mix(in srgb, var(--sim) 12%, var(--bg))' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', marginBottom: 1 }}
           >
             {isVideo ? (
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--sim)' : '#e8574a'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -67,7 +101,7 @@ function FileBrowser({ selected, onSelect }: { selected: SimDoc; onSelect: (d: S
   );
 }
 
-// ── Shared doc header ─────────────────────────────────────────
+// ── Doc header ────────────────────────────────────────────────
 
 function DocHeader({ doc }: { doc: SimDoc }) {
   return (
@@ -87,61 +121,79 @@ function DocHeader({ doc }: { doc: SimDoc }) {
   );
 }
 
-// ── Objectives ────────────────────────────────────────────────
+// ── Doc content ───────────────────────────────────────────────
 
-const OBSERVATIONS = [
-  'What TTK / ratio was best for optimal final kill before trigger pull?',
-  'What positioning at T2 was good — north/south, first/last in train?',
-  'What positioning at T2 was bad — north/south, first/last in train?',
-  'Can we relate 2024 video observations to the sim, or do numbers need calibrating?',
-];
-
-function BriefObjectives({ compact = false }: { compact?: boolean }) {
+function DocContent({ doc }: { doc: SimDoc }) {
+  if (doc.type === 'video' && doc.embedSrc) {
+    return (
+      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+        <iframe
+          src={doc.embedSrc}
+          allow="autoplay"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
+          title={doc.title}
+        />
+      </div>
+    );
+  }
   return (
-    <div style={{ padding: compact ? '12px 14px 12px' : '16px 16px 14px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
-      <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--sim)', marginBottom: 8 }}>
-        Fri 12 Jun · Session Objectives
-      </div>
-
-      {/* Main objective */}
-      <div style={{ background: 'color-mix(in srgb, var(--sim) 8%, var(--bg))', border: '1px solid var(--sb)', borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
-        <div style={{ fontSize: compact ? 11 : 12, fontWeight: 700, color: 'var(--text)', lineHeight: 1.45, marginBottom: 4 }}>
-          Evaluate T2 timing & positioning
-        </div>
-        <div style={{ fontSize: compact ? 10 : 11, color: 'var(--text3)', lineHeight: 1.5 }}>
-          Using courses 150° and 345° TWD — focus on M1 position and ability to get early gybe on northerly course.
-        </div>
-      </div>
-
-      {/* Observations */}
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 6 }}>
-          What we're looking for
-        </div>
-        {OBSERVATIONS.map((obs, i) => (
-          <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 5 }}>
-            <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--sg)', border: '1px solid var(--sb)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-              <span style={{ fontSize: 8, fontWeight: 800, color: 'var(--sim)', fontFamily: "'Barlow Condensed', sans-serif" }}>{i + 1}</span>
-            </div>
-            <div style={{ fontSize: compact ? 10 : 11, color: 'var(--text2)', lineHeight: 1.5 }}>{obs}</div>
-          </div>
-        ))}
-      </div>
-
+    <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px 40px' }}>
+      {DOC_CONTENT[doc.title]}
     </div>
   );
 }
 
-// ── Brief phase ───────────────────────────────────────────────
+// ── Left panel headers ─────────────────────────────────────────
 
-function PhaseBrief() {
-  const [selected, setSelected] = useState<SimDoc>(SIM_DOCS[0]);
+function MonObjectivesHeader() {
+  return (
+    <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
+      <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--sim)', marginBottom: 8 }}>
+        Fri 12 Jun · Session Objectives
+      </div>
+      <div style={{ background: 'color-mix(in srgb, var(--sim) 8%, var(--bg))', border: '1px solid var(--sb)', borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', lineHeight: 1.45, marginBottom: 4 }}>
+          Evaluate T2 timing &amp; positioning
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--text3)', lineHeight: 1.5 }}>
+          Using courses 150° and 345° TWD — focus on M1 position and early gybe on northerly course.
+        </div>
+      </div>
+      <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 6 }}>
+        What we're looking for
+      </div>
+      {OBSERVATIONS.map((obs, i) => (
+        <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 5 }}>
+          <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--sg)', border: '1px solid var(--sb)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+            <span style={{ fontSize: 8, fontWeight: 800, color: 'var(--sim)', fontFamily: "'Barlow Condensed', sans-serif" }}>{i + 1}</span>
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--text2)', lineHeight: 1.5 }}>{obs}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DayPanelHeader({ tag, desc }: { tag: string; desc: string }) {
+  return (
+    <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
+      <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--sim)', marginBottom: 6 }}>
+        {tag}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.55 }}>{desc}</div>
+    </div>
+  );
+}
+
+// ── Generic day panel (split desktop / list-to-doc mobile) ─────
+
+function DayPanel({ docs, leftHeader }: { docs: SimDoc[]; leftHeader: ReactNode }) {
+  const [selected, setSelected] = useState<SimDoc | null>(docs[0] ?? null);
   const [mobileDocOpen, setMobileDocOpen] = useState(false);
 
-  const allDocs = SIM_DOCS;
-  const currentIdx = allDocs.findIndex(d => d.title === selected.title);
-  const prevDoc = currentIdx > 0 ? allDocs[currentIdx - 1] : null;
-  const nextDoc = currentIdx < allDocs.length - 1 ? allDocs[currentIdx + 1] : null;
+  const currentIdx = selected ? docs.findIndex(d => d.title === selected.title) : -1;
+  const prevDoc = currentIdx > 0 ? docs[currentIdx - 1] : null;
+  const nextDoc = currentIdx < docs.length - 1 ? docs[currentIdx + 1] : null;
 
   function selectDoc(doc: SimDoc) {
     setSelected(doc);
@@ -149,35 +201,33 @@ function PhaseBrief() {
   }
 
   return (
-    <>
-      {/* ── Desktop: always-split layout ── */}
-      <div className="desk-only" style={{ display: 'flex', flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' }}>
-        {/* Left: objectives + file browser */}
-        <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--line)', overflow: 'hidden', height: '100%' }}>
-          <BriefObjectives compact />
+    <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+
+      {/* ── Desktop split (display:contents makes panels direct flex children) ── */}
+      <div className="desk-only">
+        {/* Left */}
+        <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--line)', overflow: 'hidden' }}>
+          {leftHeader}
           <div style={{ flex: 1, overflowY: 'auto', padding: '10px 6px' }}>
-            <FileBrowser selected={selected} onSelect={setSelected} />
+            <FileBrowser docs={docs} selected={selected} onSelect={setSelected} />
           </div>
         </div>
-        {/* Right: doc content */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, height: '100%' }}>
-          <DocHeader doc={selected} />
-          {selected.type === 'video' && selected.embedSrc ? (
-            <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
-              <iframe src={selected.embedSrc} allow="autoplay" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }} title={selected.title} />
-            </div>
-          ) : (
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px 40px' }}>
-              {DOC_CONTENT[selected.title]}
-            </div>
-          )}
-        </div>
+        {/* Right */}
+        {selected ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, minHeight: 0 }}>
+            <DocHeader doc={selected} />
+            <DocContent doc={selected} />
+          </div>
+        ) : (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ color: 'var(--text4)', fontSize: 13 }}>No documents for this session yet</span>
+          </div>
+        )}
       </div>
 
       {/* ── Mobile: list → full-screen doc ── */}
       <div className="mob-only" style={{ flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-        {mobileDocOpen ? (
-          /* Full-screen doc view */
+        {mobileDocOpen && selected ? (
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
               <button onClick={() => setMobileDocOpen(false)}
@@ -194,125 +244,160 @@ function PhaseBrief() {
                 </a>
               )}
             </div>
-            {selected.type === 'video' && selected.embedSrc ? (
-              <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-                <iframe src={selected.embedSrc} allow="autoplay" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }} title={selected.title} />
-              </div>
-            ) : (
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 0' }}>
-              {DOC_CONTENT[selected.title]}
-
-              {/* Prev / Next navigation */}
-              <div style={{ display: 'flex', gap: 8, padding: '20px 0 40px', borderTop: '1px solid var(--line)', marginTop: 24 }}>
+            <DocContent doc={selected} />
+            {selected.type !== 'video' && (prevDoc || nextDoc) && (
+              <div style={{ display: 'flex', gap: 8, padding: '12px 16px', borderTop: '1px solid var(--line)', flexShrink: 0 }}>
                 {prevDoc ? (
                   <button onClick={() => setSelected(prevDoc)}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: 'var(--bg3)', border: '1px solid var(--line)', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 9, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 2 }}>Previous</div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prevDoc.title}</div>
+                      <div style={{ fontSize: 9, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Previous</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prevDoc.title}</div>
                     </div>
                   </button>
                 ) : <div style={{ flex: 1 }} />}
-
                 {nextDoc ? (
                   <button onClick={() => setSelected(nextDoc)}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: 'var(--bg3)', border: '1px solid var(--line)', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'right', justifyContent: 'flex-end' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 9, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 2 }}>Next</div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nextDoc.title}</div>
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', justifyContent: 'flex-end' }}>
+                    <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+                      <div style={{ fontSize: 9, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Next</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nextDoc.title}</div>
                     </div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
                   </button>
                 ) : <div style={{ flex: 1 }} />}
               </div>
-            </div>
             )}
           </div>
         ) : (
-          /* Doc list */
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            <BriefObjectives />
+            {leftHeader}
             <div style={{ padding: '10px 10px' }}>
-              <FileBrowser selected={selected} onSelect={selectDoc} />
+              <FileBrowser docs={docs} selected={selected} onSelect={selectDoc} />
             </div>
           </div>
         )}
       </div>
-    </>
-  );
-}
-
-// ── Other phase panels ────────────────────────────────────────
-
-function PhaseInSim() {
-  return (
-    <div style={{ padding: '24px', maxWidth: 520 }}>
-      <div style={{ background: 'color-mix(in srgb, var(--sim) 8%, var(--bg))', border: '1px solid var(--sb)', borderRadius: 10, padding: '16px 18px' }}>
-        <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65 }}>
-          You're in the simulator. GingAI is here when you need it between runs.
-        </div>
-      </div>
     </div>
   );
 }
 
-function PhaseCapture() {
+// ── Week nav button ───────────────────────────────────────────
+
+function WeekNavBtn({ dir, onClick }: { dir: 'prev' | 'next'; onClick: () => void }) {
   return (
-    <div style={{ padding: '24px', maxWidth: 520 }}>
-      <div style={{ background: 'var(--bg3)', border: '1px solid var(--line)', borderRadius: 10, padding: '16px 18px', marginBottom: 20 }}>
-        <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65 }}>
-          Sessions done. Before the debrief, capture your key observations — what felt different, what worked, what surprised you.
-        </div>
-      </div>
-      <Link href="/capture" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '15px', background: 'var(--green)', color: '#fff', borderRadius: 10, textDecoration: 'none', fontWeight: 700, fontSize: 15, maxWidth: 300 }}>
-        <IconMic size={18} />Open Capture
-      </Link>
-    </div>
+    <button onClick={onClick}
+      style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)', flexShrink: 0 }}>
+      {dir === 'prev'
+        ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      }
+    </button>
   );
 }
 
 // ── Main ──────────────────────────────────────────────────────
 
 export default function Sim() {
-  const [phase, setPhase] = useState<PhaseId>('brief');
+  const [weekNum, setWeekNum] = useState(CURRENT_WEEK);
+  const [day, setDay] = useState<DayId>('mon');
+
+  const meta = WEEK_META[weekNum];
+  const isCurrentWeek = weekNum === CURRENT_WEEK;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden' }}>
 
-      {/* Header + phase tabs */}
-      <div style={{ padding: '18px 24px 0', flexShrink: 0, borderBottom: '1px solid var(--line)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--sim)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8l3 3-3 3M13 14h4"/>
-          </svg>
-          <span style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--sim)' }}>
-            Simulator · Fri 12 Jun
-          </span>
+      {/* ── Header ── */}
+      <div style={{ padding: '16px 24px 0', flexShrink: 0, borderBottom: '1px solid var(--line)' }}>
+
+        {/* Simulator label + week navigation */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--sim)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8l3 3-3 3M13 14h4"/>
+            </svg>
+            <span style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--sim)' }}>
+              Simulator
+            </span>
+          </div>
+          <div style={{ flex: 1 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <WeekNavBtn dir="prev" onClick={() => setWeekNum(n => n - 1)} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', minWidth: 60, textAlign: 'center', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.04em' }}>
+              Week {weekNum}
+            </span>
+            <WeekNavBtn dir="next" onClick={() => setWeekNum(n => n + 1)} />
+          </div>
         </div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 14 }}>
-          Week 24 — Onboarding
+
+        {/* Title */}
+        <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 14, lineHeight: 1 }}>
+          Week {weekNum}{meta?.sublabel ? <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text3)', marginLeft: 8 }}>— {meta.sublabel}</span> : null}
         </div>
-        <div style={{ display: 'flex', gap: 0 }}>
-          {PHASES.map(p => {
-            const active = phase === p.id;
-            return (
-              <button key={p.id} onClick={() => setPhase(p.id)}
-                style={{ padding: '8px 16px', border: 'none', background: 'transparent', borderBottom: active ? `2px solid ${p.color}` : '2px solid transparent', marginBottom: -1, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: active ? 700 : 500, color: active ? p.color : 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                {p.label}
-                <span style={{ fontSize: 10, color: active ? p.color : 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", opacity: 0.7 }}>{p.time}</span>
-              </button>
-            );
-          })}
-        </div>
+
+        {/* Day tabs (current week only) */}
+        {isCurrentWeek && (
+          <div style={{ display: 'flex', gap: 0, marginLeft: -4 }}>
+            {DAYS.map(d => {
+              const active = day === d.id;
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => setDay(d.id)}
+                  style={{ padding: '8px 14px', border: 'none', background: 'transparent', borderBottom: active ? '2px solid var(--sim)' : '2px solid transparent', marginBottom: -1, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5 }}
+                >
+                  <span style={{ fontSize: 11, fontWeight: 700, color: active ? 'var(--sim)' : 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.04em' }}>{d.day}</span>
+                  <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? 'var(--sim)' : 'var(--text3)' }}>{d.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Content area */}
+      {/* ── Content ── */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', minHeight: 0 }}>
-        {phase === 'brief'   && <PhaseBrief />}
-        {phase === 'sim'     && <div style={{ overflowY: 'auto', width: '100%' }}><PhaseInSim /></div>}
-        {phase === 'capture' && <div style={{ overflowY: 'auto', width: '100%' }}><PhaseCapture /></div>}
-        {phase === 'debrief' && <div style={{ overflowY: 'auto', width: '100%', padding: '20px 24px 32px' }}><BlockSimDebrief /></div>}
+        {!isCurrentWeek ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.04em' }}>
+              Week {weekNum}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text4)' }}>
+              {WEEK_META[weekNum]?.sublabel ?? 'No sessions scheduled yet'}
+            </div>
+          </div>
+        ) : day === 'mon' ? (
+          <DayPanel
+            docs={DOC_BY_DAY.mon}
+            leftHeader={<MonObjectivesHeader />}
+          />
+        ) : day === 'tue' ? (
+          <DayPanel
+            docs={DOC_BY_DAY.tue}
+            leftHeader={
+              <DayPanelHeader
+                tag="Tue 9 Jun · Practice"
+                desc="Captures, observations, and hypotheses from Tuesday's practice session."
+              />
+            }
+          />
+        ) : day === 'thu' ? (
+          <DayPanel
+            docs={DOC_BY_DAY.thu}
+            leftHeader={
+              <DayPanelHeader
+                tag="Thu 11 Jun · Main Session"
+                desc="Pre-sim reference material and session setup for Friday's simulator day."
+              />
+            }
+          />
+        ) : (
+          <div style={{ overflowY: 'auto', width: '100%', padding: '20px 24px 32px' }}>
+            <BlockSimDebrief />
+          </div>
+        )}
       </div>
     </div>
   );
