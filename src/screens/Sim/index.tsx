@@ -7,8 +7,8 @@ import type { SimDoc } from '@/screens/DayBackbone/BlockContent';
 import { IconMic } from '@/components/Icons';
 
 const PHASES = [
-  { id: 'brief',   label: 'Brief',   time: '09:30', color: 'var(--sim)' },
-  { id: 'sim',     label: 'In Sim',  time: '10:00', color: 'var(--sim)' },
+  { id: 'brief',   label: 'Brief',   time: '08:30', color: 'var(--sim)' },
+  { id: 'sim',     label: 'In Sim',  time: '09:00', color: 'var(--sim)' },
   { id: 'capture', label: 'Capture', time: '14:30', color: 'var(--red)'  },
   { id: 'debrief', label: 'Debrief', time: '15:00', color: 'var(--text3)' },
 ] as const;
@@ -146,21 +146,19 @@ function BriefObjectives({ compact = false }: { compact?: boolean }) {
       </div>
 
       {/* Observations */}
-      {!compact && (
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 6 }}>
-            What we're looking for
-          </div>
-          {OBSERVATIONS.map((obs, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 5 }}>
-              <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--sg)', border: '1px solid var(--sb)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-                <span style={{ fontSize: 8, fontWeight: 800, color: 'var(--sim)', fontFamily: "'Barlow Condensed', sans-serif" }}>{i + 1}</span>
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text2)', lineHeight: 1.5 }}>{obs}</div>
-            </div>
-          ))}
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 6 }}>
+          What we're looking for
         </div>
-      )}
+        {OBSERVATIONS.map((obs, i) => (
+          <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 5 }}>
+            <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--sg)', border: '1px solid var(--sb)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+              <span style={{ fontSize: 8, fontWeight: 800, color: 'var(--sim)', fontFamily: "'Barlow Condensed', sans-serif" }}>{i + 1}</span>
+            </div>
+            <div style={{ fontSize: compact ? 10 : 11, color: 'var(--text2)', lineHeight: 1.5 }}>{obs}</div>
+          </div>
+        ))}
+      </div>
 
       {/* Quick actions */}
       <div style={{ display: 'flex', gap: 6 }}>

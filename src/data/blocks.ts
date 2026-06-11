@@ -55,8 +55,8 @@ const NYC_SUN_SEEDS: BlockSeed[] = [
 // tZeroOffset is relative to Run 1 (Sim 1 = T-Zero for this day).
 // Adjust times to match the actual Halifax sim schedule.
 export const HALIFAX_SIM_SEEDS: BlockSeed[] = [
-  { id: 'hs-0930', time: '09:30', name: 'Sim Brief & Objectives',  panel: 'sim-brief',   tag: 'Brief',   tagColor: 'var(--text3)', tZeroOffset: -30 },
-  { id: 'hs-1000', time: '10:00', name: 'Simulator Session',       panel: 'future',      tag: 'Sim',     tagColor: 'var(--sim)',   tZeroOffset: 0   },
+  { id: 'hs-0830', time: '08:30', name: 'Sim Brief & Objectives',  panel: 'sim-brief',   tag: 'Brief',   tagColor: 'var(--text3)', tZeroOffset: -30 },
+  { id: 'hs-0900', time: '09:00', name: 'Simulator Session',       panel: 'future',      tag: 'Sim',     tagColor: 'var(--sim)',   tZeroOffset: 0   },
   { id: 'hs-1430', time: '14:30', name: 'Capture Window',          panel: '1818',        tag: 'Capture', tagColor: 'var(--red)',   tZeroOffset: 270 },
   { id: 'hs-1500', time: '15:00', name: 'Sim Debrief',             panel: 'sim-debrief', tag: 'Debrief', tagColor: 'var(--text3)', tZeroOffset: 300 },
 ];
