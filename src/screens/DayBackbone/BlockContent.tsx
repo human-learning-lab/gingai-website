@@ -836,8 +836,8 @@ const SIM_REFLECTION_PROMPTS = [
 ];
 
 // Viktor's API base — direct from browser to avoid Vercel's 4.5 MB proxy limit
-const VIKTOR_BASE = process.env.NEXT_PUBLIC_VIKTOR_API_URL ?? 'https://wriggly-tutu-groin.ngrok-free.dev';
-const VIKTOR_HEADERS = { 'ngrok-skip-browser-warning': '1', 'Content-Type': 'application/json' };
+export const VIKTOR_BASE = process.env.NEXT_PUBLIC_VIKTOR_API_URL ?? 'https://wriggly-tutu-groin.ngrok-free.dev';
+export const VIKTOR_HEADERS = { 'ngrok-skip-browser-warning': '1', 'Content-Type': 'application/json' };
 
 // SimOut from API: { scoreboard: object, plots: object }
 // plots is a dict of name → Plotly figure JSON
@@ -941,7 +941,7 @@ function SimPlots({ sessId }: { sessId: number }) {
   );
 }
 
-function SimDataUpload({ userName }: { userName?: string }) {
+export function SimDataUpload({ userName }: { userName?: string }) {
   const [file, setFile]       = useState<File | null>(null);
   const [status, setStatus]   = useState<'idle' | 'uploading' | 'done' | 'error'>('idle');
   const [sessId, setSessId]   = useState<number | null>(null);
