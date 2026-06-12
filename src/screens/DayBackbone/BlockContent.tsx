@@ -374,10 +374,10 @@ function BlockSim() {
 // ─── Sim Session — Brief & Documents ─────────────────────────
 
 export type SimDoc = {
-  date: string;
+  date?: string;
   title: string;
-  subtitle: string;
-  externalHref: string;
+  subtitle?: string;
+  externalHref?: string;
   type: 'pdf' | 'gdoc' | 'video';
   embedSrc?: string;
 };

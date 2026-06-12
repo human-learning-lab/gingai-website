@@ -150,35 +150,6 @@ function DocContent({ doc }: { doc: SimDoc }) {
 
 // ── Left panel headers ─────────────────────────────────────────
 
-function MonObjectivesHeader() {
-  return (
-    <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
-      <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--sim)', marginBottom: 8 }}>
-        Fri 12 Jun · Session Objectives
-      </div>
-      <div style={{ background: 'color-mix(in srgb, var(--sim) 8%, var(--bg))', border: '1px solid var(--sb)', borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', lineHeight: 1.45, marginBottom: 4 }}>
-          Evaluate T2 timing &amp; positioning
-        </div>
-        <div style={{ fontSize: 10, color: 'var(--text3)', lineHeight: 1.5 }}>
-          Using courses 150° and 345° TWD — focus on M1 position and early gybe on northerly course.
-        </div>
-      </div>
-      <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 6 }}>
-        What we're looking for
-      </div>
-      {OBSERVATIONS.map((obs, i) => (
-        <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 5 }}>
-          <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--sg)', border: '1px solid var(--sb)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-            <span style={{ fontSize: 8, fontWeight: 800, color: 'var(--sim)', fontFamily: "'Barlow Condensed', sans-serif" }}>{i + 1}</span>
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--text2)', lineHeight: 1.5 }}>{obs}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function DayPanelHeader({ tag, desc }: { tag: string; desc: string }) {
   return (
     <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
