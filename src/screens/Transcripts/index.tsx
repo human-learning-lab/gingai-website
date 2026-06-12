@@ -30,6 +30,21 @@ const TEAM_COLORS: Record<string, string> = {
   ESP: '#AA151B', CAN: '#FF0000',
 };
 
+// Group consecutive lines from the same speaker into single blocks
+function groupLines(lines: { speaker: string; text: string }[]) {
+  const groups: { speaker: string; text: string; startIdx: number }[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const last = groups[groups.length - 1];
+    if (last && last.speaker === line.speaker) {
+      last.text += ' ' + line.text;
+    } else {
+      groups.push({ speaker: line.speaker, text: line.text, startIdx: i });
+    }
+  }
+  return groups;
+}
+
 function highlight(text: string, q: string) {
   if (!q) return text;
   const idx = text.toLowerCase().indexOf(q.toLowerCase());
@@ -114,8 +129,9 @@ function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, onEditD
 }) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const preview = t.lines.slice(0, 2);
-  const rest = t.lines.slice(2);
+  const grouped = groupLines(t.lines);
+  const preview = grouped.slice(0, 2);
+  const rest = grouped.slice(2);
 
   return (
     <div
@@ -185,16 +201,26 @@ function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, onEditD
       {expanded && (
         <div style={{ borderTop: '1px solid var(--line)' }}>
           <div style={{ padding: '12px 16px 4px 64px' }}>
-            {t.lines.map((line, i) => (
-              i < 2 && !editing ? null :
-              <EditableLine
-                key={i}
-                speaker={line.speaker}
-                text={line.text}
-                editing={editing}
-                onUpdate={(sp, tx) => onUpdateLine(i, sp, tx)}
-              />
-            ))}
+            {editing ? (
+              // Edit mode: individual lines (for precise per-line editing)
+              t.lines.map((line, i) => (
+                <EditableLine
+                  key={i}
+                  speaker={line.speaker}
+                  text={line.text}
+                  editing
+                  onUpdate={(sp, tx) => onUpdateLine(i, sp, tx)}
+                />
+              ))
+            ) : (
+              // View mode: group consecutive same-speaker lines — speaker shown once per block
+              grouped.slice(2).map((group, i) => (
+                <div key={i} style={{ marginBottom: 12, fontSize: 13, lineHeight: 1.65 }}>
+                  <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 12, marginBottom: 2 }}>{group.speaker}</div>
+                  <div style={{ color: 'var(--text2)' }}>{group.text}</div>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Action bar */}
