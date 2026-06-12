@@ -17,10 +17,10 @@ const WEEK_META: Record<number, { sublabel: string }> = {
 // ── Day config ─────────────────────────────────────────────────
 
 const DAYS = [
-  { id: 'mon'     as const, day: 'Mon', label: 'Objectives'   },
-  { id: 'tue'     as const, day: 'Tue', label: 'Practice'     },
-  { id: 'thu'     as const, day: 'Thu', label: 'Main Session' },
-  { id: 'debrief' as const, day: 'Fri', label: 'Debrief'      },
+  { id: 'mon'     as const, label: 'Objectives'   },
+  { id: 'tue'     as const, label: 'Practice'     },
+  { id: 'thu'     as const, label: 'Main Session' },
+  { id: 'debrief' as const, label: 'Debrief'      },
 ];
 type DayId = 'mon' | 'tue' | 'thu' | 'debrief';
 
@@ -346,10 +346,9 @@ export default function Sim() {
                 <button
                   key={d.id}
                   onClick={() => setDay(d.id)}
-                  style={{ padding: '8px 14px', border: 'none', background: 'transparent', borderBottom: active ? '2px solid var(--sim)' : '2px solid transparent', marginBottom: -1, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5 }}
+                  style={{ padding: '8px 14px', border: 'none', background: 'transparent', borderBottom: active ? '2px solid var(--sim)' : '2px solid transparent', marginBottom: -1, cursor: 'pointer', fontFamily: 'inherit' }}
                 >
-                  <span style={{ fontSize: 11, fontWeight: 700, color: active ? 'var(--sim)' : 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.04em' }}>{d.day}</span>
-                  <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? 'var(--sim)' : 'var(--text3)' }}>{d.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--sim)' : 'var(--text3)' }}>{d.label}</span>
                 </button>
               );
             })}
