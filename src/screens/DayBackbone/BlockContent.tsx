@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useUser } from '@clerk/nextjs';
 import dynamic from 'next/dynamic';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false, loading: () => (
@@ -919,14 +920,19 @@ function SimPlots({ sessId }: { sessId: number }) {
           <Plot
             data={fig.data}
             layout={{
+              ...fig.layout,
+              // Override any hardcoded dimensions from the backend so the chart
+              // fills its container responsively
+              width:         undefined,
+              height:        undefined,
+              autosize:      true,
               paper_bgcolor: 'transparent',
               plot_bgcolor:  'transparent',
               font: { family: 'Barlow, sans-serif', size: 11, color: 'var(--text)' },
               margin: { t: 24, r: 16, b: 40, l: 48 },
-              ...fig.layout,
             }}
             config={{ displayModeBar: false, responsive: true }}
-            style={{ width: '100%' }}
+            style={{ width: '100%', minHeight: 360 }}
             useResizeHandler
           />
         </div>
@@ -1028,6 +1034,8 @@ function SimDataUpload({ userName }: { userName?: string }) {
 }
 
 export function BlockSimDebrief() {
+  const { user } = useUser();
+  const userName = user?.firstName ?? user?.username ?? undefined;
   return (
     <>
       <BlockHeader
@@ -1067,7 +1075,7 @@ export function BlockSimDebrief() {
         </div>
 
         {/* Sim data upload */}
-        <SimDataUpload />
+        <SimDataUpload userName={userName} />
 
         {/* Observations doc */}
         <div style={{ marginTop: 16 }}>
