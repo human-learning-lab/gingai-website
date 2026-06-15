@@ -16,9 +16,7 @@ export async function POST(req: NextRequest) {
     const upstream = new FormData();
     upstream.append('file', file);
     const user = form.get('user');
-    const date = form.get('session_date');
     if (user) upstream.append('user', user.toString());
-    if (date) upstream.append('session_date', date.toString());
 
     const res = await fetch(`${BASE}/sim_session`, {
       method:  'POST',
