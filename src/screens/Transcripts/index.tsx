@@ -380,6 +380,7 @@ interface UploadForm {
   file: File | null;
   title: string;
   user: string;
+  filetype: string;
 }
 
 function UploadModal({ onClose, onSubmit }: {
@@ -395,7 +396,7 @@ function UploadModal({ onClose, onSubmit }: {
 
   function setFile(f: File | null) {
     if (!f) return;
-    setForm(p => ({ ...p, file: f, title: f.name) }));
+    setForm(p => ({ ...p, file: f, title: f.name}));
   }
 
 	
