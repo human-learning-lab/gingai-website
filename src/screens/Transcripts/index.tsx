@@ -373,6 +373,7 @@ const SOURCES: { id: TranscriptSource | 'all'; label: string }[] = [
 const UPLOAD_REGATTAS = ['New York', 'Halifax', 'Portsmouth', 'Sassnitz', 'Valencia', 'Geneva', 'Dubai', 'Abu Dhabi'];
 const UPLOAD_TEAMS = Object.keys(TEAM_FLAGS).sort();
 const UPLOAD_TAGS = ['Debrief', 'Race', 'Training', 'Practice', 'Hot Wash', 'Briefing', 'Team', 'Coaching'];
+export const VIKTOR_HEADERS = { 'ngrok-skip-browser-warning': '1', 'Content-Type': 'application/json' };
 
 interface UploadForm {
   file: File | null;
@@ -564,7 +565,7 @@ export default function Transcripts() {
       });
 
 	  fetch('/api/transcripts?type=media',
-			{method: 'POST', body: JSON.stringify({title: form.title, user: form.user, data: base64})});
+			{method: 'POST', headers: VIKTORS_HEADERS, body: JSON.stringify({title: form.title, user: form.user, data: base64})});
   }
 
 
