@@ -115,6 +115,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
   const { role } = useRole();
   const { user } = useUser();
   const imgUrl = user?.imageUrl;
+  const userName = user?.firstName ?? user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] ?? role?.name;
 
   const [mode, setMode]         = useState<CaptureMode>('live');
   const [phase, setPhase]       = useState<Phase>('idle');
@@ -153,7 +154,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
     fetch('api/transcripts?type=capture', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'capture', user: role?.name, text }),
+      body: JSON.stringify({ type: 'capture', user: userName, text }),
     });
     setSaved(prev => [{ text, ts }, ...prev]);
     setTranscript('');
@@ -198,9 +199,9 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
     <PendingUploads
       pending={offline.pending}
       uploadingId={offline.uploadingId}
-      onUpload={id => offline.uploadRecording(id, role?.name)}
+      onUpload={id => offline.uploadRecording(id, userName)}
       onDelete={offline.removeRecording}
-      userName={role?.name}
+      userName={userName}
     />
   );
 
@@ -220,7 +221,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
       {saved.map((s, i) => (
         <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div className="sailor-r">
-            <UserAvatar imgUrl={imgUrl} initial={role?.initial} />
+            <UserAvatar imgUrl={imgUrl} initial={userName?.[0]?.toUpperCase()} />
             <div className="sailor-r-bub">{s.text}</div>
           </div>
           <div style={{ fontSize: 10, color: 'var(--text4)', paddingLeft: 46 }}>{s.ts} · Saved</div>
@@ -241,7 +242,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
 
       {phase === 'review' && (
         <div className="sailor-r" style={{ alignItems: 'flex-start' }}>
-          <UserAvatar imgUrl={imgUrl} initial={role?.initial} />
+          <UserAvatar imgUrl={imgUrl} initial={userName?.[0]?.toUpperCase()} />
           <textarea
             value={transcript}
             onChange={e => setTranscript(e.target.value)}

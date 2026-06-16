@@ -13,23 +13,26 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const user = await currentUser();
   if (user) {
     const existingRoleId = (user.publicMetadata as { roleId?: string }).roleId;
-    if (!existingRoleId) {
-      const email = user.emailAddresses
-        .find(e => e.id === user.primaryEmailAddressId)
-        ?.emailAddress
-        ?.toLowerCase();
 
-      const domain = email?.split('@')[1];
-      const firstName = user.firstName?.toLowerCase().trim();
+    const email = user.emailAddresses
+      .find(e => e.id === user.primaryEmailAddressId)
+      ?.emailAddress
+      ?.toLowerCase();
 
-      const roleByEmail  = email ? EMAIL_ROLE_MAP[email] : undefined;
-      const roleByDomain = domain ? ALLOWED_DOMAINS[domain] : undefined;
-      const roleByName   = firstName
-        ? ROLES.find(r => r.name.toLowerCase().split(' ')[0] === firstName)?.id
-        : undefined;
+    const domain = email?.split('@')[1];
+    const firstName = user.firstName?.toLowerCase().trim();
 
-      const roleId = roleByEmail ?? roleByDomain ?? roleByName ?? 'christian';
+    const roleByEmail  = email ? EMAIL_ROLE_MAP[email] : undefined;
+    const roleByDomain = domain ? ALLOWED_DOMAINS[domain] : undefined;
+    const roleByName   = firstName
+      ? ROLES.find(r => r.name.toLowerCase().split(' ')[0] === firstName)?.id
+      : undefined;
 
+    const roleId = roleByEmail ?? roleByDomain ?? roleByName ?? 'christian';
+
+    // Always update if we have an email match (fixes wrong assignments).
+    // For domain/name fallbacks, only set when missing.
+    if (!existingRoleId || roleByEmail) {
       const client = await clerkClient();
       await client.users.updateUser(userId, { publicMetadata: { roleId } });
     }

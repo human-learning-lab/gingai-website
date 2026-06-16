@@ -37,9 +37,10 @@ export const EMAIL_ROLE_MAP: Record<string, string> = {
   // Developers
   'emilie@sailgpbra.com':       'emilie',
   'viktor@sailgpbra.com':       'viktor',
+  'christian@hulelab.com':      'christian',
 };
 
 export const ALLOWED_DOMAINS: Record<string, string> = {
   'sailgpbra.com': 'christian',  // analyst, all screens
-  'hulelab.com':   'emilie',     // developer, all screens
+  'hulelab.com':   'christian',  // developer fallback — specific devs mapped by email above
 };
