@@ -389,7 +389,7 @@ function UploadModal({ onClose, onSubmit }: {
 }) {
   const { role } = useRole();
   const [form, setForm] = useState<UploadForm>({
-  	file: null, title: '', user: role!.name,
+  	file: null, title: '', filetype: '', user: role!.name,
   });
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
