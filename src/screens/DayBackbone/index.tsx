@@ -6,7 +6,6 @@ import Timeline from '@/components/Timeline/Timeline';
 import AgendaTimeline from '@/components/Timeline/AgendaTimeline';
 import Block1430 from './views/Block1430';
 import BlockContent from './BlockContent';
-import StatusRail from './StatusRail';
 import LiveMode from './LiveMode';
 import { MobConditionsBar } from '@/components/Timeline/ConditionsPanel';
 import { getBlocks } from '@/data/blocks';
@@ -635,7 +634,6 @@ export default function DayBackbone() {
 		</div>
 		</div>
 
-		<StatusRail regatId={activeRegat} dayIndex={activeDay} venueTimezone={venueTimezone} />
 		</div>
 	);
 }
