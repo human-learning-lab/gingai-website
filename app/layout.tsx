@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
 
@@ -33,6 +33,9 @@ export const metadata: Metadata = {
     description: 'Real-time team intelligence, race debrief and voice capture platform for Mubadala Brazil SailGP.',
     images: ['/images/thumbnail.jpg'],
   },
+};
+
+export const viewport: Viewport = {
   themeColor: '#0D0B08',
 };
 
@@ -45,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet" />
         </head>
-        <body>
+        <body suppressHydrationWarning>
           {children}
         </body>
       </html>
