@@ -574,6 +574,7 @@ export default function Transcripts() {
 			{method: 'POST',
 			headers: VIKTOR_HEADERS, 
 			body: JSON.stringify({title: form.title, user: form.user, data: base64})});
+	setShowUpload(false);
   }
 
 
