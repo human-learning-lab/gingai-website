@@ -135,7 +135,7 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
   }));
 
 
-  const uploadTranscripts: Transcript[] = (uploads as ApiCapture[]).map(c => ({
+  const uploadTranscripts: Transcript[] = (uploads as ApiUpload[]).map(c => ({
 	id: `upload-${c.uploadid}`,
     source: 'upload',
     regatta: '',
