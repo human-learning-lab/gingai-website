@@ -565,7 +565,7 @@ export default function Transcripts() {
  	});
 }
 
-  function handleUploadSubmit(form: UploadForm){
+  async function handleUploadSubmit(form: UploadForm){
 	  const base64 = await fileToBase64(form.file!);
 
 	  fetch('/api/transcripts?type=media',
