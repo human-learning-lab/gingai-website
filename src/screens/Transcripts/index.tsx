@@ -374,6 +374,7 @@ const UPLOAD_REGATTAS = ['New York', 'Halifax', 'Portsmouth', 'Sassnitz', 'Valen
 const UPLOAD_TEAMS = Object.keys(TEAM_FLAGS).sort();
 const UPLOAD_TAGS = ['Debrief', 'Race', 'Training', 'Practice', 'Hot Wash', 'Briefing', 'Team', 'Coaching'];
 export const VIKTOR_HEADERS = { 'ngrok-skip-browser-warning': '1', 'Content-Type': 'application/json' };
+export const VIKTOR_BASE = process.env.NEXT_PUBLIC_VIKTOR_API_URL ?? 'https://wriggly-tutu-groin.ngrok-free.dev';
 
 interface UploadForm {
   file: File | null;
@@ -568,7 +569,7 @@ export default function Transcripts() {
   async function handleUploadSubmit(form: UploadForm){
 	  const base64 = await fileToBase64(form.file!);
 
-	  fetch('/api/transcripts?type=media',
+	  await fetch(`${VIKTOR_BASE}/upload_media`,
 			{method: 'POST',
 			headers: VIKTOR_HEADERS, 
 			body: JSON.stringify({title: form.title, user: form.user, data: base64})});
