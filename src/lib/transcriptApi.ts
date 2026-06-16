@@ -123,7 +123,7 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
     lines: parseContent(d.content, d.event),
   }));
 
-  const captureTranscripts: Transcript[] = (captures as ApiCapture[]).map(c => ({
+  const captureTranscripts: Transcript[] = (captures as ApiCapture[]).reverse().map(c => ({
     id: `capture-${c.captureid}`,
     source: 'capture',
     regatta: '',
@@ -136,7 +136,7 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
 
 
   const uploadTranscripts: Transcript[] = (uploads as ApiUpload[]).map(c => ({
-	id: `upload-${c.uploadid}`,
+    id: `upload-${c.uploadid}`,
     source: 'upload',
     regatta: '',
     race: '',
@@ -146,5 +146,5 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
     lines: parseContent(c.content, c.username),
   }));
 
-  return [...raceTranscripts, ...debriefTranscripts, ...captureTranscripts, ...uploadTranscripts];
+  return [...captureTranscripts, ...raceTranscripts, ...debriefTranscripts, ...uploadTranscripts];
 }
