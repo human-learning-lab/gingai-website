@@ -94,7 +94,7 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
   const res = await fetch('/api/transcripts', { cache: 'no-store' });
   if (!res.ok) throw new Error(`Failed to load (${res.status})`);
 
-  const { races, debriefs, captures, events, error } = await res.json();
+  const { races, debriefs, captures, uploads, events, error } = await res.json();
   if (error) throw new Error(error);
 
   const eventMap = new Map<number, string>(
