@@ -200,9 +200,10 @@ interface SessionTabProps {
   sentimentPts?: number[];
   topics?: string[];
   onRecordingChange?: (recording: boolean) => void;
+  saved?: boolean;
 }
 
-function SessionTab({ transcriptLines: transcriptLines, sentimentPts: sentimentPts, topics: topics, onRecordingChange: onRecordingChange }: SessionTabProps) {
+function SessionTab({ transcriptLines: transcriptLines, sentimentPts: sentimentPts, topics: topics, onRecordingChange: onRecordingChange, saved }: SessionTabProps) {
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const lines = transcriptLines ?? [];
@@ -230,7 +231,7 @@ function SessionTab({ transcriptLines: transcriptLines, sentimentPts: sentimentP
   const sec = (elapsed % 60).toString().padStart(2, '0');
 
   return (
-    <div className="db-wrap" style={{ flex: 1, minHeight: 0 }}>
+    <div className="db-wrap" style={{ flex: 1, minHeight: 0, position: 'relative' }}>
       <div className="dbd-topbar">
         <div className="dbd-title-group">
           <div className="db-ttl">Team Debrief <span className="sub">· Live Session</span></div>
@@ -244,6 +245,33 @@ function SessionTab({ transcriptLines: transcriptLines, sentimentPts: sentimentP
           </button>
         </div>
       </div>
+
+      {saved && (
+        <div style={{
+          position: 'absolute', bottom: 24, right: 24, zIndex: 50,
+          padding: '10px 14px',
+          background: 'var(--bg)',
+          border: '1px solid color-mix(in srgb, var(--green) 40%, transparent)',
+          borderRadius: 10,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+          display: 'flex', alignItems: 'center', gap: 10,
+          animation: 'fadeInUp 0.2s ease',
+        }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+            background: 'color-mix(in srgb, var(--green) 12%, transparent)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>Saved to Transcripts</div>
+            <a href="/transcripts" style={{ fontSize: 11, color: 'var(--green)', textDecoration: 'none' }}>View →</a>
+          </div>
+        </div>
+      )}
 
       <div className="db-body">
         <div className="dbd-transcript-wrap">
@@ -296,9 +324,10 @@ interface TeamDebriefProps {
   topics?: string[];
   sentimentPts?: number[];
   onRecordingChange?: (recording: boolean) => void;
+  saved?: boolean;
 }
 
-export default function TeamDebrief({ transcriptLines, topics, sentimentPts, onRecordingChange }: TeamDebriefProps = {}) {
+export default function TeamDebrief({ transcriptLines, topics, sentimentPts, onRecordingChange, saved }: TeamDebriefProps = {}) {
   const [tab, setTab] = useState<'agenda' | 'session'>('session');
 
   return (
@@ -307,7 +336,15 @@ export default function TeamDebrief({ transcriptLines, topics, sentimentPts, onR
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
         <div className="tabs" style={{ flexShrink: 0, borderBottom: '1px solid var(--line)', padding: '0 24px' }}>
           <div className={`tab${tab === 'session' ? ' on' : ''}`} onClick={() => setTab('session')}>Session</div>
-          <div className={`tab${tab === 'agenda'  ? ' on' : ''}`} onClick={() => setTab('agenda')}>Agenda</div>
+          <div className={`tab${tab === 'agenda'  ? ' on' : ''}`} onClick={() => setTab('agenda')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            Agenda
+            <span style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: 8, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
+              padding: '1px 5px', borderRadius: 3,
+              background: 'var(--yg)', border: '1px solid var(--yb)', color: 'var(--yellow)',
+            }}>DEMO</span>
+          </div>
         </div>
         {tab === 'agenda'  && <AgendaTab />}
         {tab === 'session' && (
@@ -316,6 +353,7 @@ export default function TeamDebrief({ transcriptLines, topics, sentimentPts, onR
             topics={topics}
             sentimentPts={sentimentPts}
             onRecordingChange={onRecordingChange}
+            saved={saved}
           />
         )}
       </div>

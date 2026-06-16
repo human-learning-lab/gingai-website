@@ -151,11 +151,26 @@ function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, onEditD
           background: 'var(--bg3)', overflow: 'hidden',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 22, lineHeight: 1,
+          color: SOURCE_COLORS[t.source],
         }}>
           {t.avatarUrl ? (
             <img src={t.avatarUrl} alt={t.team} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : TEAM_FLAGS[t.team] ? (
+            TEAM_FLAGS[t.team]
+          ) : t.source === 'debrief' ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          ) : t.source === 'capture' ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          ) : t.source === 'upload' ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
           ) : (
-            TEAM_FLAGS[t.team] ?? t.team
+            t.team?.[0] ?? '?'
           )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
