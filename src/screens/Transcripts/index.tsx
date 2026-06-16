@@ -566,7 +566,9 @@ export default function Transcripts() {
 }
 
   function handleUploadSubmit(form: UploadForm){
+	  console.log(form);
 	  const base64 = fileToBase64(form.file!);
+	  console.log(base64);
 
 	  fetch('/api/transcripts?type=media',
 			{method: 'POST', headers: VIKTOR_HEADERS, body: JSON.stringify({title: form.title, user: form.user, data: base64})});
