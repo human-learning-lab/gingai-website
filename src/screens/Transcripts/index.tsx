@@ -561,7 +561,7 @@ export default function Transcripts() {
         const reader = new FileReader();
         reader.onload = () => resolve((reader.result as string).split(',')[1]);
         reader.onerror = reject;
-        reader.readAsDataURL(form.file);
+        reader.readAsDataURL(form!.file);
       });
 
 	  fetch('/api/transcripts?type=media',
