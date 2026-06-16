@@ -144,7 +144,7 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
     title: c.title,
     duration: '—',
     lines: parseContent(c.content, c.username),
-  }
+  }));
 
   return [...raceTranscripts, ...debriefTranscripts, ...captureTranscripts, ...uploadTranscripts];
 }
