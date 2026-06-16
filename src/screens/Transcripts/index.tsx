@@ -570,11 +570,11 @@ export default function Transcripts() {
   async function handleUploadSubmit(form: UploadForm){
 	  const base64 = await fileToBase64(form.file!);
 
+	setShowUpload(false);
 	  await fetch(`${VIKTOR_BASE}/upload_media`,
 			{method: 'POST',
 			headers: VIKTOR_HEADERS, 
 			body: JSON.stringify({title: form.title, user: form.user, data: base64})});
-	setShowUpload(false);
   }
 
 

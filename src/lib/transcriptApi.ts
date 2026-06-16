@@ -20,6 +20,13 @@ interface ApiCapture {
   content: string;
 }
 
+interface ApiUpload{
+  uploadid: number;
+  username: string;
+  title: string;
+  content: string;
+}
+
 interface ApiEvent {
   eventid: number;
   name: string;
@@ -127,5 +134,17 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
     lines: parseContent(c.content, c.username),
   }));
 
-  return [...raceTranscripts, ...debriefTranscripts, ...captureTranscripts];
+
+  const uploadTranscripts: Transcript[] = (uploads as ApiCapture[]).map(c => ({
+	id: `upload-${c.uploadid}`,
+    source: 'upload',
+    regatta: '',
+    race: '',
+    team: c.username,
+    title: c.title,
+    duration: '—',
+    lines: parseContent(c.content, c.username),
+  }
+
+  return [...raceTranscripts, ...debriefTranscripts, ...captureTranscripts, ...uploadTranscripts];
 }
