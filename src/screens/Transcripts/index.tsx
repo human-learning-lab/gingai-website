@@ -556,8 +556,15 @@ export default function Transcripts() {
   }
 
   function handleUploadSubmit(form: UploadForm){
+	const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(form.file);
+      });
+
 	  fetch('/api/transcripts?type=media',
-			{method: 'POST', body: JSON.stringify({title: form.title, user: form.user, data: form.file})});
+			{method: 'POST', body: JSON.stringify({title: form.title, user: form.user, data: base64})});
   }
 
 
