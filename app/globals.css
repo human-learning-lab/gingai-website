@@ -620,17 +620,18 @@ body {
   border-right: 1px solid var(--line);
 }
 .s-cap-desk-header {
-  padding: 28px 32px 20px;
+  padding: 20px 32px 16px;
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
 }
 .s-cap-desk-title {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 26px; font-weight: 800; letter-spacing: 0.01em; color: var(--text);
+  font-size: 22px; font-weight: 800; letter-spacing: 0.01em; color: var(--text);
   line-height: 1;
 }
 .s-cap-desk-sub {
-  font-size: 13px; color: var(--text3); margin-top: 4px;
+  font-size: 12px; color: var(--text3); margin-top: 3px;
 }
 .s-cap-desk-main .cap-convo {
   padding: 28px 32px; flex: 1; overflow-y: auto;
@@ -651,9 +652,9 @@ body {
 .cap-foot-desk .rec-time { font-size: 22px; }
 
 .s-cap-desk-side {
-  width: 280px; flex-shrink: 0; overflow-y: auto;
-  padding: 28px 24px; display: flex; flex-direction: column; gap: 28px;
-  background: var(--bg);
+  width: 260px; flex-shrink: 0; overflow-y: auto;
+  padding: 24px 20px; display: flex; flex-direction: column; gap: 24px;
+  background: var(--bg2); border-left: 1px solid var(--line);
 }
 .s-cap-side-section { display: flex; flex-direction: column; gap: 10px; }
 .s-cap-side-label {

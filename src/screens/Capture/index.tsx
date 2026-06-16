@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import Link from 'next/link';
 import { useRole } from '@/context/RoleContext';
 import { useUser } from '@clerk/nextjs';
 import { IconStop } from '@/components/Icons';
@@ -224,7 +225,12 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
             <UserAvatar imgUrl={imgUrl} initial={userName?.[0]?.toUpperCase()} />
             <div className="sailor-r-bub">{s.text}</div>
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text4)', paddingLeft: 46 }}>{s.ts} · Saved</div>
+          <div style={{ fontSize: 10, color: 'var(--text4)', paddingLeft: 46, display: 'flex', alignItems: 'center', gap: 6 }}>
+            {s.ts} · Saved ·{' '}
+            <Link href="/transcripts" style={{ color: 'var(--green)', textDecoration: 'none', fontWeight: 600 }}>
+              View in Transcripts →
+            </Link>
+          </div>
         </div>
       ))}
 
@@ -241,22 +247,32 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
       )}
 
       {phase === 'review' && (
-        <div className="sailor-r" style={{ alignItems: 'flex-start' }}>
-          <UserAvatar imgUrl={imgUrl} initial={userName?.[0]?.toUpperCase()} />
-          <textarea
-            value={transcript}
-            onChange={e => setTranscript(e.target.value)}
-            rows={Math.max(3, transcript.split('\n').length + 1)}
-            style={{
-              flex: 1, background: 'var(--gg)', border: '1px solid var(--gb)',
-              borderRadius: '12px 3px 12px 12px', padding: '11px 13px',
-              fontSize: 13, color: 'var(--text)', lineHeight: 1.6,
-              fontFamily: 'inherit', outline: 'none', resize: 'none',
-              whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-              direction: 'ltr', textAlign: 'left', width: '100%',
-              boxSizing: 'border-box',
-            }}
-          />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ paddingLeft: 46, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Review · edit if needed
+          </div>
+          <div className="sailor-r" style={{ alignItems: 'flex-start' }}>
+            <UserAvatar imgUrl={imgUrl} initial={userName?.[0]?.toUpperCase()} />
+            <textarea
+              autoFocus
+              value={transcript}
+              onChange={e => setTranscript(e.target.value)}
+              rows={Math.max(3, transcript.split('\n').length + 1)}
+              style={{
+                flex: 1, background: 'var(--gg)', border: '1.5px solid var(--green)',
+                borderRadius: '12px 3px 12px 12px', padding: '11px 13px',
+                fontSize: 13, color: 'var(--text)', lineHeight: 1.6,
+                fontFamily: 'inherit', outline: 'none', resize: 'none',
+                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                direction: 'ltr', textAlign: 'left', width: '100%',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
         </div>
       )}
     </>
@@ -269,46 +285,66 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
           {Array.from({ length: 12 }).map((_, i) => <div key={i} className="wv" />)}
         </div>
       )}
-      {phase === 'review' && (
-        <button
-          onClick={() => { setTranscript(''); startRecording(); }}
-          style={{
-            height: 28, padding: '0 12px', borderRadius: 6,
-            border: '1px solid var(--line)', background: 'transparent',
-            fontSize: 11, cursor: 'pointer', color: 'var(--text3)', fontFamily: 'inherit',
-          }}
-        >Re-record</button>
-      )}
-      {phase === 'idle' || phase === 'review' ? (
-        <button
-          className="rec-btn"
-          onClick={phase === 'idle' ? startRecording : handleSave}
-          disabled={phase === 'review' && !transcript.trim()}
-          style={phase === 'review' && !transcript.trim() ? { opacity: 0.3, cursor: 'default' } : undefined}
-        >
-          {phase === 'review' ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+
+      {phase === 'review' ? (
+        <div style={{ display: 'flex', gap: 10, width: '100%', maxWidth: 340 }}>
+          <button
+            onClick={() => { setTranscript(''); startRecording(); }}
+            style={{
+              height: 44, padding: '0 16px', borderRadius: 10,
+              border: '1px solid var(--line)', background: 'transparent',
+              fontSize: 12, cursor: 'pointer', color: 'var(--text3)', fontFamily: 'inherit',
+              flexShrink: 0,
+            }}
+          >Re-record</button>
+          <button
+            onClick={handleSave}
+            disabled={!transcript.trim()}
+            style={{
+              flex: 1, height: 44, borderRadius: 10, border: 'none',
+              background: transcript.trim() ? 'var(--green)' : 'var(--line)',
+              color: '#fff', fontSize: 13, fontWeight: 600,
+              cursor: transcript.trim() ? 'pointer' : 'default',
+              fontFamily: 'inherit', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: 7, transition: 'opacity 0.15s',
+              opacity: transcript.trim() ? 1 : 0.4,
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
-          ) : (
+            Save note
+          </button>
+        </div>
+      ) : phase === 'idle' ? (
+        <>
+          <button className="rec-btn" onClick={startRecording}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="white">
               <rect x="5" y="1" width="6" height="9" rx="3" fill="white"/>
               <path d="M3 8a5 5 0 0 0 10 0" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
               <line x1="8" y1="13" x2="8" y2="15" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
-          )}
-        </button>
+          </button>
+          <div className="rec-info">
+            <div className="rec-lbl">Tap to record</div>
+          </div>
+        </>
       ) : phase === 'recording' ? (
-        <button className="rec-btn" onClick={stopRecording}><IconStop /></button>
+        <>
+          <button className="rec-btn" onClick={stopRecording}><IconStop /></button>
+          <div className="rec-info">
+            <div className="rec-lbl" style={{ color: 'var(--green)' }}>Recording</div>
+            <div className="rec-time">{mm}:{ss}</div>
+          </div>
+        </>
       ) : (
-        <div className="rec-btn" style={{ opacity: 0.3, cursor: 'default' }}><IconStop /></div>
+        <>
+          <div className="rec-btn" style={{ opacity: 0.3, cursor: 'default' }}><IconStop /></div>
+          <div className="rec-info">
+            <div className="rec-lbl">Transcribing…</div>
+          </div>
+        </>
       )}
-      <div className="rec-info">
-        <div className="rec-lbl" style={phase === 'recording' ? { color: 'var(--green)' } : undefined}>
-          {phase === 'idle' ? 'Tap to record' : phase === 'recording' ? 'Recording' : phase === 'transcribing' ? 'Transcribing…' : 'Tap to save'}
-        </div>
-        {phase === 'recording' && <div className="rec-time">{mm}:{ss}</div>}
-      </div>
     </>
   );
 
