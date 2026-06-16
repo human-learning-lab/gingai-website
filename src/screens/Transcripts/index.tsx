@@ -380,7 +380,7 @@ interface UploadForm {
   file: File | null;
   title: string;
   user: string;
-  filetype: string;
+  //filetype: string;
 }
 
 function UploadModal({ onClose, onSubmit }: {
