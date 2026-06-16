@@ -395,7 +395,7 @@ function UploadModal({ onClose, onSubmit }: {
 
   function setFile(f: File | null) {
     if (!f) return;
-    setForm(p => ({ ...p, file: f, title: p.title || f.name.replace(/\.[^.]+$/, '') }));
+    setForm(p => ({ ...p, file: f, title: f.name) }));
   }
 
 	
