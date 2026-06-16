@@ -569,7 +569,7 @@ export default function Transcripts() {
 	  const base64 = fileToBase64(form.file!);
 
 	  fetch('/api/transcripts?type=media',
-			{method: 'POST', headers: VIKTORS_HEADERS, body: JSON.stringify({title: form.title, user: form.user, data: base64})});
+			{method: 'POST', headers: VIKTOR_HEADERS, body: JSON.stringify({title: form.title, user: form.user, data: base64})});
   }
 
 
