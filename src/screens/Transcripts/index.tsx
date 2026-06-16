@@ -556,13 +556,17 @@ export default function Transcripts() {
     if (updated) updateTranscript(updated).catch(err => console.error('Update failed:', err));
   }
 
+  function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+ 	});
+}
+
   function handleUploadSubmit(form: UploadForm){
-	const base64 = new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(form!.file);
-      });
+	  const base64 = fileToBase64(form.file!);
 
 	  fetch('/api/transcripts?type=media',
 			{method: 'POST', headers: VIKTORS_HEADERS, body: JSON.stringify({title: form.title, user: form.user, data: base64})});
