@@ -380,7 +380,7 @@ interface UploadForm {
   file: File | null;
   title: string;
   user: string;
-  //filetype: string;
+  filetype: string;
 }
 
 function UploadModal({ onClose, onSubmit }: {
@@ -396,7 +396,7 @@ function UploadModal({ onClose, onSubmit }: {
 
   function setFile(f: File | null) {
     if (!f) return;
-    setForm(p => ({ ...p, file: f, title: f.name}));
+    setForm(p => ({ ...p, file: f, title: f.name, filetype: f.name.substr(f.name.length - 3)}));
   }
 
 	
@@ -574,7 +574,7 @@ export default function Transcripts() {
 	  await fetch(`${VIKTOR_BASE}/upload_media`,
 			{method: 'POST',
 			headers: VIKTOR_HEADERS, 
-			body: JSON.stringify({title: form.title, user: form.user, data: base64})});
+			body: JSON.stringify({title: form.title, user: form.user, filetype: form.filetype, data: base64})});
   }
 
 
