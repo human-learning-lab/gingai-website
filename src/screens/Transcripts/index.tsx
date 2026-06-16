@@ -557,7 +557,7 @@ export default function Transcripts() {
 
   function handleUploadSubmit(form: UploadForm){
 	  fetch('/api/transcripts?type=media',
-			{method: 'POST', body: JSON.stringify({filetype: 'wav', title: form.title, user: form.user, data: form.file})});
+			{method: 'POST', body: JSON.stringify({title: form.title, user: form.user, data: form.file})});
   }
 
 
