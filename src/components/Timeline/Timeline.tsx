@@ -96,7 +96,6 @@ export default function Timeline({ selectedId, onSelect, renderExpanded, venueLa
         <div className="tl-sub">{venueCity ? `${venueCity} SailGP · 2026` : 'SailGP · 2026'}</div>
         <WeatherPanel lat={venueLat} lon={venueLon} city={venueCity} />
         <TidePanel date={selectedDate} />
-        <EquipmentPanel />
         {onLive && (
           <button className="tl-live-btn" onClick={onLive}>
             <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5"/></svg>
@@ -133,16 +132,6 @@ export default function Timeline({ selectedId, onSelect, renderExpanded, venueLa
   );
 }
 
-function EquipmentPanel() {
-  return (
-    <div className="eq-section">
-      <div className="eq-title">Equipment Config</div>
-      <div style={{ fontSize: 12, color: 'var(--text4)', lineHeight: 1.6 }}>
-        Equipment selection will appear here when configured for the event.
-      </div>
-    </div>
-  );
-}
 
 function TimelineItem({ block, selected, countdown, onClick, onLive }: {
   block: Block;

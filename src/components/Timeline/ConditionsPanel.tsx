@@ -9,7 +9,7 @@ function WindArrow({ bearing }: { bearing: number }) {
   return (
     <svg
       width="28" height="28" viewBox="0 0 28 28"
-      style={{ transform: `rotate(${bearing}deg)`, flexShrink: 0 }}
+      style={{ transform: `rotate(${bearing + 180}deg)`, flexShrink: 0 }}
     >
       <circle cx="14" cy="14" r="12" fill="none" stroke="var(--line2)" strokeWidth="1" />
       <line x1="14" y1="20" x2="14" y2="8" stroke="var(--green)" strokeWidth="1.5" strokeLinecap="round" />
