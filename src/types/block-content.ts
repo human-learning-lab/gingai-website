@@ -34,7 +34,6 @@ export interface BriefingBlockData {
     name: string;
     meta: string;
     type: 'Data' | 'Memory' | 'Video' | 'Actions' | 'File';
-    url?: string;
   }[];
   aiBriefing?: string;              // GingAI race briefing text
   focusPoints?: {

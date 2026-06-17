@@ -82,16 +82,13 @@ export default function Block1430({ data }: Props) {
                         display: 'flex', alignItems: 'center', gap: 12,
                         padding: '10px 0',
                         borderBottom: i < data.documents!.length - 1 ? '1px solid var(--line)' : 'none',
-                        cursor: doc.url ? 'pointer' : 'default',
                       }}
-                      onClick={() => doc.url && window.open(doc.url, '_blank', 'noopener')}
                     >
                       <span className={`doc-badge doc-badge-${doc.type.toLowerCase()}`}>{doc.type}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div className="doc-n" style={{ marginBottom: 2 }}>{doc.name}</div>
                         <div className="doc-m">{doc.meta}</div>
                       </div>
-                      {doc.url && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--line2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>}
                     </div>
                   ))}
                 </div>
