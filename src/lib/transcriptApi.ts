@@ -20,6 +20,13 @@ interface ApiCapture {
   content: string;
 }
 
+interface ApiUpload {
+  uploadid: number;
+  username: string;
+  title: string;
+  content: string;
+}
+
 interface ApiEvent {
   eventid: number;
   name: string;
@@ -40,11 +47,12 @@ function parseContent(content: string, defaultSpeaker: string): TranscriptLine[]
   });
 }
 
-/** Parse "source-id" → { type, numericId } — only for DB-backed transcripts */
+/** Parse "source-id" → { type, numericId } for DB-backed transcripts */
 function parseDbId(id: string): { type: string; numericId: string } | null {
-  const match = id.match(/^(race|capture|debrief)-(\d+)$/);
+  const match = id.match(/^(race|capture|debrief|upload)-(\d+)$/);
   if (!match) return null;
-  return { type: match[1], numericId: match[2] };
+  const type = match[1] === 'upload' ? 'media' : match[1];
+  return { type, numericId: match[2] };
 }
 
 function linesToContent(lines: TranscriptLine[]): string {
@@ -87,7 +95,7 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
   const res = await fetch('/api/transcripts', { cache: 'no-store' });
   if (!res.ok) throw new Error(`Failed to load (${res.status})`);
 
-  const { races, debriefs, captures, events, error } = await res.json();
+  const { races, debriefs, captures, uploads, events, error } = await res.json();
   if (error) throw new Error(error);
 
   const eventMap = new Map<number, string>(
@@ -127,5 +135,16 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
     lines: parseContent(c.content, c.username),
   }));
 
-  return [...captureTranscripts, ...raceTranscripts, ...debriefTranscripts];
+  const uploadTranscripts: Transcript[] = (uploads as ApiUpload[]).reverse().map(u => ({
+    id: `upload-${u.uploadid}`,
+    source: 'upload',
+    regatta: '',
+    race: '',
+    team: u.username,
+    title: u.title,
+    duration: '—',
+    lines: u.content ? parseContent(u.content, u.username) : [],
+  }));
+
+  return [...uploadTranscripts, ...captureTranscripts, ...raceTranscripts, ...debriefTranscripts];
 }
