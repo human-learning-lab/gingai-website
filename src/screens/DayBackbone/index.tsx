@@ -118,6 +118,15 @@ function getDefaultRegat(): string {
 	return next?.id ?? REGATTAS[REGATTAS.length - 1].id;
 }
 
+function getDefaultDay(regatId: string): number {
+	const regat = REGATTAS.find(r => r.id === regatId);
+	if (!regat || getRegatResult(regat.start, regat.end) !== 'Active') return 0;
+	const today = new Date(); today.setHours(0, 0, 0, 0);
+	const start = new Date(regat.start);
+	const diff = Math.floor((today.getTime() - start.getTime()) / 86_400_000);
+	return Math.max(0, Math.min(diff, regat.days.length - 1));
+}
+
 const AGENT_BASE = "/api/agent"
 const APP_NAME = 'gingai';
 
@@ -222,7 +231,7 @@ function RegatNav({ activeRegat, setActiveRegat, activeDay, setActiveDay }: {
 				<button
 				key={r.id}
 				className={`regat-tab${activeRegat === r.id ? ' on' : ''}${res === 'Past' ? ' past' : ''}`}
-				onClick={() => { setActiveRegat(r.id); setActiveDay(0); }}
+				onClick={() => setActiveRegat(r.id)}
 				>
 				<div className="regat-tab-city">{r.short}</div>
 				<div className="regat-tab-result">{r.dates}</div>
@@ -356,6 +365,9 @@ function RaceScheduleCard({ races, broadcast, dayLabel }: {
 }) {
 	return (
 		<div className="race-sched-card">
+			<div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 8 }}>
+				Event Schedule
+			</div>
 			<div className="race-sched-header">
 				<div>
 					<div className="race-sched-title">{dayLabel} · Race Schedule</div>
@@ -504,7 +516,12 @@ function blockContentForPanel(panel: string, selectedId: string, blocks?: import
 
 export default function DayBackbone() {
 	const [activeRegat, setActiveRegat] = useState(getDefaultRegat);
-	const [activeDay, setActiveDay]     = useState(0);
+	const [activeDay, setActiveDay]     = useState(() => getDefaultDay(getDefaultRegat()));
+
+	function selectRegat(id: string) {
+		setActiveRegat(id);
+		setActiveDay(getDefaultDay(id));
+	}
 	const [isLiveMode, setIsLiveMode]   = useState(false);
 	const [simMode]                     = useState(false);
 	const activeVenue = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[5];
@@ -599,7 +616,7 @@ export default function DayBackbone() {
 
 	{/* Mobile layout */}
 	<div className="mob-only mob-backbone">
-	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
+	<RegatNav activeRegat={activeRegat} setActiveRegat={selectRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
 	<div style={{ padding: '0 0 4px' }}>
 		<AskMeBar />
 	</div>
@@ -616,6 +633,11 @@ export default function DayBackbone() {
 		</div>
 	) : (
 		<div className="mob-bb-tl">
+			{raceSchedule && !simMode && (
+				<div style={{ padding: '12px 16px 0' }}>
+					<RaceScheduleCard races={raceSchedule.races} broadcast={raceSchedule.broadcast} dayLabel={activeVenue.days[activeDay]} />
+				</div>
+			)}
 			<Timeline selectedId={selectedId} onSelect={handleSelect} renderExpanded={renderMobExpanded} blocks={blocks} onLive={isRaceDay && !simMode ? handleEnterLive : undefined} />
 		</div>
 	)}
@@ -633,11 +655,11 @@ export default function DayBackbone() {
 			selectedDate={selectedDate}
 		/>
 	) : (
-		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} onLive={isRaceDay && !simMode ? handleEnterLive : undefined} />
+		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} onLive={isRaceDay && !simMode ? handleEnterLive : undefined} raceScheduleNode={raceSchedule && !simMode ? <RaceScheduleCard races={raceSchedule.races} broadcast={raceSchedule.broadcast} dayLabel={activeVenue.days[activeDay]} /> : undefined} />
 	)}
 	<div className="main">
-	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
-		<div className="block-view on">
+	<RegatNav activeRegat={activeRegat} setActiveRegat={selectRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
+		<div key={`${activeRegat}-${activeDay}`} className="block-view on">
 		{isAgendaDay && agendaItems ? (
 			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1 && activeVenue.id === 'newyork'} />
 		) : blockContent}

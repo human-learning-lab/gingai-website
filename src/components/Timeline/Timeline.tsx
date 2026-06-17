@@ -15,6 +15,7 @@ interface Props {
   blocks?: Block[];
   selectedDate?: Date;
   onLive?: () => void;
+  raceScheduleNode?: React.ReactNode;
 }
 
 function formatTZero(offset: number): string {
@@ -54,7 +55,7 @@ function secsRelTZero(targetTime: string, now: Date): number {
   return Math.floor((now.getTime() - target.getTime()) / 1000);
 }
 
-export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity, blocks: propBlocks, selectedDate, onLive }: Props) {
+export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity, blocks: propBlocks, selectedDate, onLive, raceScheduleNode }: Props) {
   const now = useNow();
   const blocks = propBlocks ?? getBlocks(now);
   const listRef = useRef<HTMLDivElement>(null);
@@ -96,12 +97,16 @@ export default function Timeline({ selectedId, onSelect, renderExpanded, venueLa
         <div className="tl-sub">{venueCity ? `${venueCity} SailGP · 2026` : 'SailGP · 2026'}</div>
         <WeatherPanel lat={venueLat} lon={venueLon} city={venueCity} />
         <TidePanel date={selectedDate} />
+        {raceScheduleNode}
         {onLive && (
           <button className="tl-live-btn" onClick={onLive}>
             <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5"/></svg>
             Live Mode
           </button>
         )}
+      </div>
+      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)', padding: '10px 16px 4px' }}>
+        Event Schedule
       </div>
       <div className="tl-list" ref={listRef}>
         {blocks.map(block => (

@@ -188,7 +188,11 @@ function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, onEditD
               letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text4)',
               background: 'var(--bg3)', borderRadius: 3, padding: '1px 6px',
             }}>{t.title}</span>}
-            <span style={{ fontSize: 11, color: 'var(--text4)', marginLeft: 'auto' }}>{t.duration}</span>
+            {(t.date || t.duration !== '—') && (
+              <span style={{ fontSize: 11, color: 'var(--text4)', marginLeft: 'auto', whiteSpace: 'nowrap' }}>
+                {t.date ?? t.duration}
+              </span>
+            )}
           </div>
           <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.5 }}>
             {preview.map((line, i) => (

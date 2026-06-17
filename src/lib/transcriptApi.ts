@@ -18,6 +18,7 @@ interface ApiCapture {
   captureid: number;
   username: string;
   content: string;
+  created_at?: string;
 }
 
 interface ApiUpload {
@@ -25,12 +26,20 @@ interface ApiUpload {
   username: string;
   title: string;
   content: string;
+  created_at?: string;
 }
 
 interface ApiEvent {
   eventid: number;
   name: string;
   season: number;
+}
+
+function fmtDate(iso?: string): string | undefined {
+  if (!iso) return undefined;
+  try {
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch { return undefined; }
 }
 
 function parseContent(content: string, defaultSpeaker: string): TranscriptLine[] {
@@ -102,7 +111,7 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
     (events as ApiEvent[]).map(e => [e.eventid, e.name + " S" + e.season])
   );
 
-  const raceTranscripts: Transcript[] = (races as ApiRace[]).map(r => ({
+  const raceTranscripts: Transcript[] = (races as ApiRace[]).reverse().map(r => ({
     id: `race-${r.raceid}`,
     source: 'race',
     regatta: eventMap.get(r.eventid) ?? `Event ${r.eventid}`,
@@ -113,7 +122,7 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
     lines: parseContent(r.content, r.team),
   }));
 
-  const debriefTranscripts: Transcript[] = (debriefs as ApiDebrief[]).map(d => ({
+  const debriefTranscripts: Transcript[] = (debriefs as ApiDebrief[]).reverse().map(d => ({
     id: `debrief-${d.debriefid}`,
     source: 'debrief',
     regatta: d.event,
@@ -133,6 +142,7 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
     title: c.username,
     duration: '—',
     lines: parseContent(c.content, c.username),
+    date: fmtDate(c.created_at),
   }));
 
   const uploadTranscripts: Transcript[] = (uploads as ApiUpload[]).reverse().map(u => ({
@@ -144,6 +154,7 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
     title: u.title,
     duration: '—',
     lines: u.content ? parseContent(u.content, u.username) : [],
+    date: fmtDate(u.created_at),
   }));
 
   return [...uploadTranscripts, ...captureTranscripts, ...raceTranscripts, ...debriefTranscripts];
