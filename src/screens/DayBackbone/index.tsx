@@ -82,7 +82,19 @@ const REGATTAS: Regatta[] = [
 			],
 		},
 	},
-	{ id: 'halifax', city: 'Halifax', short: 'Halifax', dates: 'Jun 20–21', start: '2026-06-20', end: '2026-06-21', lat: 44.65, lon: -63.58, timezone: 'America/Halifax', photo: '/images/boat-halifax.jpg', photoPos: 'center 50%', days: ['Day 1', 'Day 2'], raceDayIndices: [0, 1] },
+	{
+		id: 'halifax', city: 'Halifax', short: 'Halifax', dates: 'Jun 17–21',
+		start: '2026-06-17', end: '2026-06-21',
+		timezone: 'America/Halifax',
+		lat: 44.65, lon: -63.58, photo: '/images/boat-halifax.jpg', photoPos: 'center 50%',
+		days: ['Wed · 17', 'Thu · 18', 'Fri · 19', 'Sat · 20', 'Sun · 21'],
+		raceDayIndices: [3, 4],
+		weekAgenda: {
+			0: [],
+			1: [],
+			2: [],
+		},
+	},
 	{ id: 'portsmouth',  city: 'Portsmouth',     short: 'Portsmouth',   dates: 'Jul 25–26',     start: '2026-07-25', end: '2026-07-26', lat:  50.80,  lon:  -1.08,  photo: '/images/boat-portsmouth.jpg',   photoPos: 'center 50%',    days: ['Day 1', 'Day 2'] },
 	{ id: 'sassnitz',    city: 'Sassnitz',       short: 'Sassnitz',     dates: 'Aug 22–23',     start: '2026-08-22', end: '2026-08-23', lat:  54.52,  lon:  13.64,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 	{ id: 'valencia',    city: 'Valencia',       short: 'Valencia',     dates: 'Sep 5–6',       start: '2026-09-05', end: '2026-09-06', lat:  39.47,  lon:  -0.38,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
@@ -600,7 +612,7 @@ export default function DayBackbone() {
 	<MobConditionsBar lat={activeVenue.lat} lon={activeVenue.lon} city={activeVenue.city} />
 	{isAgendaDay && agendaItems ? (
 		<div style={{ padding: '12px 16px' }}>
-			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1} />
+			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1 && activeVenue.id === 'newyork'} />
 		</div>
 	) : (
 		<div className="mob-bb-tl">
@@ -627,7 +639,7 @@ export default function DayBackbone() {
 	<RegatNav activeRegat={activeRegat} setActiveRegat={setActiveRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
 		<div className="block-view on">
 		{isAgendaDay && agendaItems ? (
-			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1} />
+			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1 && activeVenue.id === 'newyork'} />
 		) : blockContent}
 		</div>
 		<AskMeBar />
