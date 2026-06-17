@@ -4,6 +4,59 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { type Transcript, type TranscriptSource } from '@/data/transcripts';
 import { useRole } from '@/context/RoleContext';
 import { fetchAllTranscripts, deleteTranscript, updateTranscript } from '@/lib/transcriptApi';
+
+// ── GingAI Agent helpers ────────────────────────────────────────
+const AGENT_BASE = '/api/agent';
+const APP_NAME = 'gingai';
+
+async function agentSummarize(transcriptText: string): Promise<string> {
+  const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const userId = 'user-1';
+
+  await fetch(`${AGENT_BASE}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+
+  const res = await fetch(`${AGENT_BASE}/run_sse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    body: JSON.stringify({
+      appName: APP_NAME,
+      userId,
+      sessionId,
+      newMessage: { role: 'user', parts: [{ text: `Summarize this meeting transcript:\n\n${transcriptText}` }] },
+      streaming: false,
+    }),
+  });
+
+  const reader = res.body?.getReader();
+  if (!reader) return '';
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if (!raw || raw === '[DONE]') continue;
+      try {
+        const event = JSON.parse(raw);
+        const parts = event?.content?.parts ?? [];
+        for (const part of parts) {
+          if (typeof part.text === 'string' && part.text) fullText += part.text;
+        }
+      } catch { /* skip non-JSON lines */ }
+    }
+  }
+  return fullText;
+}
 const TEAM_FLAGS: Record<string, string> = {
   AUS: '🇦🇺', BRA: '🇧🇷', CAN: '🇨🇦', DEN: '🇩🇰', ESP: '🇪🇸',
   FRA: '🇫🇷', GBR: '🇬🇧', GER: '🇩🇪', ITA: '🇮🇹', JPN: '🇯🇵',
@@ -57,6 +110,52 @@ function highlight(text: string, q: string) {
       </mark>
       {text.slice(idx + q.length)}
     </>
+  );
+}
+
+function SummaryView({ data }: { data: Record<string, unknown> }) {
+  function renderList(items: unknown) {
+    if (!Array.isArray(items) || items.length === 0) return null;
+    return (
+      <ul style={{ margin: '4px 0 0 0', padding: '0 0 0 14px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.65 }}>
+        {(items as unknown[]).map((item, i) => (
+          <li key={i} style={{ marginBottom: 3 }}>
+            {typeof item === 'string' ? item : typeof item === 'object' && item !== null ? (
+              <span>
+                {(item as Record<string, string>).owner && <strong style={{ color: 'var(--text)' }}>{(item as Record<string, string>).owner}: </strong>}
+                {(item as Record<string, string>).action ?? (item as Record<string, string>).text ?? JSON.stringify(item)}
+                {(item as Record<string, string>).notes && <span style={{ color: 'var(--text4)', fontSize: 12 }}> — {(item as Record<string, string>).notes}</span>}
+              </span>
+            ) : String(item)}
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  const sections: [string, string][] = [
+    ['session_type', 'Session Type'],
+    ['primers', 'Primers'],
+    ['key_observations', 'Key Observations'],
+    ['action_items', 'Action Items'],
+    ['open_questions', 'Open Questions'],
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {sections.map(([key, label]) => {
+        const val = data[key];
+        if (!val || (Array.isArray(val) && val.length === 0)) return null;
+        return (
+          <div key={key}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--green)', fontFamily: "'Barlow Condensed', sans-serif", marginBottom: 2 }}>{label}</div>
+            {typeof val === 'string' ? (
+              <div style={{ fontSize: 13, color: 'var(--text2)' }}>{val}</div>
+            ) : renderList(val)}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -129,6 +228,8 @@ function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, onEditD
 }) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
+  const [summary, setSummary] = useState<object | null>(null);
   const grouped = groupLines(t.lines);
   const preview = grouped.slice(0, 2);
   const rest = grouped.slice(2);
@@ -269,6 +370,40 @@ function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, onEditD
                   {editing ? 'Done' : 'Edit'}
                 </button>
 
+                {/* Summarize */}
+                {(t.source === 'debrief' || t.source === 'upload' || t.source === 'capture') && (
+                  <button
+                    onClick={async e => {
+                      e.stopPropagation();
+                      if (summarizing) return;
+                      setSummarizing(true);
+                      setSummary(null);
+                      try {
+                        const text = t.lines.map(l => `${l.speaker}: ${l.text}`).join('\n');
+                        const raw = await agentSummarize(text);
+                        const jsonMatch = raw.match(/```json\s*([\s\S]*?)```|(\{[\s\S]*\})/);
+                        const jsonStr = jsonMatch?.[1] ?? jsonMatch?.[2] ?? '';
+                        setSummary(jsonStr ? JSON.parse(jsonStr) : { text: raw });
+                      } catch {
+                        setSummary({ error: 'Could not generate summary — check that GingAI is running.' });
+                      } finally {
+                        setSummarizing(false);
+                      }
+                    }}
+                    title="Summarize with GingAI"
+                    style={{ ...iconBtnStyle, color: summarizing ? 'var(--green)' : 'var(--text3)', borderColor: summarizing ? 'var(--gb)' : 'var(--line)', background: summarizing ? 'var(--gg)' : 'none' }}
+                  >
+                    {summarizing ? (
+                      <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid var(--gb)', borderTopColor: 'var(--green)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--green)" stroke="none">
+                        <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+                      </svg>
+                    )}
+                    {summarizing ? 'Summarizing…' : 'Summarize'}
+                  </button>
+                )}
+
                 {/* Delete */}
                 <button
                   onClick={e => { e.stopPropagation(); setConfirmDelete(true); }}
@@ -283,6 +418,26 @@ function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, onEditD
               </>
             )}
           </div>
+
+          {/* Inline summary panel */}
+          {summary && (
+            <div style={{ padding: '12px 16px 14px', borderTop: '1px solid var(--gb)', background: 'var(--gg)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--green)"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" /></svg>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--green)', fontFamily: "'Barlow Condensed', sans-serif" }}>GingAI · Summary</span>
+                <button onClick={e => { e.stopPropagation(); setSummary(null); }} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4)', padding: 0 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              {'error' in (summary as Record<string, unknown>) ? (
+                <div style={{ fontSize: 13, color: 'var(--red)' }}>{(summary as { error: string }).error}</div>
+              ) : 'text' in (summary as Record<string, unknown>) ? (
+                <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{(summary as { text: string }).text}</div>
+              ) : (
+                <SummaryView data={summary as Record<string, unknown>} />
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
