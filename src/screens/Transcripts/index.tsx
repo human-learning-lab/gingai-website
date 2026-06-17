@@ -388,35 +388,53 @@ const SOURCES: { id: TranscriptSource | 'all'; label: string }[] = [
 const UPLOAD_REGATTAS = ['New York', 'Halifax', 'Portsmouth', 'Sassnitz', 'Valencia', 'Geneva', 'Dubai', 'Abu Dhabi'];
 const UPLOAD_TEAMS = Object.keys(TEAM_FLAGS).sort();
 const UPLOAD_TAGS = ['Debrief', 'Race', 'Training', 'Practice', 'Hot Wash', 'Briefing', 'Team', 'Coaching'];
-export const VIKTOR_HEADERS = { 'ngrok-skip-browser-warning': '1', 'Content-Type': 'application/json' };
-export const VIKTOR_BASE = process.env.NEXT_PUBLIC_VIKTOR_API_URL ?? 'https://wriggly-tutu-groin.ngrok-free.dev';
 
 interface UploadForm {
   file: File | null;
   title: string;
   user: string;
-  filetype: string;
+  regatta: string;
+  tags: string[];
 }
 
 function UploadModal({ onClose, onSubmit }: {
   onClose: () => void;
-  onSubmit: (form: UploadForm) => void;
+  onSubmit: (form: UploadForm) => Promise<void>;
 }) {
   const { role } = useRole();
   const [form, setForm] = useState<UploadForm>({
-  	file: null, title: '', filetype: '', user: role!.name,
+    file: null, title: '', user: role!.name, regatta: '', tags: [],
   });
   const [dragging, setDragging] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function setFile(f: File | null) {
     if (!f) return;
-    setForm(p => ({ ...p, file: f, title: f.name, filetype: f.name.substr(f.name.length - 3)}));
+    setForm(p => ({ ...p, file: f, title: p.title || f.name.replace(/\.[^.]+$/, '') }));
   }
 
-	
-  
-  const canSubmit = !!form.file && !!form.title.trim();
+  function toggleTag(tag: string) {
+    setForm(p => ({
+      ...p,
+      tags: p.tags.includes(tag) ? p.tags.filter(t => t !== tag) : [...p.tags, tag],
+    }));
+  }
+
+  const canSubmit = !!form.file && !!form.title.trim() && !submitting;
+
+  async function handleSubmit() {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await onSubmit(form);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Upload failed');
+      setSubmitting(false);
+    }
+  }
 
   const fieldStyle: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box', height: 36,
@@ -438,7 +456,7 @@ function UploadModal({ onClose, onSubmit }: {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 20,
       }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={e => { if (e.target === e.currentTarget && !submitting) onClose(); }}
     >
       <div style={{
         background: 'var(--bg2)', border: '1px solid var(--line)',
@@ -452,7 +470,7 @@ function UploadModal({ onClose, onSubmit }: {
             <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 800, letterSpacing: '0.01em', color: 'var(--text)', lineHeight: 1 }}>Upload Audio</div>
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>Add context before transcribing</div>
           </div>
-          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--line)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)' }}>
+          <button onClick={onClose} disabled={submitting} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--line)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
@@ -463,11 +481,11 @@ function UploadModal({ onClose, onSubmit }: {
             onDragOver={e => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={e => { e.preventDefault(); setDragging(false); setFile(e.dataTransfer.files[0]); }}
-            onClick={() => fileRef.current?.click()}
+            onClick={() => !submitting && fileRef.current?.click()}
             style={{
               border: `2px dashed ${dragging ? 'var(--green)' : form.file ? 'var(--gb)' : 'var(--line)'}`,
               borderRadius: 10, padding: '20px 16px',
-              textAlign: 'center', cursor: 'pointer',
+              textAlign: 'center', cursor: submitting ? 'default' : 'pointer',
               background: dragging ? 'var(--gg)' : form.file ? 'var(--bg3)' : 'var(--bg)',
               transition: 'all 0.15s',
             }}
@@ -500,24 +518,75 @@ function UploadModal({ onClose, onSubmit }: {
               onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
             />
           </div>
-   
+
+          {/* Regatta */}
+          <div>
+            <label style={labelStyle}>Regatta</label>
+            <select
+              style={{ ...fieldStyle, appearance: 'none', paddingRight: 28 }}
+              value={form.regatta}
+              onChange={e => setForm(p => ({ ...p, regatta: e.target.value }))}
+            >
+              <option value="">— select event —</option>
+              {UPLOAD_REGATTAS.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label style={labelStyle}>Tags</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {UPLOAD_TAGS.map(tag => {
+                const on = form.tags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTag(tag)}
+                    style={{
+                      padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                      border: `1px solid ${on ? 'var(--navy)' : 'var(--line)'}`,
+                      background: on ? 'var(--navy)' : 'var(--bg)',
+                      color: on ? '#fff' : 'var(--text3)',
+                      cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
+                    }}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Error */}
+          {submitError && (
+            <div style={{ fontSize: 12, color: 'var(--red)', background: 'var(--bg3)', borderRadius: 7, padding: '8px 12px' }}>
+              {submitError}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
         <div style={{ padding: '14px 22px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button onClick={onClose} style={{ ...btnStyle, padding: '6px 16px' }}>Cancel</button>
+          <button onClick={onClose} disabled={submitting} style={{ ...btnStyle, padding: '6px 16px' }}>Cancel</button>
           <button
             disabled={!canSubmit}
-            onClick={() => canSubmit && onSubmit(form)}
+            onClick={handleSubmit}
             style={{
               padding: '6px 18px', borderRadius: 7, border: 'none',
               background: canSubmit ? 'var(--navy)' : 'var(--bg3)',
               color: canSubmit ? '#fff' : 'var(--text4)',
               fontSize: 13, fontWeight: 600, cursor: canSubmit ? 'pointer' : 'default',
               fontFamily: 'inherit', transition: 'background 0.15s',
+              display: 'flex', alignItems: 'center', gap: 7,
             }}
           >
-            Upload &amp; Transcribe
+            {submitting && (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: 'spin 0.8s linear infinite' }}>
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+              </svg>
+            )}
+            {submitting ? 'Uploading…' : 'Upload & Transcribe'}
           </button>
         </div>
       </div>
@@ -573,23 +642,23 @@ export default function Transcripts() {
     if (updated) updateTranscript(updated).catch(err => console.error('Update failed:', err));
   }
 
-  function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve((reader.result as string).split(",")[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
- 	});
-}
-
-  async function handleUploadSubmit(form: UploadForm){
-	  const base64 = await fileToBase64(form.file!);
-
-	setShowUpload(false);
-	  await fetch(`${VIKTOR_BASE}/upload_media`,
-			{method: 'POST',
-			headers: VIKTOR_HEADERS, 
-			body: JSON.stringify({title: form.title, user: form.user, filetype: form.filetype, data: base64})});
+  async function handleUploadSubmit(form: UploadForm): Promise<void> {
+    if (!form.file) return;
+    const fd = new FormData();
+    fd.append('file', form.file);
+    fd.append('title', form.title.trim());
+    fd.append('user', form.user);
+    fd.append('regatta', form.regatta);
+    fd.append('tags', form.tags.join(','));
+    const res = await fetch('/api/transcripts?type=media', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: `Error ${res.status}` }));
+      throw new Error(err.error ?? `Upload failed (${res.status})`);
+    }
+    setShowUpload(false);
+    fetchAllTranscripts()
+      .then(data => setDbTranscripts(data))
+      .catch(() => {});
   }
 
 

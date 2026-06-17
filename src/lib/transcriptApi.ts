@@ -20,7 +20,7 @@ interface ApiCapture {
   content: string;
 }
 
-interface ApiUpload{
+interface ApiUpload {
   uploadid: number;
   username: string;
   title: string;
@@ -47,11 +47,12 @@ function parseContent(content: string, defaultSpeaker: string): TranscriptLine[]
   });
 }
 
-/** Parse "source-id" → { type, numericId } — only for DB-backed transcripts */
+/** Parse "source-id" → { type, numericId } for DB-backed transcripts */
 function parseDbId(id: string): { type: string; numericId: string } | null {
-  const match = id.match(/^(race|capture|debrief)-(\d+)$/);
+  const match = id.match(/^(race|capture|debrief|upload)-(\d+)$/);
   if (!match) return null;
-  return { type: match[1], numericId: match[2] };
+  const type = match[1] === 'upload' ? 'media' : match[1];
+  return { type, numericId: match[2] };
 }
 
 function linesToContent(lines: TranscriptLine[]): string {
@@ -134,17 +135,16 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
     lines: parseContent(c.content, c.username),
   }));
 
-
-  const uploadTranscripts: Transcript[] = (uploads as ApiUpload[]).map(c => ({
-    id: `upload-${c.uploadid}`,
+  const uploadTranscripts: Transcript[] = (uploads as ApiUpload[]).reverse().map(u => ({
+    id: `upload-${u.uploadid}`,
     source: 'upload',
     regatta: '',
     race: '',
-    team: c.username,
-    title: c.title,
+    team: u.username,
+    title: u.title,
     duration: '—',
-    lines: parseContent(c.content, c.username),
+    lines: u.content ? parseContent(u.content, u.username) : [],
   }));
 
-  return [...captureTranscripts, ...raceTranscripts, ...debriefTranscripts, ...uploadTranscripts];
+  return [...uploadTranscripts, ...captureTranscripts, ...raceTranscripts, ...debriefTranscripts];
 }

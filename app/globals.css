@@ -1875,3 +1875,6 @@ body {
 .dbd-placeholder-note {
   font-size: 10px; color: var(--text4); font-style: italic;
 }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
