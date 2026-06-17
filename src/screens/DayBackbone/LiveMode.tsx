@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRole } from '@/context/RoleContext';
 import { getBlocks, getVenueHM, secsRelTZeroTZ } from '@/data/blocks';
 import { getTideNow } from '@/data/tides';
 import type { Block } from '@/types';
@@ -287,12 +288,15 @@ declare global {
 type CapturePhase = 'closed' | 'recording' | 'saved';
 
 function MiniCapture() {
+  const { role } = useRole();
   const [phase, setPhase] = useState<CapturePhase>('closed');
   const [text, setText] = useState('');
+  const textRef = useRef('');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recRef = useRef<any>(null);
 
   function startRec() {
+    textRef.current = '';
     setText('');
     setPhase('recording');
     const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
@@ -304,10 +308,13 @@ function MiniCapture() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onresult = (e: any) => {
       let final = '';
+      let interim = '';
       for (let i = 0; i < e.results.length; i++) {
         if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
+        else interim += e.results[i][0].transcript;
       }
-      if (final.trim()) setText(final.trim());
+      const combined = (final + interim).trim();
+      if (combined) { textRef.current = combined; setText(combined); }
     };
     rec.start();
     recRef.current = rec;
@@ -316,19 +323,16 @@ function MiniCapture() {
   function stopRec() {
     recRef.current?.stop();
     recRef.current = null;
-    const saved = text.trim();
+    const saved = textRef.current.trim();
     if (saved) {
-      const ts = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-      fetch('api/transcripts', {
-		method: 'POST',
-		headers:  {'Content-Type': 'application/json'},
-		body: JSON.stringify({
-			type: 'capture',
-	  		user: 'Live',
-      		text: saved,})
-    });    }
+      fetch('/api/transcripts?type=capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: role?.name ?? 'Live', text: saved }),
+      }).catch(err => console.error('[MiniCapture] save failed', err));
+    }
     setPhase('saved');
-    setTimeout(() => { setPhase('closed'); setText(''); }, 1800);
+    setTimeout(() => { setPhase('closed'); setText(''); textRef.current = ''; }, 1800);
   }
 
   if (phase === 'closed') {

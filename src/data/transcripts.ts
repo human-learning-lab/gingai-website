@@ -15,4 +15,5 @@ export type Transcript = {
   duration: string;
   lines: TranscriptLine[];
   avatarUrl?: string;
+  date?: string;
 };
