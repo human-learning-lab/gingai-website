@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import Timeline from '@/components/Timeline/Timeline';
 import AgendaTimeline from '@/components/Timeline/AgendaTimeline';
@@ -61,8 +62,6 @@ const REGATTAS: Regatta[] = [
 		},
 		weekAgenda: {
 			0: [
-				{ time: '—',     title: 'Hotel: NU Hotel Brooklyn\n85 Smith St, Brooklyn NY 11201', tag: 'Hotel', tagColor: 'var(--text3)' },
-				{ time: '—',     title: 'Tech site: 210 Clinton Wharf, Brooklyn NY 11231',          tag: 'Venue', tagColor: 'var(--yellow)' },
 				{ time: '14:30', title: 'Simulator session 1',                                      tag: 'Sim',   tagColor: 'var(--text3)' },
 				{ time: '15:00', title: 'Simulator session 2',                                      tag: 'Sim',   tagColor: 'var(--text3)' },
 				{ time: '16:00', title: 'SailGP team meeting — Hilton Hotel',                       tag: 'Team',  tagColor: 'var(--text3)' },
@@ -276,25 +275,10 @@ function RegatNav({ activeRegat, setActiveRegat, activeDay, setActiveDay }: {
 }
 
 /* ─── Agenda view for non-race days ─────────────────────────── */
-const LOCATION_CARDS: Record<string, { type: string; name: string; address: string; mapsUrl: string }> = {
-	'Hotel': {
-		type: 'Hotel',
-		name: 'NU Hotel Brooklyn',
-		address: '85 Smith St, Brooklyn NY 11201',
-		mapsUrl: 'https://maps.google.com/?q=NU+Hotel+Brooklyn+85+Smith+St+Brooklyn+NY',
-	},
-	'Venue': {
-		type: 'Tech Site',
-		name: 'Clinton Wharf — Tech Base',
-		address: '210 Clinton Wharf, Brooklyn NY 11231',
-		mapsUrl: 'https://maps.app.goo.gl/mNCCdT1XGTAGJhKcA',
-	},
-};
-
-function LocationCard({ loc }: { loc: typeof LOCATION_CARDS[string] }) {
-	const isHotel = loc.type === 'Hotel';
-	return (
-		<a href={loc.mapsUrl} target="_blank" rel="noopener noreferrer" className="loc-card">
+function LocationCard({ ev }: { ev: ScheduleEvent }) {
+	const isHotel = ev.tag === 'Hotel';
+	const inner = (
+		<>
 			<div className="loc-card-icon">
 				{isHotel ? (
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -309,22 +293,66 @@ function LocationCard({ loc }: { loc: typeof LOCATION_CARDS[string] }) {
 				)}
 			</div>
 			<div className="loc-card-body">
-				<div className="loc-card-type">{loc.type}</div>
-				<div className="loc-card-name">{loc.name}</div>
-				<div className="loc-card-address">{loc.address}</div>
+				<div className="loc-card-type">{isHotel ? 'Hotel' : 'Tech Site'}</div>
+				<div className="loc-card-name">{ev.label || (isHotel ? 'Hotel' : 'Venue')}</div>
+				{ev.notes && <div className="loc-card-address">{ev.notes}</div>}
 			</div>
-			<div className="loc-card-arrow">
-				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-					<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-					<polyline points="15 3 21 3 21 9"/>
-					<line x1="10" y1="14" x2="21" y2="3"/>
-				</svg>
-			</div>
-		</a>
+			{ev.mapsUrl && (
+				<div className="loc-card-arrow">
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+						<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+						<polyline points="15 3 21 3 21 9"/>
+						<line x1="10" y1="14" x2="21" y2="3"/>
+					</svg>
+				</div>
+			)}
+		</>
+	);
+	if (ev.mapsUrl) {
+		return <a href={ev.mapsUrl} target="_blank" rel="noopener noreferrer" className="loc-card">{inner}</a>;
+	}
+	return <div className="loc-card" style={{ cursor: 'default' }}>{inner}</div>;
+}
+
+function DriveViewer({ url, title }: { url: string; title: string }) {
+	return (
+		<iframe
+			src={driveEmbedUrl(url)}
+			style={{ flex: 1, border: 'none', display: 'block', width: '100%', height: '100%' }}
+			allow="autoplay"
+			title={title}
+		/>
 	);
 }
 
-function AgendaDayView({ items, dayLabel, showLocations }: { items: ScheduleEvent[]; dayLabel: string; showLocations?: boolean }) {
+function driveFileType(url: string): string {
+	if (/docs\.google\.com\/document/.test(url)) return 'Doc';
+	if (/docs\.google\.com\/spreadsheets/.test(url)) return 'Sheet';
+	if (/docs\.google\.com\/presentation/.test(url)) return 'Slides';
+	if (/docs\.google\.com\/forms/.test(url)) return 'Form';
+	// Try to detect extension from filename in URL
+	const ext = url.match(/\.([a-z]{2,5})(?:[?#]|$)/i)?.[1]?.toLowerCase();
+	if (ext === 'pdf') return 'PDF';
+	if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') return 'Sheet';
+	if (ext === 'docx' || ext === 'doc') return 'Doc';
+	if (ext === 'pptx' || ext === 'ppt') return 'Slides';
+	return 'File';
+}
+
+function driveEmbedUrl(url: string): string {
+	// Google Docs / Sheets / Slides — replace /edit or /view with /preview
+	if (/docs\.google\.com\/(document|spreadsheets|presentation|forms)/.test(url)) {
+		return url.replace(/\/(edit|view|htmlview)(\?.*)?$/, '/preview');
+	}
+	// drive.google.com/file/d/ID/...
+	const fileId = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)?.[1]
+		?? url.match(/[?&]id=([a-zA-Z0-9_-]+)/)?.[1];
+	if (fileId) return `https://drive.google.com/file/d/${fileId}/preview`;
+	return url;
+}
+
+function AgendaDayView({ items, dayLabel, onOpenDrive }: { items: ScheduleEvent[]; dayLabel: string; onOpenDrive: (url: string, title: string) => void }) {
+	const locationItems = items.filter(i => i.tag === 'Hotel' || i.tag === 'Venue');
 	const regularItems = items.filter(i => i.tag !== 'Hotel' && i.tag !== 'Venue');
 	return (
 		<div className="agenda-day-wrap">
@@ -333,17 +361,16 @@ function AgendaDayView({ items, dayLabel, showLocations }: { items: ScheduleEven
 				<div className="agenda-day-sub">Day agenda · indicative schedule</div>
 			</div>
 
-			{/* Location cards — Thu explicitly, Fri/others via showLocations prop */}
-			{(items.some(i => i.tag === 'Hotel' || i.tag === 'Venue') || showLocations) && (
+			{locationItems.length > 0 && (
 				<div className="loc-cards-row">
-					<LocationCard loc={LOCATION_CARDS['Hotel']} />
-					<LocationCard loc={LOCATION_CARDS['Venue']} />
+					{locationItems.map((ev, i) => <LocationCard key={i} ev={ev} />)}
 				</div>
 			)}
 
-			<div className="agenda-day-list">
-				{regularItems.map((item, i) => (
-					<div key={i} className="agenda-day-row">
+		<div className="agenda-day-list">
+			{regularItems.map((item, i) => (
+				<div key={i}>
+					<div className="agenda-day-row">
 						<div className="agenda-day-time">{item.time}</div>
 						<div className="agenda-day-body">
 							<div className="agenda-day-name">{item.label}</div>
@@ -352,34 +379,71 @@ function AgendaDayView({ items, dayLabel, showLocations }: { items: ScheduleEven
 									{item.tag}
 								</span>
 							)}
+							<div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
 							{item.driveUrl && (
-								<a
-									href={item.driveUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									onClick={e => e.stopPropagation()}
-									style={{
-										display: 'inline-flex', alignItems: 'center', gap: 3,
-										fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-										fontFamily: "'Barlow Condensed', sans-serif",
-										color: 'var(--green)', background: 'var(--gg)',
-										borderRadius: 3, padding: '1px 5px', border: '1px solid var(--gb)',
-										textDecoration: 'none', marginTop: 3,
-									}}
+								<button
+									onClick={() => onOpenDrive(item.driveUrl!, item.label)}
+									style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif", color: 'var(--green)', background: 'var(--gg)', borderRadius: 3, padding: '2px 6px', border: '1px solid var(--gb)', cursor: 'pointer' }}
 								>
-									<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-										<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-										<polyline points="14 2 14 8 20 8"/>
-									</svg>
-									Drive
+								<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+								{driveFileType(item.driveUrl!)}
+							</button>
+							)}
+							{item.mapsUrl && (
+								<a href={item.mapsUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+									style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif", color: '#ea4335', background: 'rgba(234,67,53,0.08)', borderRadius: 3, padding: '2px 6px', border: '1px solid rgba(234,67,53,0.25)', textDecoration: 'none' }}
+								>
+									<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+									Maps
 								</a>
 							)}
+							</div>
 						</div>
 					</div>
-				))}
-			</div>
+				</div>
+			))}
+		</div>
 		</div>
 	);
+}
+
+/* ─── Desktop agenda main panel ──────────────────────────────── */
+function AgendaMainPanel({ items, selectedEvent }: { items: ScheduleEvent[]; selectedEvent: ScheduleEvent | null }) {
+	const locationItems = items.filter(i => i.tag === 'Hotel' || i.tag === 'Venue');
+
+	if (selectedEvent) {
+		const isLocation = selectedEvent.tag === 'Hotel' || selectedEvent.tag === 'Venue';
+		return (
+			<div style={{ padding: '24px 28px' }}>
+				{isLocation ? (
+					<LocationCard ev={selectedEvent} />
+				) : (
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+						<div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)' }}>
+							{selectedEvent.time && selectedEvent.time !== '—' ? selectedEvent.time : ''}
+						</div>
+						<div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>{selectedEvent.label}</div>
+						{selectedEvent.tag && (
+							<span style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: selectedEvent.tagColor || 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif" }}>
+								{selectedEvent.tag}
+							</span>
+						)}
+						{selectedEvent.notes && (
+							<div style={{ marginTop: 8, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>{selectedEvent.notes}</div>
+						)}
+						{selectedEvent.mapsUrl && (
+							<a href={selectedEvent.mapsUrl} target="_blank" rel="noopener noreferrer" style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#ea4335', textDecoration: 'none' }}>
+								<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+								Open in Maps
+							</a>
+						)}
+					</div>
+				)}
+			</div>
+		);
+	}
+
+	return null;
 }
 
 /* ─── Race schedule card shown on race days ─────────────────── */
@@ -556,6 +620,7 @@ export default function DayBackbone() {
 	const [simMode]                     = useState(false);
 	const [editMode, setEditMode]       = useState(false);
 	const [schedule, setSchedule]       = useState<ScheduleEvent[] | null>(null);
+	const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
 
 	const activeVenue = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[5];
 	const venueTimezone = activeVenue.timezone;
@@ -579,24 +644,32 @@ export default function DayBackbone() {
 	const raceSchedule = activeVenue.raceSchedule?.[activeDay];
 	const raceScheduleOverride = !isAgendaDay && !simMode ? (schedule ?? undefined) : undefined;
 
-	// Load saved schedule from localStorage (or seed from hardcoded data) on regatta/day change
+	// Load schedule from backend (with localStorage fallback) on regatta/day change
 	useEffect(() => {
 		setEditMode(false);
-		const saved = loadSchedule(effectiveRegatId, activeDay);
-		if (saved) {
-			setSchedule(saved);
-		} else {
+		setSelectedEvent(null);
+		let cancelled = false;
+
+		function applyFallback() {
+			if (cancelled) return;
 			const agendaRaw = activeVenue.weekAgenda?.[activeDay];
 			const isAgenda = !simMode && !!agendaRaw && !activeVenue.raceDayIndices?.includes(activeDay);
 			if (isAgenda && agendaRaw) {
 				setSchedule(seedFromAgenda(agendaRaw));
 			} else if (!simMode) {
-				const defaultBlocks = getBlocks(new Date(), effectiveRegatId, activeDay, venueTimezone);
-				setSchedule(seedFromBlocks(defaultBlocks));
+				setSchedule(seedFromBlocks(getBlocks(new Date(), effectiveRegatId, activeDay, venueTimezone)));
 			} else {
 				setSchedule(null);
 			}
 		}
+
+		loadSchedule(effectiveRegatId, activeDay).then(saved => {
+			if (cancelled) return;
+			if (saved) setSchedule(saved);
+			else applyFallback();
+		}).catch(applyFallback);
+
+		return () => { cancelled = true; };
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [activeRegat, activeDay, simMode]);
 
@@ -619,9 +692,9 @@ export default function DayBackbone() {
 	}, [activeRegat, activeDay, simMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	function handleScheduleSave(events: ScheduleEvent[]) {
-		saveSchedule(effectiveRegatId, activeDay, events);
 		setSchedule(events);
 		setEditMode(false);
+		saveSchedule(effectiveRegatId, activeDay, events); // fire-and-forget (also writes localStorage)
 	}
 
 	function handleSelect(id: string) {
@@ -649,6 +722,14 @@ export default function DayBackbone() {
 	selectedDate.setDate(selectedDate.getDate() + activeDay);
 
 	const isRaceDay = simMode || !isAgendaDay;
+
+	// Edit controls rendered inside the Event Schedule sidebar section
+	const scheduleEditSrc = isAgendaDay ? (schedule ?? agendaItems ?? []) : (schedule ?? seedFromBlocks(blocks));
+	const scheduleEditCtrl = canEditSchedule(role) && !simMode ? (
+		editMode
+			? <ScheduleEditor events={scheduleEditSrc} onSave={handleScheduleSave} onCancel={() => setEditMode(false)} />
+			: <EditScheduleBtn onClick={() => setEditMode(true)} />
+	) : undefined;
 
 	function renderMobExpanded(blockId: string) {
 		const b = blocks.find(bl => bl.id === blockId);
@@ -692,7 +773,8 @@ export default function DayBackbone() {
 	<MobConditionsBar lat={activeVenue.lat} lon={activeVenue.lon} city={activeVenue.city} />
 	{isAgendaDay && agendaItems ? (
 		<div style={{ padding: '12px 16px' }}>
-			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1 && activeVenue.id === 'newyork'} />
+			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} onOpenDrive={(url, title) => setSelectedEvent({ id: url, label: title, driveUrl: url, time: '', tag: '' })} />
+			{scheduleEditCtrl}
 		</div>
 	) : (
 		<div className="mob-bb-tl">
@@ -701,7 +783,7 @@ export default function DayBackbone() {
 					<RaceScheduleCard races={raceSchedule.races} broadcast={raceSchedule.broadcast} dayLabel={activeVenue.days[activeDay]} />
 				</div>
 			)}
-			<Timeline selectedId={selectedId} onSelect={handleSelect} renderExpanded={renderMobExpanded} blocks={blocks} onLive={isRaceDay && !simMode ? handleEnterLive : undefined} scheduleOverride={raceScheduleOverride} />
+			<Timeline selectedId={selectedId} onSelect={handleSelect} renderExpanded={renderMobExpanded} blocks={blocks} onLive={isRaceDay && !simMode ? handleEnterLive : undefined} scheduleOverride={raceScheduleOverride} editControls={scheduleEditCtrl} />
 		</div>
 	)}
 	</div>
@@ -716,48 +798,29 @@ export default function DayBackbone() {
 			venueLat={activeVenue.lat}
 			venueLon={activeVenue.lon}
 			selectedDate={selectedDate}
+			editControls={scheduleEditCtrl}
+			onSelect={(ev) => setSelectedEvent(prev => prev?.id === ev.id ? null : ev)}
+			selectedId={selectedEvent?.id}
 		/>
 	) : (
-		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} onLive={isRaceDay && !simMode ? handleEnterLive : undefined} raceScheduleNode={raceSchedule && !simMode ? <RaceScheduleCard races={raceSchedule.races} broadcast={raceSchedule.broadcast} dayLabel={activeVenue.days[activeDay]} /> : undefined} scheduleOverride={raceScheduleOverride} />
+		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} onLive={isRaceDay && !simMode ? handleEnterLive : undefined} raceScheduleNode={raceSchedule && !simMode ? <RaceScheduleCard races={raceSchedule.races} broadcast={raceSchedule.broadcast} dayLabel={activeVenue.days[activeDay]} /> : undefined} scheduleOverride={raceScheduleOverride} editControls={scheduleEditCtrl} />
 	)}
-	<div className="main">
-	<RegatNav activeRegat={activeRegat} setActiveRegat={selectRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
-		<div key={`${activeRegat}-${activeDay}`} className="block-view on">
-		{isAgendaDay && agendaItems ? (
-			<>
-				<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1 && activeVenue.id === 'newyork'} />
-				{canEditSchedule(role) && (
-					editMode ? (
-						<ScheduleEditor
-							events={schedule ?? agendaItems}
-							onSave={handleScheduleSave}
-							onCancel={() => setEditMode(false)}
-						/>
-					) : (
-						<EditScheduleBtn onClick={() => setEditMode(true)} />
-					)
-				)}
-			</>
+	<div className="main" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+		<RegatNav activeRegat={activeRegat} setActiveRegat={selectRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
+		{isAgendaDay && agendaItems && selectedEvent?.driveUrl ? (
+			<DriveViewer url={selectedEvent.driveUrl} title={selectedEvent.label} />
 		) : (
 			<>
-				{blockContent}
-				{canEditSchedule(role) && !simMode && (
-					editMode ? (
-						<ScheduleEditor
-							events={schedule ?? seedFromBlocks(blocks)}
-							onSave={handleScheduleSave}
-							onCancel={() => setEditMode(false)}
-						/>
-					) : (
-						<EditScheduleBtn onClick={() => setEditMode(true)} />
-					)
-				)}
+			<div key={`${activeRegat}-${activeDay}`} className="block-view on">
+			{isAgendaDay && agendaItems ? (
+				<AgendaMainPanel items={agendaItems} selectedEvent={selectedEvent} />
+			) : blockContent}
+			</div>
+			<AskMeBar />
 			</>
 		)}
 		</div>
-		<AskMeBar />
-		</div>
-		</div>
+	</div>
 
 		</div>
 	);
@@ -765,24 +828,22 @@ export default function DayBackbone() {
 
 function EditScheduleBtn({ onClick }: { onClick: () => void }) {
 	return (
-		<div style={{ padding: '8px 16px 0' }}>
-			<button
-				onClick={onClick}
-				style={{
-					display: 'inline-flex', alignItems: 'center', gap: 6,
-					padding: '5px 12px', borderRadius: 6,
-					border: '1px solid var(--line)', background: 'none',
-					fontSize: 11, fontWeight: 600, cursor: 'pointer',
-					fontFamily: 'inherit', color: 'var(--text4)',
-					letterSpacing: '0.04em',
-				}}
-			>
-				<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-					<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-					<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-				</svg>
-				Edit schedule
-			</button>
-		</div>
+	<button
+		onClick={onClick}
+		style={{
+			display: 'inline-flex', alignItems: 'center', gap: 5,
+			padding: '3px 8px', borderRadius: 5,
+			border: '1px solid var(--line)', background: 'none',
+			fontSize: 10, fontWeight: 600, cursor: 'pointer',
+			fontFamily: 'inherit', color: 'var(--text4)',
+			flexShrink: 0,
+		}}
+	>
+		<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+			<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+			<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+		</svg>
+		Edit
+	</button>
 	);
 }
