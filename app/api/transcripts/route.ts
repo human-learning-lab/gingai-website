@@ -26,24 +26,14 @@ export async function POST(req: NextRequest){
 
   if (type === 'media') {
     try {
-      const form = await req.formData();
-      const file = form.get('file');
-      if (!file || typeof file === 'string') {
-        return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-      }
-      const title   = (form.get('title')   as string | null) ?? '';
-      const user    = (form.get('user')    as string | null) ?? '';
-      const regatta = (form.get('regatta') as string | null) ?? '';
-      const tags    = (form.get('tags')    as string | null) ?? '';
-
-      const arrayBuffer = await (file as File).arrayBuffer();
-      const base64 = Buffer.from(arrayBuffer).toString('base64');
-      const filetype = (file as File).name.split('.').pop()?.toLowerCase() ?? 'mp3';
-
-      const res = await upstream(path, {
+      // Stream FormData directly to avoid base64 inflation (which causes 413)
+      const contentType = req.headers.get('content-type') ?? 'multipart/form-data';
+      const res = await fetch(`${BASE}${path}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filetype, upload_type: 'transcript', data: base64, title, user, regatta, tags }),
+        headers: { ...HEADERS, 'Content-Type': contentType },
+        // @ts-expect-error — duplex required when streaming body in Node fetch
+        body: req.body,
+        duplex: 'half',
       });
       const text = await res.text();
       if (!res.ok) {
