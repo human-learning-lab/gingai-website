@@ -12,6 +12,7 @@
     "@clerk/nextjs": "^7.3.7",
     "@ricky0123/vad-web": "^0.0.30",
     "@types/react-plotly.js": "^2.6.4",
+    "googleapis": "^173.0.0",
     "next": "16.1.6",
     "plotly.js-basic-dist-min": "^3.6.0",
     "react": "^19.2.0",
