@@ -810,7 +810,7 @@ export default function Transcripts() {
     fd.append('regatta', form.regatta);
     fd.append('tags', form.tags.join(','));
     fd.append('filetype', form.file.name.split('.').pop()?.toLowerCase() ?? 'mp3');
-    const res = await fetch('/api/transcripts?type=media', { method: 'POST', body: fd });
+    const res = await fetch('/api/upload-media', { method: 'POST', body: fd });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: `Error ${res.status}` }));
       throw new Error(err.error ?? `Upload failed (${res.status})`);
