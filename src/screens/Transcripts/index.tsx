@@ -824,8 +824,15 @@ export default function Transcripts() {
       }),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: `Error ${res.status}` }));
-      throw new Error(err.error ?? `Upload failed (${res.status})`);
+      const text = await res.text().catch(() => '');
+      console.error('[upload] error', res.status, text);
+      let msg = `Upload failed (${res.status})`;
+      try {
+        const j = JSON.parse(text);
+        msg = j.error ?? j.detail ?? (typeof j === 'string' ? j : msg);
+        if (Array.isArray(msg)) msg = JSON.stringify(msg);
+      } catch { /* use default */ }
+      throw new Error(msg);
     }
     setShowUpload(false);
     fetchAllTranscripts()
