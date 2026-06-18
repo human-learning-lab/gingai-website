@@ -31,10 +31,9 @@ export async function POST(req: NextRequest){
       const res = await fetch(`${BASE}${path}`, {
         method: 'POST',
         headers: { ...HEADERS, 'Content-Type': contentType },
-        // @ts-expect-error — duplex required when streaming body in Node fetch
         body: req.body,
         duplex: 'half',
-      });
+      } as RequestInit);
       const text = await res.text();
       if (!res.ok) {
         console.error('[transcripts/media] upstream error:', res.status, text.slice(0, 400));
