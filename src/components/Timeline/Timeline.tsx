@@ -18,6 +18,7 @@ interface Props {
   onLive?: () => void;
   raceScheduleNode?: React.ReactNode;
   scheduleOverride?: ScheduleEvent[];
+  editControls?: React.ReactNode;
 }
 
 function formatTZero(offset: number): string {
@@ -57,7 +58,7 @@ function secsRelTZero(targetTime: string, now: Date): number {
   return Math.floor((now.getTime() - target.getTime()) / 1000);
 }
 
-export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity, blocks: propBlocks, selectedDate, onLive, raceScheduleNode, scheduleOverride }: Props) {
+export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity, blocks: propBlocks, selectedDate, onLive, raceScheduleNode, scheduleOverride, editControls }: Props) {
   const now = useNow();
   const blocks = propBlocks ?? getBlocks(now, undefined, undefined, undefined, scheduleOverride);
   const listRef = useRef<HTMLDivElement>(null);
@@ -107,8 +108,11 @@ export default function Timeline({ selectedId, onSelect, renderExpanded, venueLa
           </button>
         )}
       </div>
-      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)', padding: '10px 16px 4px' }}>
-        Event Schedule
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 4px' }}>
+        <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)' }}>
+          Event Schedule
+        </div>
+        {editControls}
       </div>
       <div className="tl-list" ref={listRef}>
         {blocks.map(block => {

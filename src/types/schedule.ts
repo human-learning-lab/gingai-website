@@ -5,6 +5,7 @@ export interface ScheduleEvent {
   tag: string;
   tagColor?: string;
   driveUrl?: string;   // Google Drive link (opens in new tab)
+  mapsUrl?: string;    // Google Maps link for venues/hotels
   notes?: string;
   panelKey?: string;   // maps to block.panel for rich content rendering
   tZeroOffset?: number; // preserved from race blocks for T-Zero tracking
