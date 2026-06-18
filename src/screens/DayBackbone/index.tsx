@@ -7,10 +7,13 @@ import AgendaTimeline from '@/components/Timeline/AgendaTimeline';
 import Block1430 from './views/Block1430';
 import BlockContent from './BlockContent';
 import LiveMode from './LiveMode';
+import ScheduleEditor from './ScheduleEditor';
 import { MobConditionsBar } from '@/components/Timeline/ConditionsPanel';
 import { getBlocks } from '@/data/blocks';
+import { useRole } from '@/context/RoleContext';
+import { loadSchedule, saveSchedule, seedFromBlocks, seedFromAgenda } from '@/lib/scheduleApi';
+import type { ScheduleEvent } from '@/types/schedule';
 
-type AgendaItem = { time: string; title: string; tag?: string; tagColor?: string };
 type RaceEntry  = { id: string; start: string; end: string; final?: boolean };
 
 interface Regatta {
@@ -20,7 +23,7 @@ interface Regatta {
 	timezone?: string;
 	raceDayIndices?: number[];
 	raceSchedule?: Record<number, { broadcast: string; races: RaceEntry[] }>;
-	weekAgenda?:  Record<number, AgendaItem[]>;
+	weekAgenda?:  Record<number, { time: string; title: string; tag?: string; tagColor?: string }[]>;
 }
 
 const REGATTAS: Regatta[] = [
@@ -321,7 +324,7 @@ function LocationCard({ loc }: { loc: typeof LOCATION_CARDS[string] }) {
 	);
 }
 
-function AgendaDayView({ items, dayLabel, showLocations }: { items: AgendaItem[]; dayLabel: string; showLocations?: boolean }) {
+function AgendaDayView({ items, dayLabel, showLocations }: { items: ScheduleEvent[]; dayLabel: string; showLocations?: boolean }) {
 	const regularItems = items.filter(i => i.tag !== 'Hotel' && i.tag !== 'Venue');
 	return (
 		<div className="agenda-day-wrap">
@@ -343,11 +346,33 @@ function AgendaDayView({ items, dayLabel, showLocations }: { items: AgendaItem[]
 					<div key={i} className="agenda-day-row">
 						<div className="agenda-day-time">{item.time}</div>
 						<div className="agenda-day-body">
-							<div className="agenda-day-name">{item.title}</div>
+							<div className="agenda-day-name">{item.label}</div>
 							{item.tag && (
 								<span className="agenda-day-tag" style={{ color: item.tagColor || 'var(--text4)' }}>
 									{item.tag}
 								</span>
+							)}
+							{item.driveUrl && (
+								<a
+									href={item.driveUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									onClick={e => e.stopPropagation()}
+									style={{
+										display: 'inline-flex', alignItems: 'center', gap: 3,
+										fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+										fontFamily: "'Barlow Condensed', sans-serif",
+										color: 'var(--green)', background: 'var(--gg)',
+										borderRadius: 3, padding: '1px 5px', border: '1px solid var(--gb)',
+										textDecoration: 'none', marginTop: 3,
+									}}
+								>
+									<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+										<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+										<polyline points="14 2 14 8 20 8"/>
+									</svg>
+									Drive
+								</a>
 							)}
 						</div>
 					</div>
@@ -514,7 +539,12 @@ function blockContentForPanel(panel: string, selectedId: string, blocks?: import
 	return <BlockContent panel={panel} selectedId={selectedId} blocks={blocks} />;
 }
 
+function canEditSchedule(role: import('@/types').Role | null): boolean {
+	return role?.view === 'coach' || role?.view === 'developer' || role?.id === 'rasmus';
+}
+
 export default function DayBackbone() {
+	const { role } = useRole();
 	const [activeRegat, setActiveRegat] = useState(getDefaultRegat);
 	const [activeDay, setActiveDay]     = useState(() => getDefaultDay(getDefaultRegat()));
 
@@ -524,13 +554,15 @@ export default function DayBackbone() {
 	}
 	const [isLiveMode, setIsLiveMode]   = useState(false);
 	const [simMode]                     = useState(false);
-	const activeVenue = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[5];
+	const [editMode, setEditMode]       = useState(false);
+	const [schedule, setSchedule]       = useState<ScheduleEvent[] | null>(null);
 
+	const activeVenue = REGATTAS.find(r => r.id === activeRegat) ?? REGATTAS[5];
 	const venueTimezone = activeVenue.timezone;
 
 	// In sim mode, always use sim-camp blocks regardless of regatta selection
 	const effectiveRegatId = simMode ? 'sim-camp' : activeRegat;
-	const blocks = getBlocks(new Date(), effectiveRegatId, activeDay, venueTimezone);
+	const blocks = getBlocks(new Date(), effectiveRegatId, activeDay, venueTimezone, schedule ?? undefined);
 	const nowBlock = blocks.find(b => b.status === 'now');
 	const [selectedId, setSelectedId] = useState(nowBlock?.id ?? blocks[0]?.id ?? '1430');
 	const userSelectedRef = useRef(false);
@@ -540,8 +572,33 @@ export default function DayBackbone() {
 		activeVenue.weekAgenda?.[activeDay] &&
 		!activeVenue.raceDayIndices?.includes(activeDay)
 	);
-	const agendaItems  = activeVenue.weekAgenda?.[activeDay];
+	// Use dynamic schedule for agenda items; fall back to hardcoded for race days
+	const agendaItems: ScheduleEvent[] | undefined = isAgendaDay
+		? (schedule ?? undefined)
+		: undefined;
 	const raceSchedule = activeVenue.raceSchedule?.[activeDay];
+	const raceScheduleOverride = !isAgendaDay && !simMode ? (schedule ?? undefined) : undefined;
+
+	// Load saved schedule from localStorage (or seed from hardcoded data) on regatta/day change
+	useEffect(() => {
+		setEditMode(false);
+		const saved = loadSchedule(effectiveRegatId, activeDay);
+		if (saved) {
+			setSchedule(saved);
+		} else {
+			const agendaRaw = activeVenue.weekAgenda?.[activeDay];
+			const isAgenda = !simMode && !!agendaRaw && !activeVenue.raceDayIndices?.includes(activeDay);
+			if (isAgenda && agendaRaw) {
+				setSchedule(seedFromAgenda(agendaRaw));
+			} else if (!simMode) {
+				const defaultBlocks = getBlocks(new Date(), effectiveRegatId, activeDay, venueTimezone);
+				setSchedule(seedFromBlocks(defaultBlocks));
+			} else {
+				setSchedule(null);
+			}
+		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [activeRegat, activeDay, simMode]);
 
 	// Reset selection when regatta, day, or sim mode changes
 	useEffect(() => {
@@ -560,6 +617,12 @@ export default function DayBackbone() {
 		}, 30_000);
 		return () => clearInterval(interval);
 	}, [activeRegat, activeDay, simMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+	function handleScheduleSave(events: ScheduleEvent[]) {
+		saveSchedule(effectiveRegatId, activeDay, events);
+		setSchedule(events);
+		setEditMode(false);
+	}
 
 	function handleSelect(id: string) {
 		userSelectedRef.current = true;
@@ -638,7 +701,7 @@ export default function DayBackbone() {
 					<RaceScheduleCard races={raceSchedule.races} broadcast={raceSchedule.broadcast} dayLabel={activeVenue.days[activeDay]} />
 				</div>
 			)}
-			<Timeline selectedId={selectedId} onSelect={handleSelect} renderExpanded={renderMobExpanded} blocks={blocks} onLive={isRaceDay && !simMode ? handleEnterLive : undefined} />
+			<Timeline selectedId={selectedId} onSelect={handleSelect} renderExpanded={renderMobExpanded} blocks={blocks} onLive={isRaceDay && !simMode ? handleEnterLive : undefined} scheduleOverride={raceScheduleOverride} />
 		</div>
 	)}
 	</div>
@@ -655,19 +718,71 @@ export default function DayBackbone() {
 			selectedDate={selectedDate}
 		/>
 	) : (
-		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} onLive={isRaceDay && !simMode ? handleEnterLive : undefined} raceScheduleNode={raceSchedule && !simMode ? <RaceScheduleCard races={raceSchedule.races} broadcast={raceSchedule.broadcast} dayLabel={activeVenue.days[activeDay]} /> : undefined} />
+		<Timeline selectedId={selectedId} onSelect={handleSelect} venueLat={activeVenue.lat} venueLon={activeVenue.lon} venueCity={activeVenue.city} blocks={blocks} selectedDate={selectedDate} onLive={isRaceDay && !simMode ? handleEnterLive : undefined} raceScheduleNode={raceSchedule && !simMode ? <RaceScheduleCard races={raceSchedule.races} broadcast={raceSchedule.broadcast} dayLabel={activeVenue.days[activeDay]} /> : undefined} scheduleOverride={raceScheduleOverride} />
 	)}
 	<div className="main">
 	<RegatNav activeRegat={activeRegat} setActiveRegat={selectRegat} activeDay={activeDay} setActiveDay={setActiveDay} />
 		<div key={`${activeRegat}-${activeDay}`} className="block-view on">
 		{isAgendaDay && agendaItems ? (
-			<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1 && activeVenue.id === 'newyork'} />
-		) : blockContent}
+			<>
+				<AgendaDayView items={agendaItems} dayLabel={activeVenue.days[activeDay]} showLocations={activeDay === 1 && activeVenue.id === 'newyork'} />
+				{canEditSchedule(role) && (
+					editMode ? (
+						<ScheduleEditor
+							events={schedule ?? agendaItems}
+							onSave={handleScheduleSave}
+							onCancel={() => setEditMode(false)}
+						/>
+					) : (
+						<EditScheduleBtn onClick={() => setEditMode(true)} />
+					)
+				)}
+			</>
+		) : (
+			<>
+				{blockContent}
+				{canEditSchedule(role) && !simMode && (
+					editMode ? (
+						<ScheduleEditor
+							events={schedule ?? seedFromBlocks(blocks)}
+							onSave={handleScheduleSave}
+							onCancel={() => setEditMode(false)}
+						/>
+					) : (
+						<EditScheduleBtn onClick={() => setEditMode(true)} />
+					)
+				)}
+			</>
+		)}
 		</div>
 		<AskMeBar />
 		</div>
 		</div>
 
+		</div>
+	);
+}
+
+function EditScheduleBtn({ onClick }: { onClick: () => void }) {
+	return (
+		<div style={{ padding: '8px 16px 0' }}>
+			<button
+				onClick={onClick}
+				style={{
+					display: 'inline-flex', alignItems: 'center', gap: 6,
+					padding: '5px 12px', borderRadius: 6,
+					border: '1px solid var(--line)', background: 'none',
+					fontSize: 11, fontWeight: 600, cursor: 'pointer',
+					fontFamily: 'inherit', color: 'var(--text4)',
+					letterSpacing: '0.04em',
+				}}
+			>
+				<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+					<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+					<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+				</svg>
+				Edit schedule
+			</button>
 		</div>
 	);
 }

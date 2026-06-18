@@ -1,4 +1,5 @@
 import type { Block } from '@/types';
+import type { ScheduleEvent } from '@/types/schedule';
 
 type BlockSeed = Omit<Block, 'status'>;
 
@@ -125,12 +126,64 @@ function seedsToBlocks(seeds: BlockSeed[], now: Date, timezone?: string): Block[
   }));
 }
 
-export function getBlocks(now: Date = new Date(), regatId?: string, dayIndex?: number, timezone?: string): Block[] {
-  if (regatId === 'newyork' && dayIndex === 2) return seedsToBlocks(NYC_SAT_SEEDS, now, timezone);
-  if (regatId === 'newyork' && dayIndex === 3) return seedsToBlocks(NYC_SUN_SEEDS, now, timezone);
-  if (regatId === 'sim-camp') return seedsToBlocks(HALIFAX_SIM_SEEDS, now, timezone);
-  if (regatId === 'halifax')  return seedsToBlocks(HALIFAX_RACE_SEEDS, now, timezone);
-  return seedsToBlocks(GENERIC_SEEDS, now, timezone);
+function getDefaultSeeds(regatId?: string, dayIndex?: number): BlockSeed[] {
+  if (regatId === 'newyork' && dayIndex === 2) return NYC_SAT_SEEDS;
+  if (regatId === 'newyork' && dayIndex === 3) return NYC_SUN_SEEDS;
+  if (regatId === 'sim-camp') return HALIFAX_SIM_SEEDS;
+  if (regatId === 'halifax')  return HALIFAX_RACE_SEEDS;
+  return GENERIC_SEEDS;
+}
+
+/**
+ * When scheduleOverride is provided, uses that list to determine block order and timing.
+ * Events with panelKey map to the matching seed (by seed.panel); events without panelKey
+ * become simple "sched" blocks with no rich panel content.
+ */
+function applyScheduleOverride(
+  override: ScheduleEvent[],
+  seeds: BlockSeed[],
+  now: Date,
+  timezone?: string,
+): Block[] {
+  const customSeeds: BlockSeed[] = override.map(ev => {
+    if (ev.panelKey) {
+      const match = seeds.find(s => s.panel === ev.panelKey);
+      if (match) {
+        return {
+          ...match,
+          time: ev.time,
+          name: ev.label,
+          tag: ev.tag ?? match.tag,
+          tagColor: ev.tagColor ?? match.tagColor,
+          tZeroOffset: ev.tZeroOffset ?? match.tZeroOffset,
+        };
+      }
+    }
+    return {
+      id: ev.id,
+      time: ev.time,
+      name: ev.label,
+      panel: 'sched',
+      tag: ev.tag ?? '',
+      tagColor: ev.tagColor,
+      tZeroOffset: ev.tZeroOffset,
+    };
+  });
+  return seedsToBlocks(customSeeds, now, timezone);
+}
+
+export function getBlocks(
+  now: Date = new Date(),
+  regatId?: string,
+  dayIndex?: number,
+  timezone?: string,
+  scheduleOverride?: ScheduleEvent[],
+): Block[] {
+  const seeds = getDefaultSeeds(regatId, dayIndex);
+  if (scheduleOverride && scheduleOverride.length > 0) {
+    return applyScheduleOverride(scheduleOverride, seeds, now, timezone);
+  }
+  return seedsToBlocks(seeds, now, timezone);
 }
 
 // Static snapshot kept for any non-time-sensitive imports
