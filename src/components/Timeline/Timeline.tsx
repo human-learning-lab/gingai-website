@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getBlocks } from '@/data/blocks';
 import type { Block } from '@/types';
+import type { ScheduleEvent } from '@/types/schedule';
 import { WeatherPanel, TidePanel } from './ConditionsPanel';
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
   selectedDate?: Date;
   onLive?: () => void;
   raceScheduleNode?: React.ReactNode;
+  scheduleOverride?: ScheduleEvent[];
 }
 
 function formatTZero(offset: number): string {
@@ -55,9 +57,9 @@ function secsRelTZero(targetTime: string, now: Date): number {
   return Math.floor((now.getTime() - target.getTime()) / 1000);
 }
 
-export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity, blocks: propBlocks, selectedDate, onLive, raceScheduleNode }: Props) {
+export default function Timeline({ selectedId, onSelect, renderExpanded, venueLat, venueLon, venueCity, blocks: propBlocks, selectedDate, onLive, raceScheduleNode, scheduleOverride }: Props) {
   const now = useNow();
-  const blocks = propBlocks ?? getBlocks(now);
+  const blocks = propBlocks ?? getBlocks(now, undefined, undefined, undefined, scheduleOverride);
   const listRef = useRef<HTMLDivElement>(null);
 
   const tZeroBlock = blocks.find(b => b.tZeroOffset === 0);
@@ -109,41 +111,48 @@ export default function Timeline({ selectedId, onSelect, renderExpanded, venueLa
         Event Schedule
       </div>
       <div className="tl-list" ref={listRef}>
-        {blocks.map(block => (
-          <div key={block.id}>
-            <TimelineItem
-              block={block}
-              selected={selectedId === block.id}
-              countdown={countdownStr}
-              onClick={() => block.panel === 'future' && onLive ? onLive() : onSelect(block.id)}
-              onLive={block.panel === 'future' ? onLive : undefined}
-            />
-            {renderExpanded && selectedId === block.id && (
-              <div style={{
-                borderLeft: '2px solid var(--green)',
-                marginLeft: 12,
-                marginBottom: 4,
-                background: 'var(--bg2)',
-                borderRadius: '0 8px 8px 0',
-                overflow: 'hidden',
-              }}>
-                {renderExpanded(block.id)}
-              </div>
-            )}
-          </div>
-        ))}
+        {blocks.map(block => {
+          const schedEv = scheduleOverride?.find(e =>
+            e.id === block.id || (e.panelKey && e.panelKey === block.panel)
+          );
+          return (
+            <div key={block.id}>
+              <TimelineItem
+                block={block}
+                selected={selectedId === block.id}
+                countdown={countdownStr}
+                onClick={() => block.panel === 'future' && onLive ? onLive() : onSelect(block.id)}
+                onLive={block.panel === 'future' ? onLive : undefined}
+                driveUrl={schedEv?.driveUrl}
+              />
+              {renderExpanded && selectedId === block.id && (
+                <div style={{
+                  borderLeft: '2px solid var(--green)',
+                  marginLeft: 12,
+                  marginBottom: 4,
+                  background: 'var(--bg2)',
+                  borderRadius: '0 8px 8px 0',
+                  overflow: 'hidden',
+                }}>
+                  {renderExpanded(block.id)}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 
-function TimelineItem({ block, selected, countdown, onClick, onLive }: {
+function TimelineItem({ block, selected, countdown, onClick, onLive, driveUrl }: {
   block: Block;
   selected: boolean;
   countdown: string;
   onClick: () => void;
   onLive?: () => void;
+  driveUrl?: string;
 }) {
   const isLiveBlock = block.panel === 'future' && !!onLive;
 
@@ -196,6 +205,29 @@ function TimelineItem({ block, selected, countdown, onClick, onLive }: {
             <div className="pdot" />
             <div className="cd-txt">{countdown}</div>
           </div>
+        )}
+        {driveUrl && (
+          <a
+            href={driveUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open in Google Drive"
+            onClick={e => e.stopPropagation()}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              color: 'var(--green)', background: 'var(--gg)',
+              borderRadius: 3, padding: '1px 5px', border: '1px solid var(--gb)',
+              textDecoration: 'none', marginTop: 3,
+            }}
+          >
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Drive
+          </a>
         )}
       </div>
     </div>
