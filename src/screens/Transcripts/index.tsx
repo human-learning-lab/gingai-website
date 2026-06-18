@@ -7,7 +7,7 @@ import { fetchAllTranscripts, deleteTranscript, updateTranscript } from '@/lib/t
 
 // ── GingAI Agent helpers ────────────────────────────────────────
 const AGENT_BASE = '/api/agent';
-const APP_NAME = 'gingai';
+const APP_NAME = 'summary';
 
 async function agentSummarize(transcriptText: string): Promise<string> {
   const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -809,6 +809,7 @@ export default function Transcripts() {
     fd.append('user', form.user);
     fd.append('regatta', form.regatta);
     fd.append('tags', form.tags.join(','));
+    fd.append('filetype', form.file.name.split('.').pop()?.toLowerCase() ?? 'mp3');
     const res = await fetch('/api/transcripts?type=media', { method: 'POST', body: fd });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: `Error ${res.status}` }));

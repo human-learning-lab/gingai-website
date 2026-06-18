@@ -130,7 +130,7 @@ function getDefaultDay(regatId: string): number {
 }
 
 const AGENT_BASE = "/api/agent"
-const APP_NAME = 'gingai';
+const APP_NAME = 'assistant';
 
 async function ensureSession(userId: string, sessionId: string) {
 	await fetch(`${AGENT_BASE}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
