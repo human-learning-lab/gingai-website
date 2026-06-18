@@ -803,29 +803,25 @@ export default function Transcripts() {
 
   async function handleUploadSubmit(form: UploadForm): Promise<void> {
     if (!form.file) return;
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve((reader.result as string).split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(form.file!);
-    });
-    const filetype = form.file.name.split('.').pop()?.toLowerCase() ?? 'mp3';
-    const res = await fetch('/api/upload-media', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        data: base64,
-        filetype,
-        upload_type: 'transcript',
-        title: form.title.trim(),
-        user: form.user,
-        regatta: form.regatta,
-        tags: form.tags.join(','),
-      }),
-    });
+    const fd = new FormData();
+    fd.append('file', form.file);
+    fd.append('filetype', form.file.name.split('.').pop()?.toLowerCase() ?? 'mp3');
+    fd.append('upload_type', 'transcript');
+    fd.append('title', form.title.trim());
+    fd.append('user', form.user);
+    fd.append('regatta', form.regatta);
+    fd.append('tags', form.tags.join(','));
+    const res = await fetch('/api/upload-media', { method: 'POST', body: fd });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: `Error ${res.status}` }));
-      throw new Error(err.error ?? `Upload failed (${res.status})`);
+      const text = await res.text().catch(() => '');
+      console.error('[upload] error', res.status, text);
+      let msg = `Upload failed (${res.status})`;
+      try {
+        const j = JSON.parse(text);
+        msg = j.error ?? j.detail ?? (typeof j === 'string' ? j : msg);
+        if (Array.isArray(msg)) msg = JSON.stringify(msg);
+      } catch { /* use default */ }
+      throw new Error(msg);
     }
     setShowUpload(false);
     fetchAllTranscripts()
