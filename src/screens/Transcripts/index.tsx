@@ -7,7 +7,7 @@ import { fetchAllTranscripts, deleteTranscript, updateTranscript } from '@/lib/t
 
 // ── GingAI Agent helpers ────────────────────────────────────────
 const AGENT_BASE = '/api/agent';
-const APP_NAME = 'gingai';
+const APP_NAME = 'summary';
 
 async function agentSummarize(transcriptText: string): Promise<string> {
   const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
