@@ -7,9 +7,8 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '100mb',
     },
+    proxyClientMaxBodySize: '200mb',
   },
-  // @ts-expect-error — added in Next.js 16, not yet in type definitions
-  middlewareClientMaxBodySize: 200 * 1024 * 1024, // 200 MB
   async rewrites() {
     return [
       // Bypass the serverless function body limit (4.5 MB) by rewriting
