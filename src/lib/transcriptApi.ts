@@ -6,12 +6,14 @@ interface ApiRace {
   racenum: number;
   team: string;
   content: string;
+  created_at?: string;
 }
 
 interface ApiDebrief {
   debriefid: number;
   event: string;
   content: string;
+  created_at?: string;
 }
 
 interface ApiCapture {
@@ -120,6 +122,7 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
     title: 'Post-Race Debrief',
     duration: '—',
     lines: parseContent(r.content, r.team),
+    date: fmtDate(r.created_at),
   }));
 
   const debriefTranscripts: Transcript[] = (debriefs as ApiDebrief[]).reverse().map(d => ({
@@ -131,6 +134,7 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
     title: d.event,
     duration: '—',
     lines: parseContent(d.content, d.event),
+    date: fmtDate(d.created_at),
   }));
 
   const captureTranscripts: Transcript[] = (captures as ApiCapture[]).reverse().map(c => ({
