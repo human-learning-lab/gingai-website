@@ -392,6 +392,24 @@ export default function Library() {
         .lib-file-date { font-size: 10px; color: var(--text4); margin-top: 1px; }
 
         /* ── Viewer ───────────────────────────────── */
+        /* On mobile the screen-wrap has overflow:visible so flex:1 on the
+           iframe doesn't resolve. Give it a concrete viewport-based height. */
+        @media (max-width: 640px) {
+          .lib-mobile .lib-viewer {
+            min-height: calc(100svh - 64px);
+            display: flex;
+            flex-direction: column;
+          }
+          .lib-mobile .lib-iframe {
+            flex: none !important;
+            height: calc(100svh - 48px - 44px - 64px);
+            min-height: 400px;
+          }
+          .lib-mobile .lib-no-preview {
+            min-height: 300px;
+          }
+        }
+
         .lib-type-badge {
           font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
           text-transform: uppercase; background: var(--bg3); border-radius: 3px;
