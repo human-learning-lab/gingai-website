@@ -197,23 +197,25 @@ function SummaryView({ data }: { data: EventSummary }) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function RaceSummary() {
   const [selected, setSelected] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, EventSummary | { error: string }>>({});
 
   async function handleAnalyze(eventId: string, eventName: string) {
     setSelected(eventId);
-    if (results[eventId]) return;
-    setLoading(true);
+    // Already have result or already loading this one — just show it
+    if (results[eventId] || loadingId === eventId) return;
+    setLoadingId(eventId);
     try {
       const data = await analyzeEvent(eventName);
       setResults(prev => ({ ...prev, [eventId]: data }));
     } catch (e) {
       setResults(prev => ({ ...prev, [eventId]: { error: e instanceof Error ? e.message : 'Failed to analyze event' } }));
     } finally {
-      setLoading(false);
+      setLoadingId(null);
     }
   }
 
+  const loading = loadingId === selected;
   const current = selected ? results[selected] : null;
 
   return (
