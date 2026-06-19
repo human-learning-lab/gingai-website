@@ -25,11 +25,18 @@ async function analyzeEvent(eventName: string): Promise<EventSummary> {
   const sessionId = `event-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const userId = 'user-1';
 
-  await fetch(`${AGENT_BASE}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
+  const sessionRes = await fetch(`${AGENT_BASE}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({}),
   });
+  if (!sessionRes.ok) {
+    const txt = await sessionRes.text().catch(() => '');
+    throw new Error(`Session failed (${sessionRes.status}): ${txt.slice(0, 200)}`);
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60_000);
 
   const res = await fetch(`${AGENT_BASE}/run_sse`, {
     method: 'POST',
@@ -41,7 +48,14 @@ async function analyzeEvent(eventName: string): Promise<EventSummary> {
       newMessage: { role: 'user', parts: [{ text: `Analyze the ${eventName} event` }] },
       streaming: false,
     }),
+    signal: controller.signal,
   });
+  clearTimeout(timeout);
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`Agent error (${res.status}): ${txt.slice(0, 300)}`);
+  }
 
   const reader = res.body?.getReader();
   if (!reader) throw new Error('No response stream');
@@ -67,10 +81,16 @@ async function analyzeEvent(eventName: string): Promise<EventSummary> {
     }
   }
 
+  if (!fullText.trim()) throw new Error('Agent returned empty response');
+
   // Extract JSON from the response (may be wrapped in markdown code fences)
   const jsonMatch = fullText.match(/```(?:json)?\s*([\s\S]*?)```/) ?? fullText.match(/(\{[\s\S]*\})/);
   const jsonStr = jsonMatch?.[1] ?? fullText;
-  return JSON.parse(jsonStr.trim());
+  try {
+    return JSON.parse(jsonStr.trim());
+  } catch {
+    throw new Error(`Could not parse response as JSON:\n\n${fullText.slice(0, 400)}`);
+  }
 }
 
 // ── Regatta list ──────────────────────────────────────────────────────────────
