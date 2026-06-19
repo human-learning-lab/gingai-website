@@ -250,7 +250,7 @@ export default function RaceSummary() {
     }
   }
 
-  const loading = loadingId === selected;
+  const loading = !!loadingId && loadingId === selected;
   const current = selected ? results[selected] : null;
 
   return (
