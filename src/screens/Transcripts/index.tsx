@@ -277,7 +277,7 @@ function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, onEditD
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 600, fontSize: 14 }}>
-              {t.source === 'race' ? `${t.regatta} · ${t.race}` : t.regatta || t.title}
+              {t.source === 'race' ? `${t.regatta} · ${t.race}` : t.title}
             </span>
             <span style={{
               fontSize: 10, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
@@ -289,6 +289,13 @@ function TranscriptCard({ t, expanded, onToggle, onDelete, onUpdateLine, onEditD
               letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text4)',
               background: 'var(--bg3)', borderRadius: 3, padding: '1px 6px',
             }}>{t.title}</span>}
+            {t.source !== 'race' && t.regatta && (
+              <span style={{
+                fontSize: 10, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
+                letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text4)',
+                background: 'var(--bg3)', borderRadius: 3, padding: '1px 6px',
+              }}>{t.regatta}</span>
+            )}
             {(t.date || t.duration !== '—') && (
               <span style={{ fontSize: 11, color: 'var(--text4)', marginLeft: 'auto', whiteSpace: 'nowrap' }}>
                 {t.date ?? t.duration}

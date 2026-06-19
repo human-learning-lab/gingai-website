@@ -29,6 +29,8 @@ interface ApiUpload {
   title: string;
   content: string;
   created_at?: string;
+  regatta?: string;
+  tags?: string;
 }
 
 interface ApiEvent {
@@ -152,7 +154,7 @@ export async function fetchAllTranscripts(): Promise<Transcript[]> {
   const uploadTranscripts: Transcript[] = (uploads as ApiUpload[]).reverse().map(u => ({
     id: `upload-${u.uploadid}`,
     source: 'upload',
-    regatta: '',
+    regatta: u.regatta ?? '',
     race: '',
     team: u.username,
     title: u.title,
