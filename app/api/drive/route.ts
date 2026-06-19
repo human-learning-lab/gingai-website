@@ -11,21 +11,47 @@ function getAuth() {
   });
 }
 
+const FOLDER_MIME = 'application/vnd.google-apps.folder';
+
+async function listAllFiles(drive: ReturnType<typeof google.drive>, rootId: string) {
+  const files: object[] = [];
+  const queue = [rootId];
+
+  while (queue.length > 0) {
+    const batch = queue.splice(0, 10); // process up to 10 folders at a time
+    await Promise.all(batch.map(async (folderId) => {
+      let pageToken: string | undefined;
+      do {
+        const res = await drive.files.list({
+          q: `'${folderId}' in parents and trashed = false`,
+          fields: 'nextPageToken, files(id,name,mimeType,size,modifiedTime,webViewLink,parents)',
+          orderBy: 'name',
+          pageSize: 200,
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+          ...(pageToken ? { pageToken } : {}),
+        });
+        for (const f of res.data.files ?? []) {
+          if (f.mimeType === FOLDER_MIME) {
+            queue.push(f.id!);
+          } else {
+            files.push(f);
+          }
+        }
+        pageToken = res.data.nextPageToken ?? undefined;
+      } while (pageToken);
+    }));
+  }
+
+  return files;
+}
+
 export async function GET() {
   try {
     const auth = getAuth();
     const drive = google.drive({ version: 'v3', auth });
-
-    const res = await drive.files.list({
-      q: `'${FOLDER_ID}' in parents and trashed = false`,
-      fields: 'files(id,name,mimeType,size,modifiedTime,webViewLink,iconLink,parents)',
-      orderBy: 'modifiedTime desc',
-      pageSize: 200,
-      supportsAllDrives: true,
-      includeItemsFromAllDrives: true,
-    });
-
-    return NextResponse.json(res.data.files ?? []);
+    const files = await listAllFiles(drive, FOLDER_ID);
+    return NextResponse.json(files);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     console.error('[drive] error:', msg);
