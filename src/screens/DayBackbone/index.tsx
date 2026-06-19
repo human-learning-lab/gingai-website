@@ -604,7 +604,7 @@ function blockContentForPanel(panel: string, selectedId: string, blocks?: import
 }
 
 function canEditSchedule(role: import('@/types').Role | null): boolean {
-	return role?.view === 'coach' || role?.view === 'developer' || role?.id === 'rasmus';
+	return role?.view === 'coach' || role?.view === 'developer' || role?.id === 'rasmus' || role?.id === 'christian';
 }
 
 export default function DayBackbone() {
