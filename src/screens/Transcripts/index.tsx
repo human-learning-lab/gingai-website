@@ -805,7 +805,10 @@ export default function Transcripts() {
     if (!form.file) return;
     const fd = new FormData();
     fd.append('file', form.file);
-    fd.append('filetype', form.file.name.split('.').pop()?.toLowerCase() ?? 'mp3');
+    const rawExt = form.file.name.split('.').pop()?.toLowerCase() ?? 'mp3';
+    // .opus files are OGG containers — map to 'ogg' for backend compatibility
+    const filetype = rawExt === 'opus' ? 'ogg' : rawExt;
+    fd.append('filetype', filetype);
     fd.append('upload_type', 'transcript');
     fd.append('title', form.title.trim());
     fd.append('user', form.user);
