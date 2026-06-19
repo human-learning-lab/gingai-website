@@ -62,35 +62,44 @@ async function analyzeEvent(eventName: string): Promise<EventSummary> {
   const decoder = new TextDecoder();
   let buffer = '';
   let fullText = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? '';
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue;
-      const raw = line.slice(6).trim();
-      if (!raw || raw === '[DONE]') continue;
-      try {
-        const event = JSON.parse(raw);
-        for (const part of event?.content?.parts ?? []) {
-          if (typeof part.text === 'string') fullText += part.text;
-        }
-      } catch { /* skip */ }
+
+  function tryExtractJson(text: string): EventSummary | null {
+    const m = text.match(/```(?:json)?\s*([\s\S]*?)```/) ?? text.match(/(\{[\s\S]*\})/);
+    const s = (m?.[1] ?? text).trim();
+    try { return JSON.parse(s) as EventSummary; } catch { return null; }
+  }
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (!raw || raw === '[DONE]') continue;
+        try {
+          const event = JSON.parse(raw);
+          for (const part of event?.content?.parts ?? []) {
+            if (typeof part.text === 'string') fullText += part.text;
+          }
+        } catch { /* skip non-JSON SSE lines */ }
+      }
+      // Return as soon as we have a complete, parseable JSON result
+      const early = tryExtractJson(fullText);
+      if (early?.event_name) { reader.cancel(); return early; }
     }
+  } catch (e) {
+    // AbortError from reader.cancel() is expected — ignore
+    if (!(e instanceof Error) || e.name !== 'AbortError') throw e;
   }
 
   if (!fullText.trim()) throw new Error('Agent returned empty response');
-
-  // Extract JSON from the response (may be wrapped in markdown code fences)
-  const jsonMatch = fullText.match(/```(?:json)?\s*([\s\S]*?)```/) ?? fullText.match(/(\{[\s\S]*\})/);
-  const jsonStr = jsonMatch?.[1] ?? fullText;
-  try {
-    return JSON.parse(jsonStr.trim());
-  } catch {
-    throw new Error(`Could not parse response as JSON:\n\n${fullText.slice(0, 400)}`);
-  }
+  const result = tryExtractJson(fullText);
+  if (!result) throw new Error(`Could not parse response:\n\n${fullText.slice(0, 400)}`);
+  return result;
 }
 
 // ── Regatta list ──────────────────────────────────────────────────────────────
