@@ -194,6 +194,33 @@ function SummaryView({ data }: { data: EventSummary }) {
   );
 }
 
+// ── Analyzing spinner with live elapsed time ──────────────────────────────────
+function AnalyzingSpinner() {
+  const [secs, setSecs] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setSecs(s => s + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const msg = secs < 10
+    ? 'Connecting to agent…'
+    : secs < 25
+    ? 'Reading event data…'
+    : secs < 45
+    ? 'Generating summary…'
+    : 'Almost there…';
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+      <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--line)', borderTopColor: 'var(--green)', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{msg}</div>
+        <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 4 }}>{secs}s — this usually takes 30–60 seconds</div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function RaceSummary() {
   const [selected, setSelected] = useState<string | null>(null);
@@ -260,12 +287,7 @@ export default function RaceSummary() {
 
       {/* ── Main panel ──────────────────────────────────────────── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-        {loading && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--line)', borderTopColor: 'var(--green)', animation: 'spin 0.8s linear infinite' }} />
-            <div style={{ fontSize: 13, color: 'var(--text4)' }}>Analyzing event…</div>
-          </div>
-        )}
+        {loading && <AnalyzingSpinner />}
         {!loading && !current && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--line2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
