@@ -11,11 +11,14 @@ interface DriveFile {
 type MobileView = 'regattas' | 'files' | 'viewer';
 
 function driveEmbedUrl(url: string): string {
+  // Native Google Docs/Sheets/Slides/Forms
   if (/docs\.google\.com\/(document|spreadsheets|presentation|forms)/.test(url)) {
     return url.replace(/\/(edit|view|htmlview)(\?.*)?$/, '/preview');
   }
+  // Any other Drive file — extract ID and use /preview (renders .docx .xlsx .pptx etc.)
   const fileId = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)?.[1]
-    ?? url.match(/[?&]id=([a-zA-Z0-9_-]+)/)?.[1];
+    ?? url.match(/[?&]id=([a-zA-Z0-9_-]+)/)?.[1]
+    ?? url.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1];
   if (fileId) return `https://drive.google.com/file/d/${fileId}/preview`;
   return url;
 }
@@ -117,7 +120,13 @@ export default function Library() {
   const sortedCategories = Object.keys(byCategory).sort();
 
   const canEmbed = (f: DriveFile) =>
-    f.webViewLink && (f.mimeType.includes('google-apps') || f.mimeType === 'application/pdf');
+    !!f.webViewLink && (
+      f.mimeType.includes('google-apps') ||
+      f.mimeType === 'application/pdf' ||
+      f.mimeType.includes('officedocument') ||  // .docx .xlsx .pptx
+      f.mimeType.includes('opendocument') ||    // .odt .ods .odp
+      f.mimeType.startsWith('image/')
+    );
 
   function pickRegatta(r: string) {
     setSelectedRegatta(r);
