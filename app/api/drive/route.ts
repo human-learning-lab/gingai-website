@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
 
-const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID!;
+const ROOT_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID!;
+const FOLDER_MIME = 'application/vnd.google-apps.folder';
 
 function getAuth() {
   return new google.auth.JWT({
@@ -11,46 +12,76 @@ function getAuth() {
   });
 }
 
-const FOLDER_MIME = 'application/vnd.google-apps.folder';
+export interface DriveFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  size?: string;
+  modifiedTime?: string;
+  webViewLink?: string;
+  regatta: string;   // top-level folder name e.g. "07-Halifax"
+  category: string;  // second-level folder name e.g. "02-Debrief"
+}
 
-async function listAllFiles(drive: ReturnType<typeof google.drive>, rootId: string) {
-  const files: object[] = [];
-  const queue = [rootId];
+interface GFile { id: string; name: string; mimeType: string; size?: string | null; modifiedTime?: string | null; webViewLink?: string | null; }
 
-  while (queue.length > 0) {
-    const batch = queue.splice(0, 10); // process up to 10 folders at a time
-    await Promise.all(batch.map(async (folderId) => {
-      let pageToken: string | undefined;
-      do {
-        const res = await drive.files.list({
-          q: `'${folderId}' in parents and trashed = false`,
-          fields: 'nextPageToken, files(id,name,mimeType,size,modifiedTime,webViewLink,parents)',
-          orderBy: 'name',
-          pageSize: 200,
-          supportsAllDrives: true,
-          includeItemsFromAllDrives: true,
-          ...(pageToken ? { pageToken } : {}),
-        });
-        for (const f of res.data.files ?? []) {
-          if (f.mimeType === FOLDER_MIME) {
-            queue.push(f.id!);
-          } else {
-            files.push(f);
-          }
-        }
-        pageToken = res.data.nextPageToken ?? undefined;
-      } while (pageToken);
-    }));
-  }
-
-  return files;
+async function listChildren(drive: ReturnType<typeof google.drive>, folderId: string): Promise<GFile[]> {
+  const results: GFile[] = [];
+  let pageToken: string | undefined;
+  do {
+    const res = await drive.files.list({
+      q: `'${folderId}' in parents and trashed = false`,
+      fields: 'nextPageToken, files(id,name,mimeType,size,modifiedTime,webViewLink)',
+      orderBy: 'name',
+      pageSize: 200,
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+      ...(pageToken ? { pageToken } : {}),
+    });
+    for (const f of res.data.files ?? []) {
+      if (f.id && f.name && f.mimeType) results.push(f as GFile);
+    }
+    pageToken = res.data.nextPageToken ?? undefined;
+  } while (pageToken);
+  return results;
 }
 
 export async function GET() {
   try {
     const auth = getAuth();
     const drive = google.drive({ version: 'v3', auth });
-    const files = await listAllFiles(drive, FOLDER_ID);
+
+    // Level 1: regatta folders (01-Perth, 02-Auckland, …)
+    const regattaFolders = await listChildren(drive, ROOT_FOLDER_ID);
+    const files: DriveFile[] = [];
+
+    await Promise.all(
+      regattaFolders.map(async (regatta) => {
+        if (regatta.mimeType !== FOLDER_MIME) return;
+        // Level 2: category folders (01-Brief, 02-Debrief, …)
+        const categoryFolders = await listChildren(drive, regatta.id);
+        await Promise.all(
+          categoryFolders.map(async (cat) => {
+            if (cat.mimeType === FOLDER_MIME) {
+              // Level 3: actual files
+              const items = await listChildren(drive, cat.id);
+              for (const f of items) {
+                if (f.mimeType !== FOLDER_MIME) {
+                  files.push({ ...f, regatta: regatta.name, category: cat.name } as DriveFile);
+                }
+              }
+            } else {
+              // File directly inside regatta folder
+              files.push({ ...cat, regatta: regatta.name, category: '' } as DriveFile);
+            }
+          })
+        );
+      })
+    );
+
+    // Sort: newest first within each regatta
+    files.sort((a, b) => (b.modifiedTime ?? '').localeCompare(a.modifiedTime ?? ''));
+
     return NextResponse.json(files);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
