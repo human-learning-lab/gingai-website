@@ -36,7 +36,7 @@ async function analyzeEvent(eventName: string): Promise<EventSummary> {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60_000);
+  const timeout = setTimeout(() => controller.abort(), 10 * 60_000);
 
   const res = await fetch(`${AGENT_BASE}/run_sse`, {
     method: 'POST',
@@ -204,18 +204,26 @@ function AnalyzingSpinner() {
 
   const msg = secs < 10
     ? 'Connecting to agent…'
-    : secs < 25
-    ? 'Reading event data…'
-    : secs < 45
+    : secs < 30
+    ? 'Reading event transcripts and documents…'
+    : secs < 90
+    ? 'Analyzing event data…'
+    : secs < 180
     ? 'Generating summary…'
-    : 'Almost there…';
+    : 'Still working — this event has a lot of data…';
+
+  const hint = secs < 60
+    ? 'This usually takes 2–5 minutes'
+    : secs < 180
+    ? `${Math.floor(secs / 60)}m ${secs % 60}s — almost there`
+    : `${Math.floor(secs / 60)}m ${secs % 60}s — hang tight, it's working`;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
       <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--line)', borderTopColor: 'var(--green)', animation: 'spin 0.8s linear infinite' }} />
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{msg}</div>
-        <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 4 }}>{secs}s — this usually takes 30–60 seconds</div>
+        <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 4 }}>{hint}</div>
       </div>
     </div>
   );
