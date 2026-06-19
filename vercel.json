@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/agent/:path*",
-      "destination": "https://ginga-742926686826.us-central1.run.app/:path*"
+      "destination": "https://ginga-742926686826.us-east1.run.app/:path*"
     }
   ]
 }
