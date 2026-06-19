@@ -1,9 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-interface DriveFile { id: string; name: string; mimeType: string; size?: string | null; modifiedTime?: string | null; webViewLink?: string | null; regatta: string; category: string; }
 
-// ── Drive embed URL (same logic as race dashboard) ────────────────────────────
+interface DriveFile {
+  id: string; name: string; mimeType: string;
+  size?: string | null; modifiedTime?: string | null; webViewLink?: string | null;
+  regatta: string; category: string;
+}
+
+type MobileView = 'regattas' | 'files' | 'viewer';
+
 function driveEmbedUrl(url: string): string {
   if (/docs\.google\.com\/(document|spreadsheets|presentation|forms)/.test(url)) {
     return url.replace(/\/(edit|view|htmlview)(\?.*)?$/, '/preview');
@@ -14,7 +20,6 @@ function driveEmbedUrl(url: string): string {
   return url;
 }
 
-// ── File type helpers ─────────────────────────────────────────────────────────
 function mimeLabel(m: string): string {
   if (m === 'application/vnd.google-apps.document') return 'Doc';
   if (m === 'application/vnd.google-apps.spreadsheet') return 'Sheet';
@@ -57,6 +62,12 @@ function FileIcon({ mimeType, size = 14 }: { mimeType: string; size?: number }) 
   );
 }
 
+const BackIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 18 9 12 15 6"/>
+  </svg>
+);
+
 function stripPrefix(name: string): string {
   return name.replace(/^\d{2}-/, '');
 }
@@ -66,7 +77,6 @@ function formatDate(iso?: string | null): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
 export default function Library() {
   const [files, setFiles] = useState<DriveFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +84,7 @@ export default function Library() {
   const [selectedRegatta, setSelectedRegatta] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<DriveFile | null>(null);
   const [search, setSearch] = useState('');
+  const [mobileView, setMobileView] = useState<MobileView>('regattas');
 
   useEffect(() => {
     fetch('/api/drive')
@@ -81,24 +92,23 @@ export default function Library() {
       .then(data => {
         if (data.error) throw new Error(data.error);
         setFiles(data);
-        // Auto-select most recent regatta
-        const regattas = Array.from(new Set((data as DriveFile[]).map(f => f.regatta))).sort().reverse();
+        const regattas = Array.from(new Set((data as DriveFile[]).map((f: DriveFile) => f.regatta))).sort().reverse();
         if (regattas.length > 0) setSelectedRegatta(regattas[0] as string);
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
-  const regattas = Array.from(new Set(files.map(f => f.regatta)))
-    .sort((a, b) => b.localeCompare(a)); // newest (highest number) first
+  const regattas = Array.from(new Set(files.map(f => f.regatta))).sort((a, b) => b.localeCompare(a));
 
   const visibleFiles = files.filter(f => {
     const matchRegatta = !selectedRegatta || f.regatta === selectedRegatta;
-    const matchSearch = !search || f.name.toLowerCase().includes(search.toLowerCase()) || f.category.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search
+      || f.name.toLowerCase().includes(search.toLowerCase())
+      || f.category.toLowerCase().includes(search.toLowerCase());
     return matchRegatta && matchSearch;
   });
 
-  // Group by category
   const byCategory = visibleFiles.reduce<Record<string, DriveFile[]>>((acc, f) => {
     const key = f.category || 'Other';
     (acc[key] ??= []).push(f);
@@ -107,138 +117,304 @@ export default function Library() {
   const sortedCategories = Object.keys(byCategory).sort();
 
   const canEmbed = (f: DriveFile) =>
-    f.webViewLink &&
-    (f.mimeType.includes('google-apps') || f.mimeType === 'application/pdf');
+    f.webViewLink && (f.mimeType.includes('google-apps') || f.mimeType === 'application/pdf');
 
-  return (
-    <div className="s-backbone" style={{ overflow: 'hidden' }}>
-      {/* ── Sidebar: regatta list ─────────────────────── */}
-      <div style={{ width: 200, flexShrink: 0, borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <div style={{ padding: '18px 16px 10px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
-          <div style={{ fontSize: 9, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 6 }}>Season 6 · 2026</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Library</div>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
-          {loading && <div style={{ padding: '20px 16px', fontSize: 12, color: 'var(--text4)' }}>Loading…</div>}
-          {regattas.map(r => (
-            <button
-              key={r}
-              onClick={() => { setSelectedRegatta(r); setSelectedFile(null); setSearch(''); }}
-              style={{
-                display: 'block', width: '100%', textAlign: 'left',
-                padding: '8px 16px', border: 'none', cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 13, fontWeight: selectedRegatta === r ? 600 : 400,
-                background: selectedRegatta === r ? 'var(--gg)' : 'none',
-                color: selectedRegatta === r ? 'var(--green)' : 'var(--text2)',
-                borderLeft: `2px solid ${selectedRegatta === r ? 'var(--green)' : 'transparent'}`,
-              }}
-            >
-              {stripPrefix(r)}
-            </button>
-          ))}
-        </div>
-        <div style={{ padding: '10px 12px', borderTop: '1px solid var(--line)', flexShrink: 0 }}>
-          <a href={`https://drive.google.com/drive/folders/${process.env.NEXT_PUBLIC_GOOGLE_DRIVE_FOLDER_ID ?? '1MfoIcFbP0zlAxMNwgMQN4cu-YHCpdquF'}`} target="_blank" rel="noopener noreferrer"
-            style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text4)', textDecoration: 'none' }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            Open in Drive
-          </a>
-        </div>
+  function pickRegatta(r: string) {
+    setSelectedRegatta(r);
+    setSelectedFile(null);
+    setSearch('');
+    setMobileView('files');
+  }
+
+  function pickFile(f: DriveFile) {
+    setSelectedFile(prev => prev?.id === f.id ? null : f);
+    setMobileView('viewer');
+  }
+
+  // ── Panels ────────────────────────────────────────────────────────────────
+
+  const RegattaPanel = (
+    <div className="lib-panel lib-regattas">
+      <div className="lib-panel-header">
+        <div className="lib-label">Season 6 · 2026</div>
+        <div className="lib-title">Library</div>
       </div>
+      <div className="lib-scroll">
+        {loading && <div className="lib-empty">Loading…</div>}
+        {error && <div className="lib-empty lib-error">{error}</div>}
+        {regattas.map(r => (
+          <button key={r} className={`lib-row lib-regatta-btn${selectedRegatta === r ? ' active' : ''}`}
+            onClick={() => pickRegatta(r)}>
+            {stripPrefix(r)}
+            <svg className="lib-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        ))}
+      </div>
+      <div className="lib-panel-footer">
+        <a href="https://drive.google.com/drive/folders/1MfoIcFbP0zlAxMNwgMQN4cu-YHCpdquF"
+          target="_blank" rel="noopener noreferrer" className="lib-drive-link">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          Open in Drive
+        </a>
+      </div>
+    </div>
+  );
 
-      {/* ── File list ─────────────────────────────────── */}
-      <div style={{ width: selectedFile ? 280 : undefined, flex: selectedFile ? undefined : 1, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: selectedFile ? '1px solid var(--line)' : 'none', overflow: 'hidden' }}>
-        <div style={{ padding: '14px 16px 10px', flexShrink: 0, borderBottom: '1px solid var(--line)' }}>
-          <div style={{ position: 'relative' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
-              style={{ width: '100%', boxSizing: 'border-box', height: 30, paddingLeft: 28, paddingRight: 10, border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg2)', fontSize: 12, color: 'var(--text)', fontFamily: 'inherit', outline: 'none' }} />
-          </div>
-        </div>
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
-          {error && <div style={{ padding: 16, fontSize: 13, color: 'var(--red)' }}>{error}</div>}
-          {!loading && !error && visibleFiles.length === 0 && (
-            <div style={{ padding: '40px 16px', textAlign: 'center', fontSize: 13, color: 'var(--text4)' }}>No files</div>
-          )}
-          {sortedCategories.map(cat => (
-            <div key={cat}>
-              {cat !== 'Other' && (
-                <div style={{ padding: '8px 16px 4px', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text4)', fontFamily: "'Barlow Condensed', sans-serif" }}>
-                  {stripPrefix(cat)}
+  const FilePanel = (
+    <div className="lib-panel lib-files">
+      <div className="lib-panel-header lib-files-header">
+        <button className="lib-back" onClick={() => setMobileView('regattas')}><BackIcon /></button>
+        <span className="lib-header-title">{selectedRegatta ? stripPrefix(selectedRegatta) : 'Files'}</span>
+      </div>
+      <div className="lib-search-bar">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lib-search-icon">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" className="lib-search-input" />
+      </div>
+      <div className="lib-scroll">
+        {!loading && !error && visibleFiles.length === 0 && <div className="lib-empty">No files</div>}
+        {sortedCategories.map(cat => (
+          <div key={cat}>
+            {cat !== 'Other' && (
+              <div className="lib-cat-label">{stripPrefix(cat)}</div>
+            )}
+            {byCategory[cat].map(f => (
+              <button key={f.id}
+                className={`lib-row lib-file-btn${selectedFile?.id === f.id ? ' active' : ''}`}
+                onClick={() => pickFile(f)}>
+                <span className="lib-file-icon"><FileIcon mimeType={f.mimeType} /></span>
+                <div className="lib-file-info">
+                  <div className="lib-file-name">{f.name}</div>
+                  <div className="lib-file-date">{formatDate(f.modifiedTime)}</div>
                 </div>
-              )}
-              {byCategory[cat].map(f => (
-                <button
-                  key={f.id}
-                  onClick={() => setSelectedFile(prev => prev?.id === f.id ? null : f)}
-                  style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 10, width: '100%',
-                    padding: '8px 16px', border: 'none', cursor: 'pointer', textAlign: 'left',
-                    background: selectedFile?.id === f.id ? 'var(--gg)' : 'none',
-                    borderLeft: `2px solid ${selectedFile?.id === f.id ? 'var(--green)' : 'transparent'}`,
-                    fontFamily: 'inherit',
-                  }}
-                  onMouseEnter={e => { if (selectedFile?.id !== f.id) (e.currentTarget as HTMLElement).style.background = 'var(--bg2)'; }}
-                  onMouseLeave={e => { if (selectedFile?.id !== f.id) (e.currentTarget as HTMLElement).style.background = 'none'; }}
-                >
-                  <span style={{ flexShrink: 0, marginTop: 1 }}><FileIcon mimeType={f.mimeType} /></span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 }}>{f.name}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text4)', marginTop: 1 }}>{formatDate(f.modifiedTime)}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
+                <svg className="lib-chevron lib-chevron-file" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            ))}
+          </div>
+        ))}
       </div>
+    </div>
+  );
 
-      {/* ── Inline viewer ─────────────────────────────── */}
-      {selectedFile && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-          {/* File header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderBottom: '1px solid var(--line)', flexShrink: 0, background: 'var(--bg2)' }}>
+  const ViewerPanel = (
+    <div className="lib-panel lib-viewer">
+      {selectedFile ? (
+        <>
+          <div className="lib-panel-header lib-viewer-header">
+            <button className="lib-back" onClick={() => setMobileView('files')}><BackIcon /></button>
             <FileIcon mimeType={selectedFile.mimeType} size={13} />
-            <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedFile.name}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: mimeColor(selectedFile.mimeType), background: 'var(--bg3)', borderRadius: 3, padding: '1px 5px', flexShrink: 0 }}>
+            <span className="lib-header-title lib-viewer-title">{selectedFile.name}</span>
+            <span className="lib-type-badge" style={{ color: mimeColor(selectedFile.mimeType) }}>
               {mimeLabel(selectedFile.mimeType)}
             </span>
             {selectedFile.webViewLink && (
-              <a href={selectedFile.webViewLink} target="_blank" rel="noopener noreferrer"
-                style={{ fontSize: 11, color: 'var(--text4)', textDecoration: 'none', flexShrink: 0 }}>
-                ↗ Drive
-              </a>
+              <a href={selectedFile.webViewLink} target="_blank" rel="noopener noreferrer" className="lib-drive-ext">↗</a>
             )}
           </div>
-          {/* Content */}
           {canEmbed(selectedFile) && selectedFile.webViewLink ? (
-            <iframe
-              key={selectedFile.id}
-              src={driveEmbedUrl(selectedFile.webViewLink)}
-              style={{ flex: 1, border: 'none', display: 'block', width: '100%' }}
-              allow="autoplay"
-              title={selectedFile.name}
-            />
+            <iframe key={selectedFile.id} src={driveEmbedUrl(selectedFile.webViewLink)}
+              className="lib-iframe" allow="autoplay" title={selectedFile.name} />
           ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: 'var(--text4)' }}>
-              <FileIcon mimeType={selectedFile.mimeType} size={36} />
-              <div style={{ fontSize: 14, color: 'var(--text2)', fontWeight: 500 }}>{selectedFile.name}</div>
-              <div style={{ fontSize: 12, color: 'var(--text4)' }}>Preview not available for this file type</div>
+            <div className="lib-no-preview">
+              <FileIcon mimeType={selectedFile.mimeType} size={40} />
+              <div className="lib-no-preview-name">{selectedFile.name}</div>
+              <div className="lib-no-preview-sub">Preview not available for this file type</div>
               {selectedFile.webViewLink && (
-                <a href={selectedFile.webViewLink} target="_blank" rel="noopener noreferrer"
-                  style={{ marginTop: 4, padding: '7px 18px', borderRadius: 7, background: 'var(--navy)', color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                <a href={selectedFile.webViewLink} target="_blank" rel="noopener noreferrer" className="lib-open-btn">
                   Open in Drive
                 </a>
               )}
             </div>
           )}
+        </>
+      ) : (
+        <div className="lib-no-preview">
+          <div className="lib-no-preview-sub">Select a file to preview</div>
         </div>
       )}
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
+  );
+
+  return (
+    <>
+      {/* Desktop: 3-column */}
+      <div className="s-backbone lib-desktop" style={{ overflow: 'hidden' }}>
+        {RegattaPanel}
+        {FilePanel}
+        {selectedFile && ViewerPanel}
+      </div>
+
+      {/* Mobile: stacked views */}
+      <div className="lib-mobile">
+        {mobileView === 'regattas' && RegattaPanel}
+        {mobileView === 'files' && FilePanel}
+        {mobileView === 'viewer' && ViewerPanel}
+      </div>
+
+      <style>{`
+        /* ── Layout ───────────────────────────────── */
+        .lib-desktop { display: flex !important; }
+        .lib-mobile  { display: none; }
+
+        @media (max-width: 640px) {
+          .lib-desktop { display: none !important; }
+          .lib-mobile  { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+        }
+
+        /* ── Panel base ───────────────────────────── */
+        .lib-panel {
+          display: flex; flex-direction: column; overflow: hidden; height: 100%;
+        }
+        .lib-regattas {
+          width: 200px; flex-shrink: 0; border-right: 1px solid var(--line);
+        }
+        .lib-files {
+          flex-shrink: 0; border-right: 1px solid var(--line);
+        }
+        .lib-viewer { flex: 1; min-width: 0; }
+
+        /* On mobile all panels fill full width */
+        .lib-mobile .lib-panel { width: 100%; flex: 1; }
+        .lib-mobile .lib-regattas,
+        .lib-mobile .lib-files { border-right: none; width: 100%; }
+
+        /* Desktop file list width */
+        .lib-desktop .lib-files { width: 280px; }
+        .lib-desktop .lib-files.has-viewer { width: 280px; }
+        .lib-desktop .lib-files:not(.has-viewer) { flex: 1; }
+
+        /* ── Headers ──────────────────────────────── */
+        .lib-panel-header {
+          padding: 14px 16px 12px; border-bottom: 1px solid var(--line); flex-shrink: 0;
+        }
+        .lib-label {
+          font-size: 9px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+          letter-spacing: 0.16em; text-transform: uppercase; color: var(--text4); margin-bottom: 4px;
+        }
+        .lib-title { font-size: 18px; font-weight: 700; color: var(--text); }
+
+        .lib-files-header, .lib-viewer-header {
+          display: flex; align-items: center; gap: 8px;
+          padding: 10px 14px; background: var(--bg2);
+        }
+        .lib-header-title {
+          flex: 1; font-size: 14px; font-weight: 600; color: var(--text);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .lib-viewer-title { font-size: 13px; }
+
+        /* Hide back button on desktop */
+        .lib-desktop .lib-back { display: none; }
+        .lib-back {
+          display: flex; align-items: center; justify-content: center;
+          background: none; border: none; cursor: pointer; padding: 4px;
+          color: var(--text2); flex-shrink: 0; border-radius: 5px;
+        }
+        .lib-back:active { background: var(--bg3); }
+
+        /* ── Search ───────────────────────────────── */
+        .lib-search-bar {
+          position: relative; padding: 10px 12px 8px; flex-shrink: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .lib-search-icon {
+          position: absolute; left: 21px; top: 50%; transform: translateY(-50%);
+          pointer-events: none;
+        }
+        .lib-search-input {
+          width: 100%; box-sizing: border-box; height: 32px; padding-left: 28px;
+          padding-right: 10px; border: 1px solid var(--line); border-radius: 7px;
+          background: var(--bg2); font-size: 13px; color: var(--text);
+          font-family: inherit; outline: none;
+        }
+
+        /* ── Scroll area ──────────────────────────── */
+        .lib-scroll { flex: 1; overflow-y: auto; padding: 6px 0; }
+        .lib-empty { padding: 40px 16px; text-align: center; font-size: 13px; color: var(--text4); }
+        .lib-error { color: var(--red); }
+
+        /* ── Rows ─────────────────────────────────── */
+        .lib-row {
+          display: flex; align-items: center; width: 100%; text-align: left;
+          background: none; border: none; cursor: pointer; font-family: inherit;
+          border-left: 2px solid transparent; padding: 0;
+        }
+        .lib-regatta-btn {
+          padding: 10px 14px; font-size: 14px; font-weight: 400; color: var(--text2);
+          justify-content: space-between;
+        }
+        .lib-regatta-btn.active {
+          background: var(--gg); color: var(--green); font-weight: 600;
+          border-left-color: var(--green);
+        }
+        .lib-regatta-btn:not(.active):hover { background: var(--bg2); }
+
+        .lib-chevron { color: var(--text4); flex-shrink: 0; }
+        .lib-regatta-btn.active .lib-chevron { color: var(--green); }
+
+        .lib-cat-label {
+          padding: 10px 16px 3px; font-size: 9px; font-weight: 700;
+          letter-spacing: 0.12em; text-transform: uppercase; color: var(--text4);
+          font-family: 'Barlow Condensed', sans-serif;
+        }
+
+        .lib-file-btn {
+          gap: 10px; padding: 9px 14px;
+        }
+        .lib-file-btn.active { background: var(--gg); border-left-color: var(--green); }
+        .lib-file-btn:not(.active):hover { background: var(--bg2); }
+        .lib-chevron-file { color: var(--line); }
+        .lib-file-btn:hover .lib-chevron-file,
+        .lib-file-btn.active .lib-chevron-file { color: var(--text4); }
+
+        /* Hide file chevron on desktop */
+        .lib-desktop .lib-chevron-file { display: none; }
+
+        .lib-file-icon { flex-shrink: 0; margin-top: 1px; }
+        .lib-file-info { flex: 1; min-width: 0; }
+        .lib-file-name {
+          font-size: 13px; font-weight: 500; color: var(--text);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.3;
+        }
+        .lib-file-date { font-size: 10px; color: var(--text4); margin-top: 1px; }
+
+        /* ── Viewer ───────────────────────────────── */
+        .lib-type-badge {
+          font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+          text-transform: uppercase; background: var(--bg3); border-radius: 3px;
+          padding: 2px 5px; flex-shrink: 0;
+        }
+        .lib-drive-ext {
+          font-size: 12px; color: var(--text4); text-decoration: none; flex-shrink: 0;
+        }
+        .lib-iframe {
+          flex: 1; border: none; display: block; width: 100%; min-height: 0;
+        }
+        .lib-no-preview {
+          flex: 1; display: flex; flex-direction: column; align-items: center;
+          justify-content: center; gap: 12px; color: var(--text4);
+        }
+        .lib-no-preview-name { font-size: 14px; color: var(--text2); font-weight: 500; }
+        .lib-no-preview-sub { font-size: 12px; color: var(--text4); }
+        .lib-open-btn {
+          margin-top: 4px; padding: 8px 20px; border-radius: 7px;
+          background: var(--navy); color: #fff; font-size: 13px; font-weight: 600;
+          text-decoration: none;
+        }
+
+        /* ── Footer ───────────────────────────────── */
+        .lib-panel-footer {
+          padding: 10px 12px; border-top: 1px solid var(--line); flex-shrink: 0;
+        }
+        .lib-drive-link {
+          display: flex; align-items: center; gap: 5px;
+          font-size: 11px; color: var(--text4); text-decoration: none;
+        }
+      `}</style>
+    </>
   );
 }
