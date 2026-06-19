@@ -5,7 +5,7 @@ import { useRole } from '@/context/RoleContext';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { useState, useRef, useEffect } from 'react';
 import type { ScreenId } from '@/types';
-import { IconCalendar, IconMic, IconSim, IconDebrief, IconTranscript, IconFolder, IconHelp, IconBell } from '@/components/Icons';
+import { IconCalendar, IconMic, IconSim, IconDebrief, IconTranscript, IconFolder, IconHelp, IconBell, IconSummary } from '@/components/Icons';
 import { useTutorial } from '@/context/TutorialContext';
 
 const PRIMARY_ITEMS: { id: ScreenId; title: string; icon: React.ReactElement }[] = [
@@ -15,10 +15,11 @@ const PRIMARY_ITEMS: { id: ScreenId; title: string; icon: React.ReactElement }[]
 ];
 
 const MORE_ITEMS: { id: ScreenId; title: string; icon: React.ReactElement }[] = [
-  { id: 'debrief',     title: 'Debrief',     icon: <IconDebrief /> },
-  { id: 'transcripts', title: 'Transcripts', icon: <IconTranscript /> },
-  { id: 'library',     title: 'Library',     icon: <IconFolder /> },
-  { id: 'alarms',      title: 'Alarms',      icon: <IconBell /> },
+  { id: 'debrief',      title: 'Debrief',      icon: <IconDebrief /> },
+  { id: 'transcripts',  title: 'Transcripts',  icon: <IconTranscript /> },
+  { id: 'library',      title: 'Library',      icon: <IconFolder /> },
+  { id: 'race-summary', title: 'Summary',      icon: <IconSummary /> },
+  { id: 'alarms',       title: 'Alarms',       icon: <IconBell /> },
 ];
 
 export default function LeftNav() {
@@ -31,7 +32,7 @@ export default function LeftNav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const activeScreen = (pathname.replace('/', '') as ScreenId) || 'backbone';
+  const activeScreen = (pathname.slice(1) as ScreenId) || 'backbone';
   const imgUrl = user?.imageUrl;
   const initial = user?.firstName?.[0]?.toUpperCase() ?? '?';
   const name = user?.firstName ?? user?.emailAddresses[0]?.emailAddress?.split('@')[0] ?? 'You';
