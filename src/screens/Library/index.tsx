@@ -173,7 +173,7 @@ export default function Library() {
   );
 
   const FilePanel = (
-    <div className="lib-panel lib-files">
+    <div className={`lib-panel lib-files${selectedFile ? '' : ' lib-files-full'}`}>
       <div className="lib-panel-header lib-files-header">
         <button className="lib-back" onClick={() => setMobileView('regattas')}><BackIcon /></button>
         <span className="lib-header-title">{selectedRegatta ? stripPrefix(selectedRegatta) : 'Files'}</span>
@@ -292,9 +292,8 @@ export default function Library() {
         .lib-mobile .lib-files { border-right: none; width: 100%; }
 
         /* Desktop file list width */
-        .lib-desktop .lib-files { width: 280px; }
-        .lib-desktop .lib-files.has-viewer { width: 280px; }
-        .lib-desktop .lib-files:not(.has-viewer) { flex: 1; }
+        .lib-desktop .lib-files { width: 280px; flex-shrink: 0; }
+        .lib-desktop .lib-files.lib-files-full { flex: 1; width: auto; }
 
         /* ── Headers ──────────────────────────────── */
         .lib-panel-header {
