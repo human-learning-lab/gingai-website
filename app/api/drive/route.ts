@@ -21,6 +21,8 @@ export async function GET() {
       fields: 'files(id,name,mimeType,size,modifiedTime,webViewLink,iconLink,parents)',
       orderBy: 'modifiedTime desc',
       pageSize: 200,
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
     });
 
     return NextResponse.json(res.data.files ?? []);
