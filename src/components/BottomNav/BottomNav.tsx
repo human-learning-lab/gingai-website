@@ -5,7 +5,7 @@ import { useRole } from '@/context/RoleContext';
 import { useTutorial } from '@/context/TutorialContext';
 import { useState } from 'react';
 import type { ScreenId } from '@/types';
-import { IconCalendar, IconMic, IconSim, IconDebrief, IconTranscript, IconFolder, IconHelp, IconBell } from '@/components/Icons';
+import { IconCalendar, IconMic, IconSim, IconDebrief, IconTranscript, IconFolder, IconHelp, IconBell, IconSummary } from '@/components/Icons';
 
 const PRIMARY_ITEMS: { id: ScreenId; label: string; icon: React.ReactElement }[] = [
   { id: 'backbone', label: 'Race',    icon: <IconCalendar size={22} /> },
@@ -14,10 +14,11 @@ const PRIMARY_ITEMS: { id: ScreenId; label: string; icon: React.ReactElement }[]
 ];
 
 const MORE_ITEMS: { id: ScreenId; label: string; icon: React.ReactElement }[] = [
-  { id: 'debrief',     label: 'Debrief',     icon: <IconDebrief size={22} /> },
-  { id: 'transcripts', label: 'Transcripts', icon: <IconTranscript size={22} /> },
-  { id: 'library',     label: 'Library',     icon: <IconFolder size={22} /> },
-  { id: 'alarms',      label: 'Alarms',      icon: <IconBell size={22} /> },
+  { id: 'debrief',      label: 'Debrief',     icon: <IconDebrief size={22} /> },
+  { id: 'transcripts',  label: 'Transcripts', icon: <IconTranscript size={22} /> },
+  { id: 'library',      label: 'Library',     icon: <IconFolder size={22} /> },
+  { id: 'race-summary', label: 'Summary',     icon: <IconSummary size={22} /> },
+  { id: 'alarms',       label: 'Alarms',      icon: <IconBell size={22} /> },
 ];
 
 export default function BottomNav() {
@@ -27,7 +28,7 @@ export default function BottomNav() {
   const { openTutorial } = useTutorial();
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const activeScreen = (pathname.replace('/', '') as ScreenId) || 'backbone';
+  const activeScreen = (pathname.slice(1) as ScreenId) || 'backbone';
   const moreActive = MORE_ITEMS.some(i => i.id === activeScreen);
 
   function nav(id: ScreenId) {
