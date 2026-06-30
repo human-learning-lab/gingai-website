@@ -175,7 +175,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
 	}
   }
 
-  useEffect(() => {setQuestion(get_questions());});
+  useEffect(() => {setQuestions(get_questions());});
 
 
   // ── Offline mode recording ────────────────────
