@@ -123,7 +123,8 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
   const [saved, setSaved]       = useState<{ text: string; ts: string }[]>([]);
   const [recTime, setRecTime]   = useState(0);
   const [transcript, setTranscript] = useState('');
-  const [questions, setQuestions] = useState<string[]>([]);
+  const [questions, setQuestions] = useState(null);
+  const [waiting, setWaiting] = useState(true);
   const [offlineSaved, setOfflineSaved] = useState(false);
 
   const lines    = transcriptLines ?? [];
@@ -168,18 +169,17 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
 
   useEffect(() => {
     async function get_questions() {
-		const def = ["What's on your mind after today? Tap record and just speak."];
-
 		const res = await fetch(`/api/questions?sailor=${userName}`);
 		if (!res.ok){
-			setQuestions(def);
+			throw new Error('Failed to fetch Questions');
 		} else{
 			const questions = await res.json();
-			setQuestions(questions.Questions);
+			setQuestions(questions);
 		}
   	}
 
 	  get_questions();
+	  setWaiting(false);
   }, []);
 
 
@@ -235,7 +235,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
         <div className="ai-q">
           <GingAIAvatar />
           <div className="ai-q-bub">
-		  {questions}
+		  {waiting ? Waiting  : questions}
           </div>
         </div>
       )}
