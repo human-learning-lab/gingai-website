@@ -112,6 +112,10 @@ interface CaptureTabProps {
   onRecordingChange?: (recording: boolean) => void;
 }
 
+interface QuestionsResponse {
+  Questions: string[];
+}
+
 export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t, onRecordingChange }: CaptureTabProps) {
   const { role } = useRole();
   const { user } = useUser();
@@ -123,7 +127,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
   const [saved, setSaved]       = useState<{ text: string; ts: string }[]>([]);
   const [recTime, setRecTime]   = useState(0);
   const [transcript, setTranscript] = useState('');
-  const [questions, setQuestions] = useState(null);
+  const [questions, setQuestions] = useState<QuestionsResponse | null>(null);
   const [waiting, setWaiting] = useState(true);
   const [offlineSaved, setOfflineSaved] = useState(false);
 
@@ -173,7 +177,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
 		if (!res.ok){
 			throw new Error('Failed to fetch Questions');
 		} else{
-			const questions = await res.json();
+			const questions : QuestionsResponse = await res.json();
 			setQuestions(questions);
 		}
   	}
@@ -235,9 +239,15 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
         <div className="ai-q">
           <GingAIAvatar />
           <div className="ai-q-bub">
-		  {waiting == true 
-			  ? "Waiting"  
-			  : !questions.Questions}
+		   {waiting ? (
+    			"Waiting"
+		   ) : (
+    		<ul>
+      		{questions?.Questions.map((q, index) => (
+        		<li key={index}>{q}</li>
+      		))}
+    		</ul>
+  			)}
           </div>
         </div>
       )}
