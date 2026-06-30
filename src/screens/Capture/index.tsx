@@ -235,7 +235,9 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
         <div className="ai-q">
           <GingAIAvatar />
           <div className="ai-q-bub">
-		  {waiting ? Waiting  : questions}
+		  {waiting == true 
+			  ? "Waiting"  
+			  : questions.Questions}
           </div>
         </div>
       )}
