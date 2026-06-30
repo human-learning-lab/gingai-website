@@ -174,8 +174,8 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
 		if (!res.ok){
 			setQuestions(def);
 		} else{
-			const questions = res.json().Questions;
-			setQuestions(questions);
+			const questions = await res.json();
+			setQuestions(questions.Questions);
 		}
   	}
 
