@@ -164,18 +164,22 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
   }
 
 
-  async function get_questions() {
-	const def = "What's on your mind after today? Tap record and just speak.";
+  
 
-	const res = await fetch('/api/questions/${username}');
-	if (!res.ok){
-      return def;
-	} else{
-	  return res.text;
-	}
-  }
+  useEffect(() => {
+    async function get_questions() {
+		const def = "What's on your mind after today? Tap record and just speak.";
 
-  useEffect(() => {setQuestions(get_questions());});
+		const res = await fetch('/api/questions/${username}');
+		if (!res.ok){
+			setQuestions(def);
+		} else{
+			setQuestions(res.text);
+		}
+  	}
+
+	  get_questions();
+  }, []);
 
 
   // ── Offline mode recording ────────────────────
