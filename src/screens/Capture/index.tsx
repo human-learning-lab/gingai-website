@@ -170,7 +170,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
     async function get_questions() {
 		const def = ["What's on your mind after today? Tap record and just speak."];
 
-		const res = await fetch(`/api/questions?sailor=${username}`);
+		const res = await fetch(`/api/questions?sailor=${userName}`);
 		if (!res.ok){
 			setQuestions(def);
 		} else{
