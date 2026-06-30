@@ -15,7 +15,7 @@ export async function POST(req: NextRequest){
  const path = `/questions/${sailor}`
 
  const res = await upstream(path);
- return NextResponse.json(res);
+ return res;
 
 }
 
@@ -27,5 +27,5 @@ export async function GET(req: NextRequest) {
  const path = `/questions/${sailor}`
 
  const res = await upstream(path);
- return NextResponse.json(res);
+ return res;
 }
