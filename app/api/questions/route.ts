@@ -27,5 +27,6 @@ export async function GET(req: NextRequest) {
  const path = `/questions/${sailor}`
 
  const res = await upstream(path);
- return NextResponse.json(res);
+ const questions = await res.json();
+ return NextResponse.json(questions);
 }
