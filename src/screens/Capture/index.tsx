@@ -237,7 +237,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
           <div className="ai-q-bub">
 		  {waiting == true 
 			  ? "Waiting"  
-			  : questions.Questions}
+			  : !questions.Questions}
           </div>
         </div>
       )}
