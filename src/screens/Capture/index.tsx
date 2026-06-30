@@ -123,7 +123,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
   const [saved, setSaved]       = useState<{ text: string; ts: string }[]>([]);
   const [recTime, setRecTime]   = useState(0);
   const [transcript, setTranscript] = useState('');
-  const [questions, setQuestions] = useState([]);
+  const [questions, setQuestions] = useState<string[]>([]);
   const [offlineSaved, setOfflineSaved] = useState(false);
 
   const lines    = transcriptLines ?? [];
