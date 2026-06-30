@@ -11,7 +11,7 @@ async function upstream(path: string, init?: RequestInit) {
 // POST /api/questions?sailor=name -- Stores questions for Sailor
 export async function POST(req: NextRequest){
  const {searchParams} = new URL(req.url);
- const sailor = params.get('sailor');
+ const sailor = searchParams.get('sailor');
  const path = `/questions/${sailor}`
 
  const res = await upstream(path);
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest){
 // GET /api/questions?sailor=name — fetch questions for Sailor
 export async function GET(req: NextRequest) {
  const {searchParams} = new URL(req.url);
- const sailor = params.get('sailor');
+ const sailor = searchParams.get('sailor');
  const path = `/questions/${sailor}`
 
  const res = await upstream(path);
