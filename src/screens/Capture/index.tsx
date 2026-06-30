@@ -238,13 +238,9 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
       {saved.length === 0 && phase === 'idle' && (
         <div className="ai-q">
           <GingAIAvatar />
-		   {waiting ? (
-    			"Waiting"
-		   ) : (
-      		{questions?.Questions.map((q, index) => (
-				<div className="ai-q-bub">{q}</div>
-      		))}
-  			)}
+		  {questions?.Questions.map((q, index) => (
+			  <div className="ai-q-bub">{q}</div>))
+		  }
         </div>
       )}
 
