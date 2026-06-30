@@ -162,6 +162,19 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
     setPhase('idle');
   }
 
+
+  async function get_questions(){
+	const def = "What's on your mind after today? Tap record and just speak.";
+
+	const res = await fetch('/api/questions/${username}');
+	if (!res.ok){
+      return def;
+	} else{
+	  return res.json;
+	}
+  }
+
+
   // ── Offline mode recording ────────────────────
 
   async function handleOfflineStart() {
@@ -214,7 +227,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
         <div className="ai-q">
           <GingAIAvatar />
           <div className="ai-q-bub">
-            What's on your mind after today? Tap record and just speak.
+		  {get_questions()}
           </div>
         </div>
       )}
