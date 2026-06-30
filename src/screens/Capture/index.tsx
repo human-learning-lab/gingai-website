@@ -174,7 +174,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
 		if (!res.ok){
 			setQuestions(def);
 		} else{
-			setQuestions(res.text);
+			setQuestions(res.body);
 		}
   	}
 
