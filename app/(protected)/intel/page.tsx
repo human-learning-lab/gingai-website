@@ -1,11 +1,5 @@
-import type { Metadata } from 'next';
-import QuestionSets from '@/screens/QuestionSets';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = {
-  title: 'Dashboard',
-  description: 'Dashboard for managing questions and responses',
-};
-
-export default function DashPage() {
-  return <QuestionSets/>;
+export default function IntelPage() {
+  redirect('/debrief');
 }
