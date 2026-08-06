@@ -17,7 +17,7 @@ export async function POST(req: NextRequest){
 
   const res = await upstream(path, {
 	method: 'POST',
-	headers: {'Content-Type': 'application/json'}
+	headers: {'Content-Type': 'application/json'},
 	body: JSON.stringify(body),
   });
   return NextResponse.json(res);
