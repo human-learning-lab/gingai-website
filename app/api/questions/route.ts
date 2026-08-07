@@ -51,7 +51,7 @@ export async function PATCH(req: NextRequest){
   return NextResponse.json(data, { status: res.status });
 }
 // DELETE /api/questions?id=int1
-export async funtion DELETE(req: NextRequest){
+export async function DELETE(req: NextRequest){
   const {searchParams} = new URL(req.url);
   const question_id = searchParams.get('id');
   const path = `/questions/${id}`
