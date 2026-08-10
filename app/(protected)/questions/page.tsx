@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import SailorPage from '@/screens/QuestionsAnswers;
+import SailorPage from '@/screens/QuestionsAnswers
 
 export const metadata: Metadata = {
   title: 'Response Screen',
-  description: 'Page for sailor responses',
+  description: 'Page for collecting sailor responses',
 };
 
 export default function ResponsePage() {
