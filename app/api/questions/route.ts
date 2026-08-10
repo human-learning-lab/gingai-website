@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest){
   const {searchParams} = new URL(req.url);
   const question_id = searchParams.get('id');
-  const path = `/questions/${id}`
+  const path = `/questions/${question_id}`
   const body = await req.json();
   const res = await upstream(path, {
     method: 'PATCH',
