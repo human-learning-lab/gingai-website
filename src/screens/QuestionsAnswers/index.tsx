@@ -90,12 +90,22 @@ const MOCK = {
 export default function SailorPage() {
   const [mode, setMode] = useState<Mode>("capture");   // dev switcher only — remove in production
   return (
-    <div style={{ background: C.sand, minHeight: 640, fontFamily: UI, padding: "16px 0" }}>
+    <div className="ginga-viewport" style={{
+      background: C.sand, fontFamily: UI, boxSizing: "border-box",
+      display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center",
+      padding: "clamp(10px, 2.5vh, 24px) clamp(8px, 2.5vw, 24px)",
+    }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
-        *{box-sizing:border-box}`}</style>
+        *{box-sizing:border-box}
+        html,body,#root{height:100%;margin:0}
+        .ginga-viewport{min-height:100vh; width:100%}
+        @supports (height: 100dvh){ .ginga-viewport{min-height:100dvh} }
+        .ginga-card{width:min(96vw, 460px); height:min(94vh, 780px)}
+        @supports (height: 100dvh){ .ginga-card{height:min(94dvh, 780px)} }
+      `}</style>
 
       {/* dev only — production reads mode from the URL */}
-      <div style={{ display: "flex", gap: 5, justifyContent: "center", marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 5, justifyContent: "center", marginBottom: 14, flexShrink: 0 }}>
         {(["priming", "capture", "note"] as Mode[]).map(m => (
           <button key={m} onClick={() => setMode(m)} style={{
             padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontSize: 11.5, fontFamily: UI,
@@ -147,14 +157,15 @@ function Page({ run }: { run: RunData }) {
     : `${run.event.dayLabel} · ${run.event.venue}`;
 
   return (
-    <div style={{
-      maxWidth: 420, margin: "0 auto", background: C.paper, border: `1px solid ${C.line}`,
-      borderRadius: 12, minHeight: 560, display: "flex", flexDirection: "column", overflow: "hidden",
+    <div className="ginga-card" style={{
+      margin: "0 auto", background: C.paper, border: `1px solid ${C.line}`,
+      borderRadius: 12, display: "flex", flexDirection: "column", overflow: "hidden",
+      flexShrink: 0,
     }}>
-      <header style={{ padding: "16px 19px 13px", borderBottom: `1px solid ${C.line}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <header style={{ padding: "16px 19px 13px", borderBottom: `1px solid ${C.line}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
         <div>
           <div style={lbl}>{kicker}</div>
-          <h1 style={{ fontFamily: DISPLAY, fontSize: 25, fontWeight: 700, color: C.ink, margin: "2px 0 0", lineHeight: 1.1 }}>{title}</h1>
+          <h1 style={{ fontFamily: DISPLAY, fontSize: "clamp(21px, 4.5vh, 26px)", fontWeight: 700, color: C.ink, margin: "2px 0 0", lineHeight: 1.1 }}>{title}</h1>
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: C.ink }}>{run.sailor.firstName}</div>
@@ -167,7 +178,7 @@ function Page({ run }: { run: RunData }) {
       ) : (
         <>
           {!isNote && (
-            <div style={{ display: "flex", gap: 3, padding: "11px 19px 0" }}
+            <div style={{ display: "flex", gap: 3, padding: "11px 19px 0", flexShrink: 0 }}
                  aria-live="polite" aria-label={`Question ${step + 1} of ${run.questions.length}`}>
               {run.questions.map((_: Question, i: number) => (
                 <span key={i} style={{ height: 3, flex: 1, borderRadius: 2, background: i <= step ? C.green : C.line }} />
@@ -176,7 +187,7 @@ function Page({ run }: { run: RunData }) {
           )}
 
           {!isNote && q.context && (
-            <div style={{ margin: "13px 19px 0", padding: "11px 12px", background: C.sand, borderLeft: `2px solid ${C.green}`, borderRadius: "0 8px 8px 0" }}>
+            <div style={{ margin: "13px 19px 0", padding: "11px 12px", background: C.sand, borderLeft: `2px solid ${C.green}`, borderRadius: "0 8px 8px 0", flexShrink: 0 }}>
               <div style={{ ...lbl, marginBottom: 4 }}>{q.context.label}</div>
               {q.context.body && <div style={{ fontSize: 12.5, color: C.ink, lineHeight: 1.5 }}>{q.context.body}</div>}
               {q.context.list?.map((item: string, i: number) => (
@@ -188,15 +199,15 @@ function Page({ run }: { run: RunData }) {
           )}
 
           {isNote && (
-            <div style={{ margin: "16px 19px 0", padding: "11px 12px", background: C.sand, borderRadius: 8, fontSize: 12, color: C.warm, lineHeight: 1.5 }}>
+            <div style={{ margin: "16px 19px 0", padding: "11px 12px", background: C.sand, borderRadius: 8, fontSize: 12, color: C.warm, lineHeight: 1.5, flexShrink: 0 }}>
               Yours until you choose to share it.
             </div>
           )}
 
-          <div style={{ padding: "18px 19px 0", flex: 1 }}>
+          <div style={{ padding: "18px 19px 0", flex: 1, minHeight: 0, overflowY: "auto" }}>
             {!isNote && <div style={{ ...lbl, color: C.green, marginBottom: 6 }}>Question {step + 1}</div>}
             <p style={{
-              fontFamily: isNote ? UI : DISPLAY, fontSize: isNote ? 16 : 23,
+              fontFamily: isNote ? UI : DISPLAY, fontSize: isNote ? 16 : "clamp(19px, 3.6vh, 24px)",
               fontWeight: isNote ? 400 : 600, color: isNote ? C.warm : C.ink,
               lineHeight: 1.25, margin: 0,
             }}>
@@ -223,7 +234,7 @@ function Page({ run }: { run: RunData }) {
             {inputMode === "voice" && recording && <Waveform secs={secs} />}
           </div>
 
-          <div style={{ padding: "13px 19px 18px", borderTop: `1px solid ${C.line}` }}>
+          <div style={{ padding: "13px 19px 18px", borderTop: `1px solid ${C.line}`, flexShrink: 0 }}>
             {inputMode === "voice" ? (
               <>
                 <button onClick={() => recording ? submitVoice() : start()} style={{
@@ -256,7 +267,8 @@ function Page({ run }: { run: RunData }) {
 function Done({ run, sent, isNote }: { run: RunData; sent: SentAnswer[]; isNote: boolean }) {
   const [share, setShare] = useState<ShareChoice>("private");
   return (
-    <div style={{ padding: "32px 22px", flex: 1, display: "flex", flexDirection: "column" }}>
+    <div style={{ padding: "32px 22px", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
       <div style={{ width: 38, height: 38, borderRadius: 38, background: C.greenLt, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 15 }}>
         <span style={{ color: C.green, fontSize: 18, fontWeight: 700 }}>✓</span>
       </div>
@@ -302,9 +314,10 @@ function Done({ run, sent, isNote }: { run: RunData; sent: SentAnswer[]; isNote:
           </div>
         </>
       )}
+      </div>
 
       {run.nextMeeting && (
-        <div style={{ marginTop: "auto", padding: "11px 13px", background: C.sand, borderRadius: 8, fontSize: 11.5, color: C.warm, lineHeight: 1.5 }}>
+        <div style={{ marginTop: 16, padding: "11px 13px", background: C.sand, borderRadius: 8, fontSize: 11.5, color: C.warm, lineHeight: 1.5, flexShrink: 0 }}>
           {run.nextMeeting}
         </div>
       )}
