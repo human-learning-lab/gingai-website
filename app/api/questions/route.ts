@@ -54,7 +54,7 @@ export async function PATCH(req: NextRequest){
 export async function DELETE(req: NextRequest){
   const {searchParams} = new URL(req.url);
   const question_id = searchParams.get('id');
-  const path = `/questions/${id}`
+  const path = `/questions/${question_id}`
   const res = await upstream(path, { method: 'DELETE' });
   return new NextResponse(null, { status: res.status });
 }
