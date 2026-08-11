@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { ROLES } from '@/data/roles';
 
 type Question = {
   id: string;
@@ -13,6 +14,7 @@ type QuestionSet = {
   title: string;
   description?: string;
   created_at?: string | null;
+  assignees?: string[];
 };
 
 type Response = {
@@ -57,6 +59,7 @@ export default function QuestionSets() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newSetTitle, setNewSetTitle] = useState('');
   const [newQuestions, setNewQuestions] = useState<string[]>(['']);
+  const [newAssignees, setNewAssignees] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
 
   // Fetch sets
@@ -104,6 +107,7 @@ export default function QuestionSets() {
   function openCreateModal() {
     setNewSetTitle('');
     setNewQuestions(['']);
+    setNewAssignees([]);
     setShowCreateModal(true);
   }
 
@@ -119,13 +123,17 @@ export default function QuestionSets() {
     setNewQuestions(prev => prev.map((q, i) => i === idx ? text : q));
   }
 
+  function toggleAssignee(id: string) {
+    setNewAssignees(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
   async function submitNewSet() {
     if (!newSetTitle.trim()) return alert('Please enter a title for the set');
     const questionsToCreate = newQuestions.map(q => q.trim()).filter(Boolean);
     if (questionsToCreate.length === 0) return alert('Please add at least one question');
 
     setCreating(true);
-    const localSet: QuestionSet = { id: 'local-' + Date.now(), title: newSetTitle, created_at: new Date().toISOString() };
+    const localSet: QuestionSet = { id: 'local-' + Date.now(), title: newSetTitle, created_at: new Date().toISOString(), assignees: newAssignees };
     // optimistic
     setSets(prev => [localSet, ...prev]);
     setShowCreateModal(false);
@@ -133,7 +141,7 @@ export default function QuestionSets() {
     try {
       const res = await fetch('/api/question-sets', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newSetTitle, questions: questionsToCreate }),
+        body: JSON.stringify({ title: newSetTitle, questions: questionsToCreate, assignees: newAssignees }),
       });
       if (res.ok) {
         const created = await res.json();
@@ -142,7 +150,6 @@ export default function QuestionSets() {
           setSets(prev => [created, ...prev.filter(s => s.id !== localSet.id)]);
           // If API returns questions, update UI for that set when selected
           if (created.questions && created.questions.length) {
-            // Navigate to the new set and populate questions
             setSelectedSet(created as QuestionSet);
             setQuestions(created.questions as Question[]);
             setMobileView('questions');
@@ -150,12 +157,12 @@ export default function QuestionSets() {
         }
       } else {
         // revert optimistic
-        //setSets(prev => prev.filter(s => s.id !== localSet.id));
-        //alert('Failed to create set');
+        setSets(prev => prev.filter(s => s.id !== localSet.id));
+        alert('Failed to create set');
       }
     } catch (e) {
-      //setSets(prev => prev.filter(s => s.id !== localSet.id));
-      //alert('Failed to create set');
+      setSets(prev => prev.filter(s => s.id !== localSet.id));
+      alert('Failed to create set');
     } finally {
       setCreating(false);
     }
@@ -336,6 +343,19 @@ export default function QuestionSets() {
                   </div>
                 ))}
               </div>
+
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 8 }}>Assign to</div>
+                <div className="qs-assign-grid">
+                  {ROLES.map(r => (
+                    <button key={r.id} className={`qs-assignee-btn ${newAssignees.includes(r.id) ? 'active' : ''}`} onClick={() => toggleAssignee(r.id)}>
+                      {r.avatar ? <img src={r.avatar} alt={r.name} className="qs-avatar" /> : <div className="qs-avatar-placeholder">{r.initial}</div>}
+                      <div className="qs-assignee-name">{r.name}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
             </div>
             <div className="qs-modal-footer">
               <button className="qs-modal-cancel" onClick={() => setShowCreateModal(false)} disabled={creating}>Cancel</button>
@@ -418,6 +438,15 @@ export default function QuestionSets() {
         .qs-modal-footer { padding: 12px 18px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--line); }
         .qs-modal-cancel { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: none; cursor: pointer; }
         .qs-modal-create { padding: 8px 14px; border-radius: 8px; border: none; background: var(--sim); color: #fff; font-weight: 700; cursor: pointer; }
+
+        /* Assignee grid */
+        .qs-assign-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+        .qs-assignee-btn { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg2); cursor: pointer; text-align: left; }
+        .qs-assignee-btn.active { background: color-mix(in srgb, var(--sg) 8%, var(--bg)); border-color: var(--sb); }
+        .qs-avatar { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; }
+        .qs-avatar-placeholder { width: 28px; height: 28px; border-radius: 6px; background: var(--bg3); display: flex; align-items: center; justify-content: center; color: var(--text4); font-weight: 700; }
+        .qs-assignee-name { font-size: 13px; font-weight: 600; color: var(--text); }
+
       `}</style>
     </>
   );
