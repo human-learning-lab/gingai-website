@@ -51,12 +51,17 @@ interface SentAnswer {
 }
 
 type ShareChoice = "private" | "rich" | "team";
-const { role } = useRole();
 
 //const questions_res = await fetch('');
 //const questions = await questions_res.json();
 
 
+
+
+export default function SailorPage() {
+  const [mode, setMode] = useState<Mode>("capture");   // dev switcher only — remove in production
+
+  const { role } = useRole();
 // ---- mock payload — replace with GET /api/capture/{token} ----
 const MOCK = {
   capture: {
@@ -80,9 +85,6 @@ const MOCK = {
     questions: [],
   },
 } satisfies Record<Mode, RunData>;
-
-export default function SailorPage() {
-  const [mode, setMode] = useState<Mode>("capture");   // dev switcher only — remove in production
   return (
     <div className="ginga-viewport" style={{
       background: C.sand, fontFamily: UI, boxSizing: "border-box",
