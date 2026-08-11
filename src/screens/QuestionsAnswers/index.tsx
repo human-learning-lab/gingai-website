@@ -29,7 +29,7 @@ interface QuestionContext {
 }
 
 interface Question {
-  id: string;
+  id: number;
   text: string;
   context?: QuestionContext;
 }
@@ -61,7 +61,7 @@ const { role } = useRole();
 const MOCK = {
   capture: {
     mode: "capture",
-    sailor: { firstName: role!.name, role: role!.role},
+    sailor: { firstName: role!.name, role: role!.label},
     event: { venue: "Sassnitz", dayLabel: "Race day 2" },
     questions: [ {id: 1, text: "Test"}
     ],
@@ -71,10 +71,6 @@ const MOCK = {
     sailor: { firstName: role!.name, role: "Flight Controller" },
     event: { venue: "Sassnitz", dayLabel: "Tomorrow" },
     questions: [
-      { id: "p1", text: "What will matter most in your area tomorrow?",
-        context: { label: "CONDITIONS", body: "14–19 kts SW, shifty. 24m wing." } },
-      { id: "p2", text: "What are your uncertainties?" },
-      { id: "p3", text: "What will you personally do about it?" },
     ],
   },
   note: {
