@@ -51,6 +51,10 @@ interface SentAnswer {
 
 type ShareChoice = "private" | "rich" | "team";
 
+const questions_res = await fetch('/api/questions?sailor=Rasmus');
+const questions = await questions_res.json();
+
+
 // ---- mock payload — replace with GET /api/capture/{token} ----
 const MOCK = {
   capture: {
@@ -58,14 +62,7 @@ const MOCK = {
     sailor: { firstName: "Rasmus", role: "Flight Controller" },
     event: { venue: "Sassnitz", dayLabel: "Race day 2" },
     nextMeeting: "Debrief 19:30 — tent",
-    questions: [
-      { id: "q1", text: "What is the main thing on your mind?" },
-      { id: "q2", text: "Did you achieve the goal you set this morning?",
-        context: { label: "YOUR GOAL THIS MORNING", body: "Make the first call one phase earlier, even when not fully certain." } },
-      { id: "q3", text: "Where did the plan break down most clearly?" },
-      { id: "q4", text: "What should we take into tomorrow?",
-        context: { label: "TODAY'S SQUAD GOALS", list: ["Plan the start → execute incl. X position", "TWS comms defines mode", "Sterile cockpit in manoeuvres"] } },
-    ],
+    questions: questions,
   },
   priming: {
     mode: "priming",
@@ -104,16 +101,6 @@ export default function SailorPage() {
         @supports (height: 100dvh){ .ginga-card{height:min(94dvh, 780px)} }
       `}</style>
 
-      {/* dev only — production reads mode from the URL */}
-      <div style={{ display: "flex", gap: 5, justifyContent: "center", marginBottom: 14, flexShrink: 0 }}>
-        {(["priming", "capture", "note"] as Mode[]).map(m => (
-          <button key={m} onClick={() => setMode(m)} style={{
-            padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontSize: 11.5, fontFamily: UI,
-            background: mode === m ? C.green : "transparent", color: mode === m ? "#fff" : C.warm,
-            border: mode === m ? "none" : `1px solid ${C.line}`,
-          }}>{m}</button>
-        ))}
-      </div>
 
       <Page key={mode} run={MOCK[mode]} />
     </div>
@@ -145,6 +132,7 @@ function Page({ run }: { run: RunData }) {
   }
   function push(answer: Omit<SentAnswer, "q">) {
     // POST /api/capture/{token}/answer — one request per answer
+	fetch('/api/questions')
     setSent(s => [...s, { q: isNote ? "A thought" : q.text, ...answer }]);
     setDraft("");
     if (isNote) setNoteDone(true); else setStep(s => s + 1);

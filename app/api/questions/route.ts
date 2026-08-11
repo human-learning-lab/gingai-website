@@ -29,7 +29,8 @@ export async function POST(req: NextRequest){
 // GET /api/questions?id -> QuestionSet by id
 export async function GET(req: NextRequest) {
   const {searchParams} = new URL(req.url);
-  const path = `/questions`
+  const sailor = searchParams.get('sailor')
+  const path = `/questions/{sailor}`
 
   const res = await upstream(path);
   const questions = await res.json();

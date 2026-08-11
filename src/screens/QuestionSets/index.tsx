@@ -56,7 +56,7 @@ export default function QuestionSets() {
   // Fetch sets
   useEffect(() => {
     setLoadingSets(true);
-    fetch('/api/question-sets')
+    fetch('/api/question_sets')
       .then(r => r.ok ? r.json() : [])
       .then((data: QuestionSet[]) => setSets(data))
       .catch(() => setSets([]))
