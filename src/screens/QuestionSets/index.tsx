@@ -157,12 +157,12 @@ export default function QuestionSets() {
         }
       } else {
         // revert optimistic
-        setSets(prev => prev.filter(s => s.id !== localSet.id));
-        alert('Failed to create set');
+        //setSets(prev => prev.filter(s => s.id !== localSet.id));
+        //alert('Failed to create set');
       }
     } catch (e) {
-      setSets(prev => prev.filter(s => s.id !== localSet.id));
-      alert('Failed to create set');
+      //setSets(prev => prev.filter(s => s.id !== localSet.id));
+      //alert('Failed to create set');
     } finally {
       setCreating(false);
     }

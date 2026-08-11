@@ -51,6 +51,7 @@ interface SentAnswer {
 }
 
 type ShareChoice = "private" | "rich" | "team";
+const { role } = useRole();
 
 //const questions_res = await fetch('');
 //const questions = await questions_res.json();
@@ -60,20 +61,14 @@ type ShareChoice = "private" | "rich" | "team";
 const MOCK = {
   capture: {
     mode: "capture",
-    sailor: { firstName: useRole().name, role: "Flight Controller" },
+    sailor: { firstName: role!.name, role: role!.role},
     event: { venue: "Sassnitz", dayLabel: "Race day 2" },
-    questions: [
-      { id: "q1", text: "What is the main thing on your mind?" },
-      { id: "q2", text: "Did you achieve the goal you set this morning?",
-        context: { label: "YOUR GOAL THIS MORNING", body: "Make the first call one phase earlier, even when not fully certain." } },
-      { id: "q3", text: "Where did the plan break down most clearly?" },
-      { id: "q4", text: "What should we take into tomorrow?",
-        context: { label: "TODAY'S SQUAD GOALS", list: ["Plan the start → execute incl. X position", "TWS comms defines mode", "Sterile cockpit in manoeuvres"] } },
+    questions: [ {id: 1, text: "Test"}
     ],
   },
   priming: {
     mode: "priming",
-    sailor: { firstName: "Rasmus", role: "Flight Controller" },
+    sailor: { firstName: role!.name, role: "Flight Controller" },
     event: { venue: "Sassnitz", dayLabel: "Tomorrow" },
     questions: [
       { id: "p1", text: "What will matter most in your area tomorrow?",
