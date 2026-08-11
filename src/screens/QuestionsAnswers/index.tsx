@@ -1,5 +1,6 @@
 'use client';
 
+import { useRole } from '@/context/RoleContext';
 import React, { useState, useRef, useEffect } from "react";
 
 // ============================================================
@@ -59,9 +60,8 @@ type ShareChoice = "private" | "rich" | "team";
 const MOCK = {
   capture: {
     mode: "capture",
-    sailor: { firstName: "Rasmus", role: "Flight Controller" },
+    sailor: { firstName: useRole().name, role: "Flight Controller" },
     event: { venue: "Sassnitz", dayLabel: "Race day 2" },
-    nextMeeting: "Debrief 19:30 — tent",
     questions: [
       { id: "q1", text: "What is the main thing on your mind?" },
       { id: "q2", text: "Did you achieve the goal you set this morning?",
@@ -75,7 +75,6 @@ const MOCK = {
     mode: "priming",
     sailor: { firstName: "Rasmus", role: "Flight Controller" },
     event: { venue: "Sassnitz", dayLabel: "Tomorrow" },
-    nextMeeting: "Briefing 12:00 — tent",
     questions: [
       { id: "p1", text: "What will matter most in your area tomorrow?",
         context: { label: "CONDITIONS", body: "14–19 kts SW, shifty. 24m wing." } },
