@@ -53,6 +53,12 @@ export default function QuestionSets() {
   const [search, setSearch] = useState('');
   const [mobileView, setMobileView] = useState<MobileView>('sets');
 
+  // Create modal state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newSetTitle, setNewSetTitle] = useState('');
+  const [newQuestions, setNewQuestions] = useState<string[]>(['']);
+  const [creating, setCreating] = useState(false);
+
   // Fetch sets
   useEffect(() => {
     setLoadingSets(true);
@@ -94,19 +100,65 @@ export default function QuestionSets() {
     setMobileView('review');
   }
 
-  function createSet() {
-    const title = window.prompt('New set title');
-    if (!title) return;
-    const newSet: QuestionSet = { id: 'local-' + Date.now(), title, created_at: new Date().toISOString() };
-    // optimistic update
-    setSets(prev => [newSet, ...prev]);
-    // try to save
-    fetch('/api/question-sets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
-      .then(r => r.ok ? r.json() : null)
-      .then((saved: QuestionSet | null) => {
-        if (saved) setSets(prev => [saved, ...prev.filter(s => s.id !== newSet.id)]);
-      })
-      .catch(() => {});
+  // Open modal to create a new set with multiple questions
+  function openCreateModal() {
+    setNewSetTitle('');
+    setNewQuestions(['']);
+    setShowCreateModal(true);
+  }
+
+  function addNewQuestionRow() {
+    setNewQuestions(prev => [...prev, '']);
+  }
+
+  function removeNewQuestionRow(idx: number) {
+    setNewQuestions(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  function updateNewQuestion(idx: number, text: string) {
+    setNewQuestions(prev => prev.map((q, i) => i === idx ? text : q));
+  }
+
+  async function submitNewSet() {
+    if (!newSetTitle.trim()) return alert('Please enter a title for the set');
+    const questionsToCreate = newQuestions.map(q => q.trim()).filter(Boolean);
+    if (questionsToCreate.length === 0) return alert('Please add at least one question');
+
+    setCreating(true);
+    const localSet: QuestionSet = { id: 'local-' + Date.now(), title: newSetTitle, created_at: new Date().toISOString() };
+    // optimistic
+    setSets(prev => [localSet, ...prev]);
+    setShowCreateModal(false);
+
+    try {
+      const res = await fetch('/api/question-sets', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newSetTitle, questions: questionsToCreate }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        // Expecting created to be the new set (and optionally include questions)
+        if (created?.id) {
+          setSets(prev => [created, ...prev.filter(s => s.id !== localSet.id)]);
+          // If API returns questions, update UI for that set when selected
+          if (created.questions && created.questions.length) {
+            // Navigate to the new set and populate questions
+            setSelectedSet(created as QuestionSet);
+            setQuestions(created.questions as Question[]);
+            setMobileView('questions');
+          }
+        }
+      } else {
+        // revert optimistic
+        setSets(prev => prev.filter(s => s.id !== localSet.id));
+        alert('Failed to create set');
+      }
+    } catch (e) {
+      setSets(prev => prev.filter(s => s.id !== localSet.id));
+      alert('Failed to create set');
+    } finally {
+      setCreating(false);
+    }
   }
 
   function createQuestion() {
@@ -140,7 +192,6 @@ export default function QuestionSets() {
   function statsForQuestion(qId: string) {
     const all = responses.filter(r => r.questionId === qId);
     const count = all.length;
-    // simplistic "complete" metric: any non-empty answer
     const complete = all.filter(a => a.answer && a.answer.trim()).length;
     return { count, complete };
   }
@@ -169,7 +220,7 @@ export default function QuestionSets() {
         ))}
       </div>
       <div className="qs-panel-footer">
-        <button className="qs-create" onClick={createSet}>+ New set</button>
+        <button className="qs-create" onClick={openCreateModal}>+ New set</button>
       </div>
     </div>
   );
@@ -258,6 +309,42 @@ export default function QuestionSets() {
         {mobileView === 'review' && ReviewPanel}
       </div>
 
+      {/* Create set modal */}
+      {showCreateModal && (
+        <div className="qs-modal-overlay" role="dialog" aria-modal="true">
+          <div className="qs-modal">
+            <div className="qs-modal-header">
+              <div style={{ fontSize: 14, fontWeight: 800 }}>New question set</div>
+              <button onClick={() => setShowCreateModal(false)} className="qs-modal-close">✕</button>
+            </div>
+            <div className="qs-modal-body">
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 6 }}>Title</div>
+                <input value={newSetTitle} onChange={e => setNewSetTitle(e.target.value)} placeholder="Set title" className="qs-input" />
+              </div>
+
+              <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 11, color: 'var(--text4)' }}>Questions</div>
+                <button className="qs-add-question" onClick={addNewQuestionRow}>+ Add question</button>
+              </div>
+
+              <div className="qs-new-questions">
+                {newQuestions.map((q, i) => (
+                  <div key={i} className="qs-new-row">
+                    <textarea className="qs-new-text" value={q} onChange={e => updateNewQuestion(i, e.target.value)} placeholder={`Question ${i + 1}`} />
+                    <button className="qs-remove-q" onClick={() => removeNewQuestionRow(i)} aria-label="Remove question">−</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="qs-modal-footer">
+              <button className="qs-modal-cancel" onClick={() => setShowCreateModal(false)} disabled={creating}>Cancel</button>
+              <button className="qs-modal-create" onClick={submitNewSet} disabled={creating}>{creating ? 'Creating…' : 'Create set'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .qs-desktop { display: flex !important; }
         .qs-mobile { display: none; }
@@ -313,6 +400,24 @@ export default function QuestionSets() {
         .qs-edit-question { width: 100%; min-height: 70px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); resize: vertical; }
 
         .qs-no-review { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text4); font-size: 13px; }
+
+        /* Modal styles */
+        .qs-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 80; }
+        .qs-modal { width: min(880px, 96%); max-height: 86vh; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+        .qs-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+        .qs-modal-close { background: none; border: none; cursor: pointer; font-size: 16px; color: var(--text4); }
+        .qs-modal-body { padding: 16px 18px; overflow: auto; }
+        .qs-input { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg2); color: var(--text); }
+
+        .qs-add-question { background: none; border: none; color: var(--sim); cursor: pointer; font-weight: 700; }
+        .qs-new-questions { display: flex; flex-direction: column; gap: 8px; }
+        .qs-new-row { display: flex; gap: 8px; align-items: flex-start; }
+        .qs-new-text { flex: 1; min-height: 56px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); resize: vertical; }
+        .qs-remove-q { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line); background: none; cursor: pointer; }
+
+        .qs-modal-footer { padding: 12px 18px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--line); }
+        .qs-modal-cancel { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: none; cursor: pointer; }
+        .qs-modal-create { padding: 8px 14px; border-radius: 8px; border: none; background: var(--sim); color: #fff; font-weight: 700; cursor: pointer; }
       `}</style>
     </>
   );
