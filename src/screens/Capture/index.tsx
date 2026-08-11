@@ -170,7 +170,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
 
 
   
-
+/*
   useEffect(() => {
     async function get_questions() {
 		const res = await fetch(`/api/questions?sailor=${userName}`);
@@ -185,7 +185,7 @@ export default function Capture({ transcriptLines, sentimentPts: _s, topics: _t,
 	  get_questions();
 	  setWaiting(false);
   }, []);
-
+*/
 
   // ── Offline mode recording ────────────────────
 

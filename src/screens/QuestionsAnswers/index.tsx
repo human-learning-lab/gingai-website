@@ -56,8 +56,6 @@ type ShareChoice = "private" | "rich" | "team";
 //const questions = await questions_res.json();
 
 
-
-
 export default function SailorPage() {
   const [mode, setMode] = useState<Mode>("capture");   // dev switcher only — remove in production
 
