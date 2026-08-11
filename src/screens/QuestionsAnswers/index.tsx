@@ -68,7 +68,7 @@ const MOCK = {
     mode: "capture",
     sailor: { firstName: role!.name, role: role!.label},
     event: { venue: "Sassnitz", dayLabel: "Race day 2" },
-    questions: [ {id: 1, text: "Test"}
+    questions: [ {id: 1, text: "Dette er test spørsmål"}
     ],
   },
   priming: {
