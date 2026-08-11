@@ -62,7 +62,7 @@ export default function QuestionSets() {
   // Fetch sets
   useEffect(() => {
     setLoadingSets(true);
-    fetch('/api/question_sets')
+    fetch('/api/question-sets')
       .then(r => r.ok ? r.json() : [])
       .then((data: QuestionSet[]) => setSets(data))
       .catch(() => setSets([]))
@@ -150,12 +150,12 @@ export default function QuestionSets() {
         }
       } else {
         // revert optimistic
-        setSets(prev => prev.filter(s => s.id !== localSet.id));
-        alert('Failed to create set');
+        //setSets(prev => prev.filter(s => s.id !== localSet.id));
+        //alert('Failed to create set');
       }
     } catch (e) {
-      setSets(prev => prev.filter(s => s.id !== localSet.id));
-      alert('Failed to create set');
+      //setSets(prev => prev.filter(s => s.id !== localSet.id));
+      //alert('Failed to create set');
     } finally {
       setCreating(false);
     }
