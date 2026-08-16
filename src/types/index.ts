@@ -23,3 +23,10 @@ export interface Block {
   status: 'past' | 'now' | 'future';
   tZeroOffset?: number;
 }
+
+export interface Sailor {
+  id: SailorId;
+  name: string;
+  role: string;
+}
+

@@ -1,709 +1,119 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
+import SkeletonBrief, {
+  type Sailor,
+  type SkeletonBriefValue,
+} from "./SkeletonBrief";
 
 /* ============================================================
-   Ginga — Skeleton brief
-   Question builder, prompt editor, team vs personal sets,
-   recipient selection and send.
-
-   Data comes in through props; every change is reported back
-   through callbacks. The component owns no persistence.
+   Example wiring. Replace the local state with your own
+   fetch/save, and the two handlers with real API calls.
    ============================================================ */
 
-/* ---------- types ---------- */
+const SAILORS: Sailor[] = [
+  { id: "mar", name: "Martine", role: "Helm" },
+  { id: "pau", name: "Paul", role: "Strategist" },
+  { id: "pie", name: "Pietro", role: "Speed" },
+  { id: "ras", name: "Rasmus", role: "Flight controller" },
+  { id: "mrc", name: "Marco", role: "Trim" },
+  { id: "bre", name: "Breno", role: "Trim" },
+  { id: "ric", name: "Rich", role: "Strategy & performance" },
+  { id: "nic", name: "Nico", role: "Data analyst" },
+];
 
-export type SailorId = string;
+const DEFAULT_QUESTIONS = [
+  "What should be the team's area of focus tomorrow?",
+  "What are your uncertainties?",
+  "What are your personal goals for the day?",
+];
 
-export interface Sailor {
-  id: SailorId;
-  name: string;
-  role: string;
-}
+const DEFAULT_PROMPT = `Generate priming questions for a SailGP sailor ahead of a race day.
 
-/** A question set: the questions themselves plus the prompt that writes them. */
-export interface QuestionSet {
-  questions: string[];
-  prompt: string;
-}
+Draw on: the forecast, expected course, boat configuration, and the action
+items carried forward from the last debrief.
 
-/** Team set plus an optional override per sailor. */
-export interface SkeletonBriefValue {
-  team: QuestionSet;
-  personal: Record<SailorId, QuestionSet>;
-}
+Rules:
+- Ask what the sailor already knows. Do not teach or suggest answers.
+- Three questions maximum.
+- Each must be answerable in under a minute of speaking.
+- Plain language. No jargon the sailor wouldn't use themselves.`;
 
-export type Scope = "team" | "personal";
+const emptyPersonal = Object.fromEntries(
+    SAILORS.map((s) => [s.id, { questions: [...DEFAULT_QUESTIONS], prompt: "" }])
+  );
 
-export interface SkeletonBriefProps {
-  sailors: Sailor[];
-  value: SkeletonBriefValue;
-  onChange: (next: SkeletonBriefValue) => void;
-  /** Called when the coach sends. Resolve when the send has been handed off. */
-  onSend: (recipients: SailorId[], scope: Scope) => Promise<void> | void;
-  /** Ask the model for questions from a prompt. */
-  onGenerate: (args: {
+
+export default function SkeletonBriefPage({
+  runId
+}: {
+  runId: string
+}) {
+  const [value, setValue] = useState<SkeletonBriefValue>({
+    teamQuestions: [...DEFAULT_QUESTIONS],
+	teamPrompt: DEFAULT_PROMPT,
+    personal: emptyPersonal,
+  });
+
+  /* Ask the model for questions. Server route keeps the API key off the client. */
+  async function handleGenerate({
+    prompt,
+    scope,
+    sailor,
+  }: {
     prompt: string;
-    scope: Scope;
+    scope: "team" | "personal";
     sailor?: Sailor;
-  }) => Promise<string[]>;
-  /** Questions restored by "reset to default". */
-  defaultQuestions: string[];
-  /** Set once the run has been sent — enables the version-2 notice. */
-  sentAt?: Date | null;
-  /** True once any sailor has answered, so edits create a new version. */
-  hasResponses?: boolean;
-}
+  }) {
+    const res = await fetch("/api/questions/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, scope, sailorId: sailor?.id }),
+    });
+    if (!res.ok) throw new Error("Could not generate questions");
+    const { questions } = (await res.json()) as { questions: string[] };
+    return questions;
+  }
 
-/* ---------- tokens ---------- */
+  /* Freeze the version, mint one token link per sailor, open WhatsApp. */
+  async function handleSend(
+	runId: string,
+    recipients: string[],
+    scope: "team" | "personal"
+  ) {
+    const res = await fetch("/api/capture-runs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({runId, kind: "priming", scope, recipients, value }),
+    });
+    if (!res.ok) throw new Error("Could not create the capture run");
 
-const C = {
-  paper: "#F7F4ED",
-  sand: "#EDE7DA",
-  sand2: "#E3DCCB",
-  line: "#DDD5C4",
-  green: "#00A651",
-  greenLt: "#E6F4EA",
-  greenDk: "#017C3E",
-  ink: "#1A1A18",
-  warm: "#6B6459",
-  warmLt: "#8E877A",
-  field: "#FFFDF8",
-} as const;
+	const link = `gingai-website.vercel.app/priming?id=${runId}`
 
-const DISPLAY =
-  "'Archivo Narrow','Roboto Condensed','IBM Plex Sans Condensed',system-ui,sans-serif";
-const UI = "'Inter','IBM Plex Sans',-apple-system,system-ui,sans-serif";
-const MONO = "ui-monospace,'SF Mono',Menlo,monospace";
 
-const label: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 600,
-  letterSpacing: "0.09em",
-  textTransform: "uppercase",
-  color: C.warmLt,
-  fontFamily: UI,
-};
-
-/* ---------- component ---------- */
-
-export default function SkeletonBrief({
-  sailors,
-  value,
-  onChange,
-  onSend,
-  onGenerate,
-  defaultQuestions,
-  sentAt = null,
-  hasResponses = false,
-}: SkeletonBriefProps) {
-  const [scope, setScope] = useState<Scope>("team");
-  const [activeSailor, setActiveSailor] = useState<SailorId>(
-    sailors[0]?.id ?? ""
-  );
-  const [recipients, setRecipients] = useState<SailorId[]>(
-    sailors.map((s) => s.id)
-  );
-  const [generating, setGenerating] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(Boolean(sentAt));
-
-  const isTeam = scope === "team";
-  const sailor = useMemo(
-    () => sailors.find((s) => s.id === activeSailor),
-    [sailors, activeSailor]
-  );
-
-  const current: QuestionSet = isTeam
-    ? value.team
-    : value.personal[activeSailor] ?? { questions: [], prompt: "" };
-
-  /* ---------- mutations ---------- */
-
-  const write = useCallback(
-    (next: Partial<QuestionSet>) => {
-      if (isTeam) {
-        onChange({ ...value, team: { ...value.team, ...next } });
-      } else {
-        onChange({
-          ...value,
-          personal: {
-            ...value.personal,
-            [activeSailor]: { ...current, ...next },
-          },
-        });
-      }
-    },
-    [isTeam, onChange, value, activeSailor, current]
-  );
-
-  const setQuestions = useCallback(
-    (questions: string[]) => write({ questions }),
-    [write]
-  );
-
-  const editQuestion = (index: number, text: string) =>
-    setQuestions(current.questions.map((q, i) => (i === index ? text : q)));
-
-  const removeQuestion = (index: number) =>
-    setQuestions(current.questions.filter((_, i) => i !== index));
-
-  const moveQuestion = (index: number, delta: number) => {
-    const target = index + delta;
-    if (target < 0 || target >= current.questions.length) return;
-    const next = [...current.questions];
-    [next[index], next[target]] = [next[target], next[index]];
-    setQuestions(next);
-  };
-
-  const generate = async () => {
-    setGenerating(true);
-    try {
-      const questions = await onGenerate({
-        prompt: current.prompt,
-        scope,
-        sailor: isTeam ? undefined : sailor,
-      });
-      setQuestions(questions);
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const send = async () => {
-    if (!recipients.length) return;
-    setSending(true);
-    try {
-      await onSend(recipients, scope);
-      setSent(true);
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const toggleRecipient = (id: SailorId) =>
-    setRecipients((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-
-  const showVersionNotice = sent && hasResponses;
-
-  /* ---------- render ---------- */
+    /* wa.me opens WhatsApp with the message ready. One tap per sailor —
+       no business account needed. Popup blockers allow the first window,
+       so open them on a short stagger. 
+    recipients.forEach((sailor, i) => {
+      const text = encodeURIComponent(
+        `Priming for tomorrow — three quick questions. Voice or text, whatever suits.\n${link}`
+      );
+      setTimeout(() => window.open(`https://wa.me/?text=${text}`, "_blank"), i * 400);
+    });*/
+  }
 
   return (
-    <div style={{ fontFamily: UI, color: C.ink }}>
-      <header style={{ marginBottom: 16 }}>
-        <h1
-          style={{
-            fontFamily: DISPLAY,
-            fontSize: 22,
-            fontWeight: 700,
-            color: C.ink,
-            margin: 0,
-          }}
-        >
-          Skeleton brief
-        </h1>
-        <p
-          style={{
-            fontSize: 12.5,
-            color: C.warm,
-            margin: "4px 0 0",
-            lineHeight: 1.55,
-            maxWidth: 640,
-          }}
-        >
-          Sent the night before. Questions go out with it so each sailor primes
-          themselves — the briefing then presents that thinking rather than
-          generating it.
-        </p>
-      </header>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0,1fr) 236px",
-          gap: 16,
-          alignItems: "start",
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <ScopeToggle scope={scope} onChange={setScope} />
-
-          {!isTeam && (
-            <SailorPicker
-              sailors={sailors}
-              active={activeSailor}
-              onSelect={setActiveSailor}
-            />
-          )}
-
-          <Card
-            title={
-              isTeam ? "Questions — everyone" : `Questions — ${sailor?.name}`
-            }
-          >
-            {current.questions.map((question, index) => (
-              <QuestionRow
-                key={index}
-                index={index}
-                value={question}
-                isFirst={index === 0}
-                isLast={index === current.questions.length - 1}
-                onEdit={(text) => editQuestion(index, text)}
-                onMove={(delta) => moveQuestion(index, delta)}
-                onRemove={() => removeQuestion(index)}
-              />
-            ))}
-
-            <div style={{ display: "flex", gap: 8, marginTop: 11 }}>
-              <button
-                onClick={() => setQuestions([...current.questions, ""])}
-                style={dashedButton}
-              >
-                + Add question
-              </button>
-              <button
-                onClick={() => setQuestions([...defaultQuestions])}
-                style={quietButton}
-              >
-                Reset to default set
-              </button>
-            </div>
-          </Card>
-
-          <Card
-            title={isTeam ? "Prompt — everyone" : `Prompt — ${sailor?.name}`}
-          >
-            <p
-              style={{
-                fontSize: 12,
-                color: C.warm,
-                lineHeight: 1.55,
-                margin: "0 0 10px",
-              }}
-            >
-              {isTeam
-                ? "How Ginga writes the questions when you generate them. Edit it to change the shape of what comes out."
-                : "What Ginga knows about how this sailor thinks. Used when generating their questions, so they land in their own language."}
-            </p>
-
-            <textarea
-              value={current.prompt}
-              onChange={(e) => write({ prompt: e.target.value })}
-              placeholder={
-                isTeam
-                  ? "Describe how the questions should be written…"
-                  : "Describe how this sailor thinks and what to ask them about…"
-              }
-              style={{
-                width: "100%",
-                minHeight: 132,
-                padding: "11px 12px",
-                border: `1px solid ${C.line}`,
-                borderRadius: 7,
-                background: C.field,
-                fontSize: 12.5,
-                lineHeight: 1.6,
-                color: C.ink,
-                resize: "vertical",
-                fontFamily: MONO,
-                outline: "none",
-              }}
-            />
-
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                marginTop: 10,
-                alignItems: "center",
-              }}
-            >
-              <button
-                onClick={generate}
-                disabled={generating || !current.prompt.trim()}
-                style={{
-                  ...primaryButton,
-                  width: "auto",
-                  padding: "9px 16px",
-                  fontSize: 12.5,
-                  opacity: generating || !current.prompt.trim() ? 0.5 : 1,
-                  cursor:
-                    generating || !current.prompt.trim()
-                      ? "not-allowed"
-                      : "pointer",
-                }}
-              >
-                {generating ? "Generating…" : "Generate questions from prompt"}
-              </button>
-              <span style={{ fontSize: 11.5, color: C.warmLt }}>
-                replaces the questions above — you can still edit them
-              </span>
-            </div>
-          </Card>
-        </div>
-
-        <aside
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 14,
-            position: "sticky",
-            top: 16,
-          }}
-        >
-          <Card title="Send to">
-            {sailors.map((s) => (
-              <RecipientRow
-                key={s.id}
-                sailor={s}
-                checked={recipients.includes(s.id)}
-                hasOwnPrompt={
-                  !isTeam && Boolean(value.personal[s.id]?.prompt?.trim())
-                }
-                onToggle={() => toggleRecipient(s.id)}
-              />
-            ))}
-
-            <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-              <button
-                onClick={() => setRecipients(sailors.map((s) => s.id))}
-                style={quietButton}
-              >
-                All
-              </button>
-              <button onClick={() => setRecipients([])} style={quietButton}>
-                None
-              </button>
-            </div>
-          </Card>
-
-          <div>
-            <button
-              onClick={send}
-              disabled={!recipients.length || sending}
-              style={{
-                ...primaryButton,
-                background: recipients.length ? C.green : C.sand2,
-                color: recipients.length ? "#fff" : C.warmLt,
-                cursor: recipients.length && !sending ? "pointer" : "not-allowed",
-              }}
-            >
-              {sending
-                ? "Sending…"
-                : sent
-                ? "Sent ✓"
-                : `Send to ${recipients.length}`}
-            </button>
-
-            <p
-              style={{
-                fontSize: 11.5,
-                color: C.warm,
-                lineHeight: 1.55,
-                margin: "9px 0 0",
-              }}
-            >
-              Opens WhatsApp with a personal link for each sailor. One tap each —
-              no business account, no login for them.
-            </p>
-          </div>
-
-          {showVersionNotice && (
-            <div
-              style={{
-                padding: "11px 12px",
-                background: C.greenLt,
-                borderRadius: 8,
-                fontSize: 11.5,
-                color: C.greenDk,
-                lineHeight: 1.55,
-              }}
-            >
-              Question set frozen as version 1. Edits from here create version 2
-              and are kept apart in the synthesis.
-            </div>
-          )}
-        </aside>
-      </div>
-    </div>
-  );
-}
-
-/* ---------- sub-components ---------- */
-
-function ScopeToggle({
-  scope,
-  onChange,
-}: {
-  scope: Scope;
-  onChange: (s: Scope) => void;
-}) {
-  const options: [Scope, string][] = [
-    ["team", "Everyone"],
-    ["personal", "Personal"],
-  ];
-
-  return (
-    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-      {options.map(([key, text]) => (
-        <button
-          key={key}
-          onClick={() => onChange(key)}
-          style={{
-            padding: "7px 15px",
-            borderRadius: 7,
-            cursor: "pointer",
-            fontSize: 12.5,
-            fontWeight: 500,
-            fontFamily: UI,
-            background: scope === key ? C.green : "transparent",
-            color: scope === key ? "#fff" : C.warm,
-            border: scope === key ? "none" : `1px solid ${C.line}`,
-          }}
-        >
-          {text}
-        </button>
-      ))}
-      <span style={{ fontSize: 12, color: C.warmLt, marginLeft: 4 }}>
-        {scope === "team"
-          ? "one set for the whole crew"
-          : "a set tuned to one sailor"}
-      </span>
-    </div>
-  );
-}
-
-function SailorPicker({
-  sailors,
-  active,
-  onSelect,
-}: {
-  sailors: Sailor[];
-  active: SailorId;
-  onSelect: (id: SailorId) => void;
-}) {
-  return (
-    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-      {sailors.map((s) => (
-        <button
-          key={s.id}
-          onClick={() => onSelect(s.id)}
-          style={{
-            padding: "8px 13px",
-            borderRadius: 7,
-            cursor: "pointer",
-            textAlign: "left",
-            fontFamily: UI,
-            background: active === s.id ? C.sand : "transparent",
-            border: `1px solid ${active === s.id ? C.green : C.line}`,
-          }}
-        >
-          <span
-            style={{
-              display: "block",
-              fontSize: 12.5,
-              fontWeight: 600,
-              color: C.ink,
-            }}
-          >
-            {s.name}
-          </span>
-          <span style={{ display: "block", fontSize: 11, color: C.warmLt }}>
-            {s.role}
-          </span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function QuestionRow({
-  index,
-  value,
-  isFirst,
-  isLast,
-  onEdit,
-  onMove,
-  onRemove,
-}: {
-  index: number;
-  value: string;
-  isFirst: boolean;
-  isLast: boolean;
-  onEdit: (text: string) => void;
-  onMove: (delta: number) => void;
-  onRemove: () => void;
-}) {
-  return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "6px 0" }}>
-      <span style={{ ...label, color: C.green, width: 22 }}>Q{index + 1}</span>
-
-      <input
+    <div style={{ background: "#F7F4ED", minHeight: "100vh", padding: 22 }}>
+      <SkeletonBrief
+	    runId={runId}
+        sailors={SAILORS}
         value={value}
-        onChange={(e) => onEdit(e.target.value)}
-        placeholder="Write the question…"
-        aria-label={`Question ${index + 1}`}
-        style={{
-          flex: 1,
-          padding: "9px 11px",
-          border: `1px solid ${C.line}`,
-          borderRadius: 6,
-          background: C.field,
-          fontSize: 13,
-          color: C.ink,
-          fontFamily: UI,
-          outline: "none",
-        }}
+        onChange={setValue}
+        onGenerate={handleGenerate}
+        onSend={handleSend}
+        defaultQuestions={DEFAULT_QUESTIONS}
+        hasResponses={false}
       />
-
-      <IconButton onClick={() => onMove(-1)} disabled={isFirst} label="Move up">
-        ↑
-      </IconButton>
-      <IconButton onClick={() => onMove(1)} disabled={isLast} label="Move down">
-        ↓
-      </IconButton>
-      <IconButton onClick={onRemove} label="Remove question">
-        ×
-      </IconButton>
     </div>
   );
 }
-
-function RecipientRow({
-  sailor,
-  checked,
-  hasOwnPrompt,
-  onToggle,
-}: {
-  sailor: Sailor;
-  checked: boolean;
-  hasOwnPrompt: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <label
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 9,
-        padding: "7px 0",
-        borderBottom: `1px solid ${C.line}`,
-        cursor: "pointer",
-      }}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onToggle}
-        style={{ width: 15, height: 15, accentColor: C.green, cursor: "pointer" }}
-      />
-      <span style={{ flex: 1 }}>
-        <span style={{ fontSize: 12.5, color: C.ink, fontWeight: 500 }}>
-          {sailor.name}
-        </span>
-        <span style={{ display: "block", fontSize: 11, color: C.warmLt }}>
-          {sailor.role}
-        </span>
-      </span>
-      {hasOwnPrompt && (
-        <span style={{ ...label, color: C.green, fontSize: 10 }}>Own</span>
-      )}
-    </label>
-  );
-}
-
-function Card({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section
-      style={{
-        background: C.field,
-        border: `1px solid ${C.line}`,
-        borderRadius: 9,
-        padding: 15,
-      }}
-    >
-      <h2 style={{ ...label, margin: "0 0 11px" }}>{title}</h2>
-      {children}
-    </section>
-  );
-}
-
-function IconButton({
-  children,
-  onClick,
-  disabled,
-  label: ariaLabel,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={disabled ? undefined : onClick}
-      disabled={disabled}
-      aria-label={ariaLabel}
-      style={{
-        width: 26,
-        height: 26,
-        borderRadius: 5,
-        flexShrink: 0,
-        cursor: disabled ? "default" : "pointer",
-        background: "transparent",
-        border: `1px solid ${C.line}`,
-        color: disabled ? C.line : C.warm,
-        fontSize: 12,
-        lineHeight: 1,
-        fontFamily: UI,
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-/* ---------- shared styles ---------- */
-
-const primaryButton: React.CSSProperties = {
-  width: "100%",
-  padding: "12px 0",
-  borderRadius: 8,
-  border: "none",
-  cursor: "pointer",
-  background: C.green,
-  color: "#fff",
-  fontSize: 13.5,
-  fontWeight: 600,
-  fontFamily: UI,
-};
-
-const dashedButton: React.CSSProperties = {
-  padding: "8px 13px",
-  borderRadius: 6,
-  cursor: "pointer",
-  background: "transparent",
-  border: `1px dashed ${C.line}`,
-  color: C.warm,
-  fontSize: 12,
-  fontFamily: UI,
-};
-
-const quietButton: React.CSSProperties = {
-  padding: "8px 12px",
-  borderRadius: 6,
-  cursor: "pointer",
-  background: "transparent",
-  border: "none",
-  color: C.warmLt,
-  fontSize: 12,
-  fontFamily: UI,
-};

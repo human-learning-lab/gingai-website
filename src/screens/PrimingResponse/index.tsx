@@ -1,0 +1,355 @@
+'use client';
+
+import { useRole } from '@/context/RoleContext';
+import React, { useState, useRef, useEffect } from "react";
+
+// ============================================================
+// Ginga — sailor capture page · reference implementation
+//
+// Hand this to Claude Code alongside ginga-sailor-page-spec.md.
+// Real MediaRecorder audio. Three modes driven by one prop.
+// Replace the mock `run` object with a fetch from your API.
+// ============================================================
+
+const C = {
+  paper: "#F7F4ED", sand: "#EDE7DA", line: "#DDD5C4",
+  green: "#00A651", greenLt: "#E6F4EA", clay: "#C4622D",
+  ink: "#1A1A18", warm: "#6B6459", warmLt: "#8E877A",
+};
+const DISPLAY = "'Archivo Narrow','Roboto Condensed','IBM Plex Sans Condensed',system-ui,sans-serif";
+const UI = "'Inter','IBM Plex Sans',-apple-system,system-ui,sans-serif";
+
+// ---- shared types ----
+type Mode = "capture" | "priming" | "note";
+
+
+type ShareChoice = "private" | "rich" | "team";
+
+
+interface Sailor {
+	role: string;
+	firstName: string;
+}
+
+export default function PrimingResponsePage() {
+  const { role } = useRole();
+  const sailor = { firstName: role!.name, role: role!.label};
+  const event =  { venue: "Sassnitz", dayLabel: "Tomorrow" };
+  return (
+    <div className="ginga-viewport" style={{
+      background: C.sand, fontFamily: UI, boxSizing: "border-box",
+      display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center",
+      padding: "clamp(10px, 2.5vh, 24px) clamp(8px, 2.5vw, 24px)",
+    }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+        *{box-sizing:border-box}
+        html,body,#root{height:100%;margin:0}
+        .ginga-viewport{min-height:100vh; width:100%}
+        @supports (height: 100dvh){ .ginga-viewport{min-height:100dvh} }
+        .ginga-card{width:min(96vw, 460px); height:min(94vh, 780px)}
+        @supports (height: 100dvh){ .ginga-card{height:min(94dvh, 780px)} }
+      `}</style>
+
+
+      <Page runId={runId} sailor={sailor}/>
+    </div>
+  );
+}
+
+function Page({ runId, sailor }: { runId: string, sailor: Sailor}) {
+  const [step, setStep] = useState(0);
+  const [inputMode, setInputMode] = useState<"voice" | "text">("voice");
+  const [draft, setDraft] = useState("");
+  const [sent, setSent] = useState<string[]>([]);
+  const [micDenied, setMicDenied] = useState(false);
+  const { recording, secs, start, stop, error } = useRecorder();
+  const [questions, setQuestions] = useState<string[]>([]);
+  const [phase, setPhase]       = useState<Phase>('idle');
+  const [recTime, setRecTime]   = useState(0);
+
+  const lines    = transcriptLines ?? [];
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mediaRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+
+  // ── Live mode recording ───────────────────────
+
+  const startRecording = useCallback(async () => {
+    setPhase('recording');
+    setRecTime(0);
+    onRecordingChange?.(true);
+    timerRef.current = setInterval(() => setRecTime(p => p + 1), 1000);
+  }, []);
+
+  const stopRecording = useCallback(async () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setDraft(lines.join('\n'));
+    onRecordingChange?.(false);
+    setPhase('review');
+  }, [lines, onRecordingChange]);
+
+
+  useEffect(() => {
+	  async function getResp(){
+	  	const res = await fetch(`/api/responses/${runId}?kind=capture&sailor=${sailor.firstName}`);
+	  	const resps = await res.json();
+		console.log(resps);
+		if (resps.questions)
+	  		setQuestions(resps.questions);
+	  }
+	  
+	  getResp();
+  }, []); 
+
+
+  useEffect(() => { if (error) { setMicDenied(true); setInputMode("text"); } }, [error]);
+
+  const q = questions.length ? questions[step] : "";
+  const finished = step >= questions.length;
+
+
+  function submitText() {
+    if (!draft.trim()) return;
+    push(draft.trim());
+  }
+
+  function push(answer: string) {
+    setSent(s => [...s, answer]);
+    setDraft("");
+	setPhase("idle");
+    setStep(s => s + 1);
+	if (finished)
+	  	fetch(`/api/responses/${runId}?kind=capture&sailor=${sailor.firstName}`, {
+			method: 'POST',
+			headers: {
+          	  "Content-Type": "application/json",
+        	},
+       		body: JSON.stringify({ sent }),
+		});
+  }
+
+
+  const mm = String(Math.floor(recTime / 60)).padStart(2, '0');
+  const ss = String(recTime % 60).padStart(2, '0');
+  const title = 'Capture';
+  const kicker = runId;
+
+  const liveConvoContent = (
+    <>
+      {phase === 'recording' && (
+        <div className="ai-q">
+          <div className="ai-q-bub">
+            {lines.length === 0
+              ? <span style={{ color: 'var(--text4)', fontStyle: 'italic' }}>Listening…</span>
+              : lines.map((line, i) => <p key={i} style={{ margin: '0 0 4px', fontSize: 13, lineHeight: 1.6, color: 'var(--text2)' }}>{line}</p>)
+            }
+          </div>
+        </div>
+      )}
+
+      {phase === 'review' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div className="sailor-r" style={{ alignItems: 'flex-start' }}>
+            <textarea
+              autoFocus
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              rows={Math.max(3, draft.split('\n').length + 1)}
+              style={{
+                flex: 1, background: 'var(--gg)', border: '1.5px solid var(--green)',
+                borderRadius: '12px 3px 12px 12px', padding: '11px 13px',
+                fontSize: 13, color: 'var(--text)', lineHeight: 1.6,
+                fontFamily: 'inherit', outline: 'none', resize: 'none',
+                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                direction: 'ltr', textAlign: 'left', width: '100%',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+
+  const liveControlsContent = (
+    <>
+
+      {phase === 'review' ? (
+        <div style={{ display: 'flex', gap: 10, width: '100%', maxWidth: 340 }}>
+          <button
+            onClick={() => { setDraft(''); startRecording(); }}
+            style={{
+              height: 44, padding: '0 16px', borderRadius: 10,
+              border: '1px solid var(--line)', background: 'transparent',
+              fontSize: 12, cursor: 'pointer', color: 'var(--text3)', fontFamily: 'inherit',
+              flexShrink: 0,
+            }}
+          >Re-record</button>
+          <button
+            onClick={push}
+            disabled={!draft.trim()}
+            style={{
+              flex: 1, height: 44, borderRadius: 10, border: 'none',
+              background: draft.trim() ? 'var(--green)' : 'var(--line)',
+              color: '#fff', fontSize: 13, fontWeight: 600,
+              cursor: draft.trim() ? 'pointer' : 'default',
+              fontFamily: 'inherit', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: 7, transition: 'opacity 0.15s',
+              opacity: draft.trim() ? 1 : 0.4,
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Save note
+          </button>
+        </div>
+      ) : phase === 'idle' ? (
+ 		<>
+          <button className="rec-btn" onClick={startRecording}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="white">
+              <rect x="5" y="1" width="6" height="9" rx="3" fill="white"/>
+              <path d="M3 8a5 5 0 0 0 10 0" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+              <line x1="8" y1="13" x2="8" y2="15" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+          <div className="rec-info">
+            <div className="rec-lbl">Tap to record</div>
+          </div>
+        </>
+      ) : phase === 'recording' ? (
+        <>
+          <button className="rec-btn" onClick={stopRecording}><IconStop /></button>
+          <div className="rec-info">
+            <div className="rec-lbl" style={{ color: 'var(--green)' }}>Recording</div>
+            <div className="rec-time">{mm}:{ss}</div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="rec-btn" style={{ opacity: 0.3, cursor: 'default' }}><IconStop /></div>
+          <div className="rec-info">
+            <div className="rec-lbl">Transcribing…</div>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function Done({questions, sent, sailor}: {questions: string[], sent: string[]; sailor: Sailor}) {
+  const [share, setShare] = useState<ShareChoice>("private");
+  return (
+    <div style={{ padding: "32px 22px", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <div style={{ width: 38, height: 38, borderRadius: 38, background: C.greenLt, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 15 }}>
+        <span style={{ color: C.green, fontSize: 18, fontWeight: 700 }}>✓</span>
+      </div>
+
+      {(
+        <>
+          <h2 style={{ fontFamily: DISPLAY, fontSize: 25, fontWeight: 700, color: C.ink, margin: 0, lineHeight: 1.15 }}>
+            All in.<br />Thanks, {sailor.firstName}.
+          </h2>
+          <p style={{ fontSize: 13, color: C.warm, lineHeight: 1.6, marginTop: 11 }}>
+            Your answers go straight into tonight's debrief picture. You'll get your own summary
+            afterwards — what you set out to do, and what happened.
+          </p>
+          <div style={{ marginTop: 20, paddingTop: 15, borderTop: `1px solid ${C.line}` }}>
+            <div style={{ ...lbl, marginBottom: 8 }}>What you sent</div>
+            {sent.map((a: string, i: number) => (
+              <div key={i} style={{ display: "flex", gap: 9, padding: "6px 0", fontSize: 12, color: C.warm, alignItems: "baseline" }}>
+                <span style={{ color: C.green, fontWeight: 600 }}>{i + 1}</span>
+                <span style={{ flex: 1, lineHeight: 1.45 }}>{questions[i]}</span>
+                <span style={{ flex: 1, lineHeight: 1.45 }}>{a}</span>
+                <span style={lbl}>{a.kind === "voice" ? `${a.len}s` : "Text"}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      </div>
+
+    </div>
+  );
+}
+
+function Waveform({ secs }: { secs: number }) {
+  return (
+    <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 9 }}
+         aria-live="polite" aria-label={`Recording, ${secs} seconds`}>
+      <span style={{ width: 7, height: 7, borderRadius: 7, background: C.clay }} />
+      <span style={{ fontFamily: DISPLAY, fontSize: 19, fontWeight: 600, color: C.ink }}>
+        {String(Math.floor(secs / 60)).padStart(2, "0")}:{String(secs % 60).padStart(2, "0")}
+      </span>
+      <div style={{ display: "flex", gap: 2, alignItems: "flex-end", height: 20, marginLeft: 3 }}>
+        {[8, 15, 6, 18, 11, 16, 7, 13, 5, 15, 9, 12].map((h, i) => (
+          <span key={i} style={{
+            width: 2.5, height: h, background: C.green, borderRadius: 2,
+            opacity: 0.35 + ((i + secs) % 4) * 0.2,
+          }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---- real recording -----------------------------------------
+function useRecorder() {
+  const [recording, setRecording] = useState(false);
+  const [secs, setSecs] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const rec = useRef<MediaRecorder | null>(null);
+  const chunks = useRef<Blob[]>([]);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  async function start() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus" : "audio/mp4";
+      const r = new MediaRecorder(stream, { mimeType: mime });
+      chunks.current = [];
+      r.ondataavailable = (e: BlobEvent) => { if (e.data.size) chunks.current.push(e.data); };
+      r.start();
+      rec.current = r;
+      setRecording(true); setSecs(0); setError(null);
+      timer.current = setInterval(() => setSecs(s => s + 1), 1000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "microphone unavailable");
+    }
+  }
+
+  function stop(): Promise<Blob | null> {
+    return new Promise(resolve => {
+      const r = rec.current;
+      if (timer.current) clearInterval(timer.current);
+      setRecording(false);
+      if (!r) return resolve(null);
+      r.onstop = () => {
+        const blob = new Blob(chunks.current, { type: r.mimeType });
+        r.stream.getTracks().forEach((t: MediaStreamTrack) => t.stop());
+        resolve(blob);
+      };
+      r.stop();
+    });
+  }
+
+  useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
+  return { recording, secs, start, stop, error };
+}
+
+const lbl = {
+  fontSize: 11, fontWeight: 600, letterSpacing: "0.11em",
+  textTransform: "uppercase", color: C.warmLt, fontFamily: UI,
+};
+const btn = {
+  width: "100%", padding: "13px 0", minHeight: 44, borderRadius: 8, border: "none",
+  cursor: "pointer", color: "#fff", fontFamily: UI, fontSize: 14, fontWeight: 600,
+};
+const link = {
+  width: "100%", padding: "9px 0", marginTop: 6, background: "transparent",
+  border: "none", cursor: "pointer", fontFamily: UI, fontSize: 12, color: C.warmLt,
+};

@@ -1,0 +1,59 @@
+"use client";
+
+import { useState } from "react";
+import ConsoleShell, { type Phase, type PhaseId } from "@/screens/Console";
+import SkeletonBriefPage from "@/screens/SkeletonBrief";
+import PrimingInPage from "@/screens/PrimingIn";
+import BriefingPage from "@/screens/Briefing";
+import CapturePage from "@/screens/Capturing";
+import CapturesInPage from "@/screens/CapturesIn";
+import HotDebriefPage from "@/screens/HotDebrief";
+
+/* ============================================================
+   The console. One shell, six phases.
+
+   Each page component owns only its own content — the sidebar,
+   event header and phase rail live here, so navigation and the
+   response counts have a single home.
+   ============================================================ */
+
+const venue = 'Sassnitz';
+const kicker = "Race day 1 · Season 6";
+const runId = venue + kicker;
+
+export default function ConsolePage() {
+  const [phase, setPhase] = useState<PhaseId>("skeleton");
+
+  /* Counts come from the API. Only the phases that collect
+     answers carry one; the rest render without a badge. */
+  const phases: Phase[] = [
+    { id: "skeleton", number: "01", label: "Skeleton brief" },
+    { id: "priming", number: "02", label: "Priming in", count: { done: 2, total: 8 } },
+    { id: "briefing", number: "03", label: "Briefing" },
+    { id: "capture", number: "04", label: "Capture" },
+    { id: "captures", number: "05", label: "Captures in", count: { done: 0, total: 8 } },
+    { id: "debrief", number: "06", label: "Hot debrief" },
+  ];
+
+  return (
+    <ConsoleShell
+      event={{
+        venue: "Sassnitz",
+        kicker: "Race day 1 · Season 6",
+        live: true,
+      }}
+      user={{ name: "Rich Mason" }}
+      phases={phases}
+      activePhase={phase}
+      onPhaseChange={setPhase}
+    >
+      {phase === "skeleton" && <SkeletonBriefPage runId={runId} />}
+      {phase === "priming" && <PrimingInPage runId={runId} />}
+      {phase === "briefing" && <BriefingPage runId={runId} />}
+      {phase === "capture" && <CapturePage runId={runId} />}
+      {phase === "captures" && <CapturesInPage runId={runId} />}
+      {phase === "debrief" && <HotDebriefPage runId={runId} />}
+    </ConsoleShell>
+  );
+}
+

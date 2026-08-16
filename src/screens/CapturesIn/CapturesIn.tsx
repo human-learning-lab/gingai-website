@@ -1,0 +1,879 @@
+"use client";
+
+import React, { useMemo, useState } from "react";
+
+/* ============================================================
+   Ginga — Captures in
+   What each sailor said, the same distilled, and what the team
+   said together. Same shape as Priming in — the difference is
+   that now there are goals to measure against.
+   ============================================================ */
+
+/* ---------- types ---------- */
+
+export type SailorId = string;
+
+export interface Sailor {
+  id: SailorId;
+  name: string;
+  role: string;
+}
+
+export interface CaptureResponse {
+  id: number;
+  kind: string;
+  questions: string[];
+  responses: string[];
+  recipient: SailorId;
+  /** Local time it arrived, e.g. "18:34". */
+  receivedAt: string;
+  /** One condensed line per question, in question order. Absent until distilled. */
+  distilled?: string[];
+}
+
+/** How the captures read against one squad goal. */
+export interface GoalReading {
+  goal: string;
+  /** How many respondents addressed this goal. */
+  addressedBy: number;
+  /** Short verdict in the model's words, e.g. "Held where it was defined." */
+  verdict: string;
+  /** The evidence, quoted rather than summarised away. */
+  detail: string;
+}
+
+export interface Theme {
+  text: string;
+  count: number;
+  sailorNames: string[];
+}
+
+export interface TeamReading {
+  /** e.g. "5 of 8" — always shown, never implied. */
+  coverage: string;
+  goals: GoalReading[];
+  themes: Theme[];
+  /**
+   * Where accounts of the same moment differ. Left unresolved on
+   * purpose — that is the debrief's job, not the synthesis's.
+   */
+  conflict?: string;
+  /** What the crew wants carried into tomorrow. */
+  tomorrow: string[];
+}
+
+export interface Prompts {
+  distil: string;
+  synthesis: string;
+}
+
+export interface CapturesInProps {
+  sailors: Sailor[];
+  questions: string[];
+  responses: CaptureResponse[];
+
+  /** As agreed in the briefing — what the captures are measured against. */
+  squadGoals: string[];
+  /** Each sailor's own goal from this morning, shown above their answer. */
+  ownGoals: Record<SailorId, string>;
+
+  prompts: Prompts;
+  onPromptsChange: (next: Prompts) => void;
+
+  teamReading?: TeamReading | null;
+
+  /** Re-condense every response. Returns distilled lines keyed by sailor. */
+  onDistil: (prompt: string) => Promise<Record<SailorId, string[]>>;
+  /** Build the team reading. Safe to run before everyone has answered. */
+  onSynthesise: (prompt: string) => Promise<TeamReading>;
+  /** Hand the reading to the debrief. */
+  onCarryForward: () => void;
+
+  /** When the debrief starts, e.g. "19:30". Shown as context for the hurry. */
+  debriefAt?: string;
+}
+
+type View = "individuals" | "team";
+type Depth = "full" | "distilled";
+
+/* ---------- tokens ---------- */
+
+const C = {
+  paper: "#F7F4ED",
+  sand: "#EDE7DA",
+  sand2: "#E3DCCB",
+  line: "#DDD5C4",
+  green: "#00A651",
+  greenLt: "#E6F4EA",
+  clay: "#C4622D",
+  clayLt: "#FBEFE7",
+  mustardLt: "#FAF3E4",
+  mustardDk: "#7A5F14",
+  ink: "#1A1A18",
+  warm: "#6B6459",
+  warmLt: "#8E877A",
+  field: "#FFFDF8",
+} as const;
+
+const DISPLAY =
+  "'Archivo Narrow','Roboto Condensed','IBM Plex Sans Condensed',system-ui,sans-serif";
+const UI = "'Inter','IBM Plex Sans',-apple-system,system-ui,sans-serif";
+const MONO = "ui-monospace,'SF Mono',Menlo,monospace";
+
+const label: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: "0.09em",
+  textTransform: "uppercase",
+  color: C.warmLt,
+  fontFamily: UI,
+};
+
+/* ---------- component ---------- */
+
+export default function CapturesIn({
+  sailors,
+  questions,
+  responses,
+  squadGoals,
+  ownGoals,
+  prompts,
+  onPromptsChange,
+  teamReading = null,
+  onDistil,
+  onSynthesise,
+  onCarryForward,
+}: CapturesInProps) {
+  const byId = useMemo(
+    () => new Map(responses.map((r) => [r.recipient, r])),
+    [responses]
+  );
+  const answered = useMemo(
+    () => sailors.filter((s) => byId.has(s.name)),
+    [sailors, byId]
+  );
+
+  const [view, setView] = useState<View>("individuals");
+  const [depth, setDepth] = useState<Depth>("full");
+  const [selected, setSelected] = useState<SailorId>(answered[0]?.id ?? "");
+  const [busy, setBusy] = useState<"distil" | "synthesis" | null>(null);
+
+  const response = byId.get(selected);
+  const sailor = sailors.find((s) => s.id === selected);
+
+  const setPrompt = (key: keyof Prompts, text: string) =>
+    onPromptsChange({ ...prompts, [key]: text });
+
+  const distil = async () => {
+    setBusy("distil");
+    try {
+      await onDistil(prompts.distil);
+      setDepth("distilled");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const synthesise = async () => {
+    setBusy("synthesis");
+    try {
+      await onSynthesise(prompts.synthesis);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div style={{ fontFamily: UI, color: C.ink }}>
+      <header style={{ marginBottom: 16 }}>
+        <h1 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 700, margin: 0 }}>
+          Captures in
+        </h1>
+        <p
+          style={{
+            fontSize: 12.5,
+            color: C.warm,
+            margin: "4px 0 0",
+            lineHeight: 1.55,
+            maxWidth: 680,
+          }}
+        >
+          Answers from the dock — {answered.length} of {sailors.length} in.
+          {"The picture builds as they arrive rather than waiting for everyone."}
+        </p>
+      </header>
+
+      <ViewToggle view={view} onChange={setView} />
+
+      {view === "individuals" ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "212px minmax(0,1fr) 280px",
+            gap: 16,
+            alignItems: "start",
+          }}
+        >
+          <Card title="Crew">
+            {sailors.map((s) => (
+              <CrewRow
+                key={s.id}
+                sailor={s}
+                response={byId.get(s.id)}
+                active={selected === s.id}
+                onSelect={() => byId.has(s.id) && setSelected(s.id)}
+              />
+            ))}
+          </Card>
+
+          <div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 11,
+              }}
+            >
+              <h2
+                style={{ fontFamily: DISPLAY, fontSize: 19, fontWeight: 600, margin: 0 }}
+              >
+                {sailor?.name}
+                <span
+                  style={{
+                    fontFamily: UI,
+                    fontSize: 12,
+                    fontWeight: 400,
+                    color: C.warmLt,
+                    marginLeft: 9,
+                  }}
+                >
+                  {response?.receivedAt}
+                </span>
+              </h2>
+              <DepthToggle
+                depth={depth}
+                canDistil={Boolean(response?.distilled)}
+                onChange={setDepth}
+              />
+            </div>
+
+            {ownGoals[selected] && (
+              <div
+                style={{
+                  padding: "11px 13px",
+                  background: C.sand,
+                  borderLeft: `2px solid ${C.green}`,
+                  borderRadius: "0 8px 8px 0",
+                  marginBottom: 14,
+                }}
+              >
+                <div style={{ ...label, marginBottom: 4 }}>
+                  What they set out to do this morning
+                </div>
+                <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+                  {ownGoals[selected]}
+                </div>
+              </div>
+            )}
+
+            {response ? (
+              <Card
+                title={
+                  depth === "full"
+                    ? `In their own words${
+                        response.duration ? ` · ${response.duration}` : ""
+                      }`
+                    : "Distilled"
+                }
+              >
+                {depth === "full" ? (
+                  <>
+                    <div
+                      style={{
+                        fontSize: 13.5,
+                        lineHeight: 1.75,
+                        whiteSpace: "pre-line",
+                      }}
+                    >
+                      {response.response}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {questions.map((question, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          paddingBottom: 14,
+                          marginBottom: 14,
+                          borderBottom:
+                            i < questions.length - 1
+                              ? `1px solid ${C.line}`
+                              : "none",
+                        }}
+                      >
+                        <div style={{ ...label, color: C.green, marginBottom: 6 }}>
+                          Q{i + 1}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 12.5,
+                            color: C.warm,
+                            marginBottom: 7,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {question}
+                        </div>
+                        <div style={{ fontSize: 13, lineHeight: 1.65 }}>
+                          {response.distilled?.[i] ?? "—"}
+                        </div>
+                      </div>
+                    ))}
+                    <Footnote>
+                      Condensed by Ginga. Their own qualifiers are kept —
+                      &ldquo;half&rdquo;, &ldquo;four of six&rdquo; — never
+                      rounded to achieved or not.
+                    </Footnote>
+                  </>
+                )}
+              </Card>
+            ) : (
+              <Card title="Nothing in yet">
+                <Empty>Answers appear here as they arrive.</Empty>
+              </Card>
+            )}
+          </div>
+
+          <div style={{ position: "sticky", top: 16 }}>
+            <Card title="Distilling prompt">
+              <Hint>
+                How Ginga condenses each answer. Edit it if the distilled version
+                is losing something you need.
+              </Hint>
+              <PromptBox
+                value={prompts.distil}
+                onChange={(v) => setPrompt("distil", v)}
+              />
+              <Button
+                onClick={distil}
+                disabled={busy === "distil"}
+                style={{ marginTop: 9 }}
+              >
+                {busy === "distil" ? "Re-reading…" : "Re-distil all answers"}
+              </Button>
+              <Footnote>
+                Applies to everyone. The full answers are never touched.
+              </Footnote>
+            </Card>
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0,1fr) 300px",
+            gap: 16,
+            alignItems: "start",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {teamReading ? (
+              <>
+                <Card
+                  title={`Against the squad goals · coverage ${teamReading.coverage}`}
+                >
+                  {teamReading.goals.map((reading, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        paddingBottom: 15,
+                        marginBottom: 15,
+                        borderBottom:
+                          i < teamReading.goals.length - 1
+                            ? `1px solid ${C.line}`
+                            : "none",
+                      }}
+                    >
+                      <div style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
+                        <span style={{ ...label, color: C.green, paddingTop: 3 }}>
+                          {i + 1}
+                        </span>
+                        <div style={{ flex: 1 }}>
+                          <div
+                            style={{ fontSize: 13, color: C.warm, lineHeight: 1.5 }}
+                          >
+                            {reading.goal}
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "baseline",
+                              gap: 10,
+                              marginTop: 7,
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontFamily: DISPLAY,
+                                fontSize: 17,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {reading.verdict}
+                            </span>
+                            <span
+                              style={{
+                                fontFamily: MONO,
+                                fontSize: 11,
+                                color: C.warmLt,
+                              }}
+                            >
+                              {reading.addressedBy} addressed it
+                            </span>
+                          </div>
+                          <div
+                            style={{ fontSize: 13, lineHeight: 1.7, marginTop: 8 }}
+                          >
+                            {reading.detail}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </Card>
+
+                {teamReading.themes.length > 0 && (
+                  <Card title="Raised independently">
+                    {teamReading.themes.map((theme) => (
+                      <div
+                        key={theme.text}
+                        style={{ padding: "9px 0", borderBottom: `1px solid ${C.line}` }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                          }}
+                        >
+                          <span style={{ fontSize: 13.5 }}>{theme.text}</span>
+                          <span
+                            style={{
+                              fontFamily: MONO,
+                              fontSize: 11,
+                              color: C.warmLt,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {theme.count} of {answered.length}
+                          </span>
+                        </div>
+                        <div
+                          style={{ fontSize: 11.5, color: C.warmLt, marginTop: 4 }}
+                        >
+                          {theme.sailorNames.join(", ")}
+                        </div>
+                      </div>
+                    ))}
+                  </Card>
+                )}
+
+                {teamReading.conflict && (
+                  <Card title="Where the accounts differ">
+                    <div
+                      style={{
+                        padding: "11px 13px",
+                        background: C.clayLt,
+                        borderLeft: `2px solid ${C.clay}`,
+                        borderRadius: "0 7px 7px 0",
+                        fontSize: 13,
+                        lineHeight: 1.65,
+                      }}
+                    >
+                      {teamReading.conflict}
+                    </div>
+                    <Footnote>
+                      Left unresolved on purpose. This is the debrief, not the
+                      synthesis.
+                    </Footnote>
+                  </Card>
+                )}
+
+                {teamReading.tomorrow.length > 0 && (
+                  <Card title="What they want carried into tomorrow">
+                    {teamReading.tomorrow.map((item, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          padding: "7px 0",
+                          fontSize: 13,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        <span style={{ color: C.green, fontWeight: 600 }}>·</span>
+                        {item}
+                      </div>
+                    ))}
+                  </Card>
+                )}
+              </>
+            ) : (
+              <Card title="What the team said">
+                <Empty>
+                  Nothing built yet.
+                  <br />
+                  <span style={{ fontSize: 12 }}>
+                    {answered.length} answers in. Enough for a usable picture —
+                    you can run it now or wait for the rest.
+                  </span>
+                </Empty>
+              </Card>
+            )}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+              position: "sticky",
+              top: 16,
+            }}
+          >
+            <Card title="Synthesis prompt">
+              <Hint>
+                How Ginga reads the captures. It has the squad goals and each
+                sailor&rsquo;s own goal, so it can measure rather than summarise.
+              </Hint>
+              <PromptBox
+                value={prompts.synthesis}
+                onChange={(v) => setPrompt("synthesis", v)}
+                minHeight={186}
+              />
+              <Button
+                onClick={synthesise}
+                disabled={busy === "synthesis" || answered.length === 0}
+                style={{ marginTop: 9 }}
+              >
+                {busy === "synthesis"
+                  ? "Reading captures…"
+                  : teamReading
+                  ? "Run again"
+                  : `Build from ${answered.length} answers`}
+              </Button>
+              <Footnote>
+                Re-runs as more answers arrive. Coverage is always stated.
+              </Footnote>
+            </Card>
+
+            {teamReading && (
+              <>
+                <div
+                  style={{
+                    padding: "11px 12px",
+                    background: C.mustardLt,
+                    borderRadius: 8,
+                    fontSize: 11.5,
+                    color: C.mustardDk,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  Nothing here names a person in a way that belongs to the room.
+                  Anything about someone else is held back for you.
+                </div>
+                <Button onClick={onCarryForward} dark>
+                  Carry into the debrief →
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- sub-components ---------- */
+
+function ViewToggle({
+  view,
+  onChange,
+}: {
+  view: View;
+  onChange: (v: View) => void;
+}) {
+  const options: [View, string][] = [
+    ["individuals", "Individuals"],
+    ["team", "What the team said"],
+  ];
+
+  return (
+    <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+      {options.map(([key, text]) => (
+        <button
+          key={key}
+          onClick={() => onChange(key)}
+          style={{
+            padding: "7px 15px",
+            borderRadius: 7,
+            cursor: "pointer",
+            fontSize: 12.5,
+            fontWeight: 500,
+            fontFamily: UI,
+            background: view === key ? C.green : "transparent",
+            color: view === key ? "#fff" : C.warm,
+            border: view === key ? "none" : `1px solid ${C.line}`,
+          }}
+        >
+          {text}
+        </button>
+      ))}
+      <span
+        style={{ fontSize: 12, color: C.warmLt, alignSelf: "center", marginLeft: 4 }}
+      >
+        {view === "individuals"
+          ? "what each person said"
+          : "measured against the goals"}
+      </span>
+    </div>
+  );
+}
+
+function DepthToggle({
+  depth,
+  canDistil,
+  onChange,
+}: {
+  depth: Depth;
+  canDistil: boolean;
+  onChange: (d: Depth) => void;
+}) {
+  const options: [Depth, string][] = [
+    ["full", "Full"],
+    ["distilled", "Distilled"],
+  ];
+
+  return (
+    <div style={{ display: "flex", gap: 4 }}>
+      {options.map(([key, text]) => {
+        const disabled = key === "distilled" && !canDistil;
+        return (
+          <button
+            key={key}
+            onClick={() => !disabled && onChange(key)}
+            disabled={disabled}
+            style={{
+              padding: "5px 12px",
+              borderRadius: 6,
+              cursor: disabled ? "not-allowed" : "pointer",
+              fontSize: 11.5,
+              fontFamily: UI,
+              background: depth === key ? C.sand : "transparent",
+              color: disabled ? C.line : depth === key ? C.ink : C.warmLt,
+              border: `1px solid ${depth === key ? C.line : "transparent"}`,
+              fontWeight: depth === key ? 500 : 400,
+            }}
+          >
+            {text}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function CrewRow({
+  sailor,
+  response,
+  active,
+  onSelect,
+}: {
+  sailor: Sailor;
+  response?: CaptureResponse;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  const answered = Boolean(response);
+
+  return (
+    <button
+      onClick={onSelect}
+      disabled={!answered}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        width: "100%",
+        padding: "9px 8px",
+        marginBottom: 2,
+        borderRadius: 6,
+        textAlign: "left",
+        border: "none",
+        cursor: answered ? "pointer" : "default",
+        background: active ? C.sand : "transparent",
+        opacity: answered ? 1 : 0.55,
+        fontFamily: UI,
+      }}
+    >
+      <span
+        style={{
+          width: 7,
+          height: 7,
+          borderRadius: 7,
+          flexShrink: 0,
+          background: answered ? C.green : C.warmLt,
+        }}
+      />
+      <span style={{ flex: 1 }}>
+        <span style={{ fontSize: 12.5, color: C.ink, fontWeight: active ? 600 : 500 }}>
+          {sailor.name}
+        </span>
+        <span style={{ display: "block", fontSize: 11, color: C.warmLt }}>
+          {sailor.role}
+        </span>
+      </span>
+      <span style={{ fontFamily: MONO, fontSize: 10.5, color: C.warmLt }}>
+        {response?.duration ?? "—"}
+      </span>
+    </button>
+  );
+}
+
+function PromptBox({
+  value,
+  onChange,
+  minHeight = 152,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  minHeight?: number;
+}) {
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      style={{
+        width: "100%",
+        minHeight,
+        padding: "11px 12px",
+        border: `1px solid ${C.line}`,
+        borderRadius: 7,
+        background: C.field,
+        fontSize: 12,
+        lineHeight: 1.6,
+        color: C.ink,
+        resize: "vertical",
+        fontFamily: MONO,
+        outline: "none",
+      }}
+    />
+  );
+}
+
+function Card({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      style={{
+        background: C.field,
+        border: `1px solid ${C.line}`,
+        borderRadius: 9,
+        padding: 15,
+      }}
+    >
+      <h2 style={{ ...label, margin: "0 0 11px" }}>{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function Button({
+  children,
+  onClick,
+  disabled,
+  dark,
+  style,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  dark?: boolean;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <button
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      style={{
+        width: "100%",
+        padding: "11px 0",
+        borderRadius: 8,
+        border: "none",
+        cursor: disabled ? "not-allowed" : "pointer",
+        background: disabled ? C.sand2 : dark ? C.ink : C.green,
+        color: disabled ? C.warmLt : "#fff",
+        fontSize: 13,
+        fontWeight: 600,
+        fontFamily: UI,
+        ...style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Hint({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      style={{
+        fontSize: 12,
+        color: C.warm,
+        lineHeight: 1.55,
+        margin: "0 0 10px",
+      }}
+    >
+      {children}
+    </p>
+  );
+}
+
+function Footnote({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      style={{
+        fontSize: 11.5,
+        color: C.warmLt,
+        lineHeight: 1.5,
+        margin: "9px 0 0",
+      }}
+    >
+      {children}
+    </p>
+  );
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        padding: "28px 0",
+        textAlign: "center",
+        color: C.warmLt,
+        fontSize: 13,
+        lineHeight: 1.6,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
