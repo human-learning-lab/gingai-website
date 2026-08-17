@@ -113,16 +113,55 @@ export default function PrimingInPage({
   }
 
   async function handleSynthesise(prompt: string) {
-    const res = await fetch(`/api/priming/${runId}/synthesise`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
-    });
-    if (!res.ok) throw new Error("Could not build the team picture");
+  const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const userId = 'user-1';
 
-    const picture = (await res.json()) as TeamPicture;
-    setTeamPicture(picture);
-    return picture;
+  await fetch(`${AGENT_BASE}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+
+  const res = await fetch(`${AGENT_BASE}/run_sse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    body: JSON.stringify({
+      appName: APP_NAME,
+      userId,
+      sessionId,
+      newMessage: { role: 'user', parts: [{ text: prompt }] },
+      streaming: false,
+    }),
+  });
+  if (!res.ok) throw new Error("Could not generate synthesis");
+
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("Unable to generate synthesis");
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if (!raw || raw === '[DONE]') continue;
+      try {
+        const event = JSON.parse(raw);
+        const parts = event?.content?.parts ?? [];
+        for (const part of parts) {
+          if (typeof part.text === 'string' && part.text) fullText += part.text;
+        }
+      } catch { /* skip non-JSON lines */ }
+    }
+  }
+  const picture  = JSON.parse(fullText) as TeamPicture;
+  return picture;
+
   }
 
   async function handleProposeGoals(prompt: string) {
