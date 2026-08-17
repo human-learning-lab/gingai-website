@@ -231,7 +231,7 @@ export default function Capture({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(0,1fr) 300px",
+          gridTemplateColumns: "minmax(0,1fr) minmax(520px, 620px)",
           gap: 16,
           alignItems: "start",
         }}
@@ -346,13 +346,14 @@ export default function Capture({
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
               gap: 14,
               overflowY: "auto",
               minHeight: 0,
               flex: "1 1 auto",
+              alignItems: "flex-start",
             }}
           >
+            <div style={{ flex: "1 1 0", minWidth: 0 }}>
             <Card title="Capture prompt">
             <p
               style={{
@@ -404,7 +405,9 @@ export default function Capture({
               Replaces the questions above — you can still edit every one.
             </Footnote>
           </Card>
+            </div>
 
+            <div style={{ flex: "1 1 0", minWidth: 0 }}>
           <Card title={isTeam ? "Send to" : "What each sailor gets"}>
             {!isTeam && (
               <p
@@ -450,6 +453,7 @@ export default function Capture({
               </Footnote>
             )}
           </Card>
+            </div>
           </div>
 
           <div style={{ flexShrink: 0 }}>
