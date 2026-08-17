@@ -45,7 +45,6 @@ export async function POST(
 ) {
   const { runId } = await params;
   const kind = request.nextUrl.searchParams.get('kind');
-  const sailor = request.nextUrl.searchParams.get('sailor'); 
 
 
   if (!kind) {
@@ -54,13 +53,14 @@ export async function POST(
       { status: 400 }
     );
   }
-  const path = sailor ? `/responses/${runId}/${kind}/${sailor}` : `/responses/${runId}/${kind}`
+  const path = `/responses/${runId}/${kind}`;
+  const body = await request.json();
 
   try {
     const res= await upstream(path,{
 	  method: 'POST',
 	  headers: {'Content-Type': 'application/json'},
-	  body: JSON.stringify(request.json),
+	  body: JSON.stringify(body),
   	});
     const data = await res.json();
     return NextResponse.json(data);

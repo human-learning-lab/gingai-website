@@ -52,14 +52,29 @@ export default function CaptureResponsePage(
       background: C.sand, fontFamily: UI, boxSizing: "border-box",
       display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center",
       padding: "clamp(10px, 2.5vh, 24px) clamp(8px, 2.5vw, 24px)",
+      paddingBottom: "max(clamp(10px, 2.5vh, 24px), env(safe-area-inset-bottom))",
     }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
         *{box-sizing:border-box}
         html,body,#root{height:100%;margin:0}
-        .ginga-viewport{min-height:100vh; width:100%}
+        .ginga-viewport{
+          min-height:100vh;
+          min-height:100svh; /* never exceeds the visible area, even with address bar shown */
+          width:100%;
+          overflow-y:auto; /* safety net: scroll instead of clip if content is taller than the viewport */
+          -webkit-overflow-scrolling:touch;
+        }
         @supports (height: 100dvh){ .ginga-viewport{min-height:100dvh} }
-        .ginga-card{width:min(96vw, 460px); height:min(94vh, 780px)}
+        .ginga-card{
+          width:min(96vw, 460px);
+          height:min(94vh, 780px);
+          height:min(94svh, 780px);
+          max-height:100%;
+        }
         @supports (height: 100dvh){ .ginga-card{height:min(94dvh, 780px)} }
+        @media (max-height: 600px){
+          .ginga-card{height:min(98svh, 780px)}
+        }
       `}</style>
 
 
@@ -126,7 +141,6 @@ function Page(
   const q = questions.length ? questions[step] : "";
   const finished = step >= questions.length;
 
-
   function submitText() {
     if (!draft.trim()) return;
     push(draft.trim());
@@ -137,13 +151,13 @@ function Page(
     setDraft("");
 	setPhase("idle");
     setStep(s => s + 1);
-	if (finished)
-	  	fetch(`/api/responses/${runId}?kind=capture&sailor=${sailor.firstName}`, {
+	if (step >= questions.length - 1)
+	  	fetch(`/api/responses/${runId}?kind=capture`, {
 			method: 'POST',
 			headers: {
           	  "Content-Type": "application/json",
         	},
-       		body: JSON.stringify({ sent }),
+       		body: JSON.stringify({ respondee: sailor.firstName, responses: [...sent, answer] }),
 		});
   }
 

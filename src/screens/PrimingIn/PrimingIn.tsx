@@ -42,8 +42,6 @@ export interface ConvergenceItem {
 }
 
 export interface TeamPicture {
-  /** e.g. "5 of 8" — always shown, never implied. */
-  coverage: string;
   convergence: ConvergenceItem[];
   /** Flagged for the room, deliberately unresolved. */
   divergence: string;
