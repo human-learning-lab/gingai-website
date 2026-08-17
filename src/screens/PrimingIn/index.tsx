@@ -14,6 +14,10 @@ import PrimingIn, {
    and the three handlers with real API calls.
    ============================================================ */
 
+// GingaAI agent apis
+const AGENT_BASE = '/api/agent';
+const APP_NAME = 'synthesize';
+
 const SAILORS: Sailor[] = [
   { id: "mar", name: "Martine", role: "Strategist" },
   { id: "pau", name: "Paul", role: "Helm" },
