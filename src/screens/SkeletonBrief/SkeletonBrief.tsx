@@ -103,7 +103,7 @@ export default function SkeletonBrief({
     sailors[0]?.id ?? ""
   );
   const [recipients, setRecipients] = useState<SailorId[]>(
-    sailors.map((s) => s.id)
+    sailors.map((s) => s.name)
   );
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
@@ -349,7 +349,7 @@ export default function SkeletonBrief({
                 hasOwnPrompt={
                   !isTeam && Boolean(value.personal[s.id]?.prompt?.trim())
                 }
-                onToggle={() => toggleRecipient(s.id)}
+                onToggle={() => toggleRecipient(s.name)}
               />
             ))}
 
