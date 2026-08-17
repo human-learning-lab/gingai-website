@@ -152,7 +152,7 @@ export default function CapturePage({
     });
     if (!res.ok) throw new Error("Could not create the capture run");
 
-	const link = `gingai-website.vercel.app/capturing?id=${runId}`
+	const link = `https://gingai-website.vercel.app/capturing?id=${runId}`
     recipients.forEach((sailor, i) => {
       const text = encodeURIComponent(
         `Capture while it's fresh — a few questions. Voice or text, whatever suits.\n${link}`

@@ -132,7 +132,7 @@ export default function SkeletonBriefPage({
     });
     if (!res.ok) throw new Error("Could not create the capture run");
 
-	const link = `gingai-website.vercel.app/priming?id=${runId}`
+	const link = `https://gingai-website.vercel.app/priming?id=${runId}`
 
 
     /* wa.me opens WhatsApp with the message ready. One tap per sailor —
