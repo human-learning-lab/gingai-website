@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Sailor } from "@/types"
 import SkeletonBrief, {
-  type Sailor,
   type SkeletonBriefValue,
 } from "./SkeletonBrief";
 
@@ -20,6 +20,7 @@ const SAILORS: Sailor[] = [
   { id: "bre", name: "Breno", role: "Trim" },
   { id: "ric", name: "Rich", role: "Strategy & performance" },
   { id: "nic", name: "Nico", role: "Data analyst" },
+  { id: "chr", name: "Christian", role: "HuleLab" },
 ];
 
 const DEFAULT_QUESTIONS = [
@@ -43,6 +44,9 @@ const emptyPersonal = Object.fromEntries(
     SAILORS.map((s) => [s.id, { questions: [...DEFAULT_QUESTIONS], prompt: "" }])
   );
 
+// GingaAI agent apis
+const AGENT_BASE = '/api/agent';
+const APP_NAME = 'generate_questions';
 
 export default function SkeletonBriefPage({
   runId
@@ -64,15 +68,55 @@ export default function SkeletonBriefPage({
     prompt: string;
     scope: "team" | "personal";
     sailor?: Sailor;
-  }) {
-    const res = await fetch("/api/questions/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, scope, sailorId: sailor?.id }),
-    });
-    if (!res.ok) throw new Error("Could not generate questions");
-    const { questions } = (await res.json()) as { questions: string[] };
-    return questions;
+  }): Promise<string[]> {
+  const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const userId = 'user-1';
+
+  await fetch(`${AGENT_BASE}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+
+  const res = await fetch(`${AGENT_BASE}/run_sse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    body: JSON.stringify({
+      appName: APP_NAME,
+      userId,
+      sessionId,
+      newMessage: { role: 'user', parts: [{ text: prompt }] },
+      streaming: false,
+    }),
+  });
+  if (!res.ok) throw new Error("Could not generate questions");
+
+  const reader = res.body?.getReader();
+  if (!reader) return [];
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if (!raw || raw === '[DONE]') continue;
+      try {
+        const event = JSON.parse(raw);
+        const parts = event?.content?.parts ?? [];
+        for (const part of parts) {
+          if (typeof part.text === 'string' && part.text) fullText += part.text;
+        }
+      } catch { /* skip non-JSON lines */ }
+    }
+  }
+  const { questions } = JSON.parse(fullText) as { questions: string[] };
+  return questions;
   }
 
   /* Freeze the version, mint one token link per sailor, open WhatsApp. */
@@ -94,12 +138,14 @@ export default function SkeletonBriefPage({
     /* wa.me opens WhatsApp with the message ready. One tap per sailor —
        no business account needed. Popup blockers allow the first window,
        so open them on a short stagger. 
+	*/
+
     recipients.forEach((sailor, i) => {
       const text = encodeURIComponent(
         `Priming for tomorrow — three quick questions. Voice or text, whatever suits.\n${link}`
       );
       setTimeout(() => window.open(`https://wa.me/?text=${text}`, "_blank"), i * 400);
-    });*/
+    });
   }
 
   return (

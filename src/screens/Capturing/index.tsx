@@ -23,9 +23,13 @@ const SAILORS: Sailor[] = [
   { id: "nic", name: "Nico", role: "Data analyst" },
 ];
 
-const DEFAULT_GOALS = [
+const DEFAULT_GOALS: string[] = [
 	
 ]
+
+const PERSONAL_GOALS: Record<string, string> = Object.fromEntries(
+    SAILORS.map((s) => [s.name, ""]));
+
 
 
 
@@ -52,6 +56,10 @@ Rules:
 const emptyPersonal = Object.fromEntries(
 	SAILORS.map((s) => [s.id, { questions: [...DEFAULT_QUESTIONS], prompt: "" }]));
 
+const AGENT_BASE = '/api/agent';
+const APP_NAME = 'generate_questions';
+
+
 export default function CapturePage({
   runId
 }:{
@@ -73,22 +81,55 @@ export default function CapturePage({
     sailor?: Sailor;
     squadGoals: string[];
     ownGoal?: string;
-  }) {
-    const res = await fetch(`/api/sessions/${runId}/capture/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt: args.prompt,
-        scope: args.scope,
-        sailorId: args.sailor?.id,
-        role: args.sailor?.role,
-        squadGoals: args.squadGoals,
-        ownGoal: args.ownGoal,
-      }),
-    });
-    if (!res.ok) throw new Error("Could not generate questions");
-    const { questions } = (await res.json()) as { questions: string[] };
-    return questions;
+  }): Promise<string[]> {
+  const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const userId = 'user-1';
+
+  await fetch(`${AGENT_BASE}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+
+  const res = await fetch(`${AGENT_BASE}/run_sse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    body: JSON.stringify({
+      appName: APP_NAME,
+      userId,
+      sessionId,
+      newMessage: { role: 'user', parts: [{ text: prompt }] },
+      streaming: false,
+    }),
+  });
+  if (!res.ok) throw new Error("Could not generate questions");
+
+  const reader = res.body?.getReader();
+  if (!reader) return [];
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if (!raw || raw === '[DONE]') continue;
+      try {
+        const event = JSON.parse(raw);
+        const parts = event?.content?.parts ?? [];
+        for (const part of parts) {
+          if (typeof part.text === 'string' && part.text) fullText += part.text;
+        }
+      } catch { /* skip non-JSON lines */ }
+    }
+  }
+  const questions = JSON.parse(fullText) as { questions: string[] };
+  return questions.questions;
   }
 
   /* Freeze the version, mint a token link per sailor, open WhatsApp.
@@ -130,7 +171,7 @@ export default function CapturePage({
       <Capture
         sailors={SAILORS}
         squadGoals={DEFAULT_GOALS}
-        ownGoals={DEFAULT_GOALS}
+        ownGoals={PERSONAL_GOALS}
         value={value}
         onChange={setValue}
         onGenerate={handleGenerate}

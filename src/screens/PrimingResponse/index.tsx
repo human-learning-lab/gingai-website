@@ -1,7 +1,8 @@
 'use client';
 
 import { useRole } from '@/context/RoleContext';
-import React, { useState, useRef, useEffect } from "react";
+import React, { useCallback, useState, useRef, useEffect } from "react";
+import { IconStop } from '@/components/Icons';
 
 // ============================================================
 // Ginga — sailor capture page · reference implementation
@@ -25,13 +26,19 @@ type Mode = "capture" | "priming" | "note";
 
 type ShareChoice = "private" | "rich" | "team";
 
+type Phase    = 'idle' | 'recording' | 'transcribing' | 'review';
 
 interface Sailor {
 	role: string;
 	firstName: string;
 }
 
-export default function PrimingResponsePage() {
+export default function PrimingResponsePage(
+  { runId, transcriptLines, onRecordingChange}:
+  { runId: string;
+    transcriptLines?: string[];
+    onRecordingChange?: (recording: boolean) => void;
+}) {
   const { role } = useRole();
   const sailor = { firstName: role!.name, role: role!.label};
   const event =  { venue: "Sassnitz", dayLabel: "Tomorrow" };
@@ -51,12 +58,22 @@ export default function PrimingResponsePage() {
       `}</style>
 
 
-      <Page runId={runId} sailor={sailor}/>
+      <Page 
+	  	runId={runId} 
+		sailor={sailor} 
+		transcriptLines={transcriptLines}
+		onRecordingChange={onRecordingChange}/>
     </div>
   );
 }
 
-function Page({ runId, sailor }: { runId: string, sailor: Sailor}) {
+function Page({ runId, sailor, transcriptLines, onRecordingChange }: 
+{
+  runId: string;
+  sailor: Sailor;
+  transcriptLines?: string[];
+  onRecordingChange?: (recording: boolean) => void;
+}){
   const [step, setStep] = useState(0);
   const [inputMode, setInputMode] = useState<"voice" | "text">("voice");
   const [draft, setDraft] = useState("");
@@ -188,7 +205,7 @@ function Page({ runId, sailor }: { runId: string, sailor: Sailor}) {
             }}
           >Re-record</button>
           <button
-            onClick={push}
+            onClick={() => { submitText() }}
             disabled={!draft.trim()}
             style={{
               flex: 1, height: 44, borderRadius: 10, border: 'none',
@@ -237,6 +254,79 @@ function Page({ runId, sailor }: { runId: string, sailor: Sailor}) {
       )}
     </>
   );
+
+  return (
+    <div className="ginga-card" style={{
+      margin: "0 auto", background: C.paper, border: `1px solid ${C.line}`,
+      borderRadius: 12, display: "flex", flexDirection: "column", overflow: "hidden",
+      flexShrink: 0,
+    }}>
+      <header style={{ padding: "16px 19px 13px", borderBottom: `1px solid ${C.line}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
+        <div>
+          <div style={lbl}>{kicker}</div>
+          <h1 style={{ fontFamily: DISPLAY, fontSize: "clamp(21px, 4.5vh, 26px)", fontWeight: 700, color: C.ink, margin: "2px 0 0", lineHeight: 1.1 }}>{title}</h1>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: C.ink }}>{sailor.firstName}</div>
+          <div style={{ fontSize: 11, color: C.warmLt }}>{sailor.role}</div>
+        </div>
+      </header>
+
+      {finished ? (
+        <Done sent={sent} questions={questions} sailor={sailor}/>
+      ) : (
+        <>
+          { 
+            <div style={{ display: "flex", gap: 3, padding: "11px 19px 0", flexShrink: 0 }}
+                 aria-live="polite" aria-label={`Question ${step + 1} of ${questions.length}`}>
+              {questions.map((_: string, i: number) => (
+                <span key={i} style={{ height: 3, flex: 1, borderRadius: 2, background: i <= step ? C.green : C.line }} />
+              ))}
+            </div>
+          }
+
+              
+          <div style={{ padding: "18px 19px 0", flex: 1, minHeight: 0, overflowY: "auto" }}>
+            {<div style={{ ...lbl, color: C.green, marginBottom: 6 }}>Question {step + 1}</div>}
+            <p style={{
+              fontFamily: DISPLAY, fontSize: "clamp(19px, 3.6vh, 24px)",
+              fontWeight:  600, color: C.ink,
+              lineHeight: 1.25, margin: 0,
+            }}>
+			{q}
+            </p>
+
+            {micDenied && (
+              <p style={{ fontSize: 12, color: C.warm, marginTop: 12, lineHeight: 1.5 }}>
+                Recording isn't available — type your answer instead.
+              </p>
+            )}
+            {liveConvoContent}
+          </div>
+
+          <div style={{ padding: "13px 19px 18px", borderTop: `1px solid ${C.line}`, flexShrink: 0 }}>
+            {inputMode === "voice" ? (
+              <>
+			  	{liveControlsContent}
+                {!micDenied && (
+                  <button onClick={() => setPhase('review')} style={link}>or type instead</button>
+                )}
+              </>
+            ) : (
+              <>
+                <button onClick={submitText} disabled={!draft.trim()} style={{
+                  ...btn,
+                  background: draft.trim() ? C.green : C.sand,
+                  color: draft.trim() ? "#fff" : C.warmLt,
+                  cursor: draft.trim() ? "pointer" : "not-allowed",
+                }}>Send answer</button>
+              </>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 function Done({questions, sent, sailor}: {questions: string[], sent: string[]; sailor: Sailor}) {
@@ -264,7 +354,6 @@ function Done({questions, sent, sailor}: {questions: string[], sent: string[]; s
                 <span style={{ color: C.green, fontWeight: 600 }}>{i + 1}</span>
                 <span style={{ flex: 1, lineHeight: 1.45 }}>{questions[i]}</span>
                 <span style={{ flex: 1, lineHeight: 1.45 }}>{a}</span>
-                <span style={lbl}>{a.kind === "voice" ? `${a.len}s` : "Text"}</span>
               </div>
             ))}
           </div>

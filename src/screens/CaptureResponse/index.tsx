@@ -206,7 +206,7 @@ function Page(
             }}
           >Re-record</button>
           <button
-            onClick={push}
+            onClick={() => { submitText(); }}
             disabled={!draft.trim()}
             style={{
               flex: 1, height: 44, borderRadius: 10, border: 'none',
@@ -356,7 +356,6 @@ function Done({questions, sent, sailor}: {questions: string[], sent: string[]; s
                 <span style={{ color: C.green, fontWeight: 600 }}>{i + 1}</span>
                 <span style={{ flex: 1, lineHeight: 1.45 }}>{questions[i]}</span>
                 <span style={{ flex: 1, lineHeight: 1.45 }}>{a}</span>
-                <span style={lbl}>{a.kind === "voice" ? `${a.len}s` : "Text"}</span>
               </div>
             ))}
           </div>

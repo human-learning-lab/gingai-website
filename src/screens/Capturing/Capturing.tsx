@@ -147,8 +147,6 @@ export default function Capture({
   //const metrics = primingData[activeSailor] ?? [];
   //const dataAttached = value.attachDataFor.includes(activeSailor);
 
-  console.log(activeSailor);
-  console.log(value);
   const current_questions = isTeam
     ? value.teamQuestions
     : value.personal[activeSailor].questions;
@@ -156,25 +154,11 @@ export default function Capture({
   	? value.teamPrompt
 	: value.personal[activeSailor].prompt;
 
-  /* ---------- mutations ---------- */
+ 
+  const [questions, setQuestions] = useState<string[]>(current_questions);
+  const [prompt, setPrompt] = useState<string>(current_prompt);
 
-  const write = useCallback(
-    (next: Partial<QuestionSet>) => {
-      if (isTeam) {
-        onChange({ ...value, team: { ...value.team, ...next } });
-      } else {
-        onChange({
-          ...value,
-          personal: {
-            ...value.personal,
-            [activeSailor]: { ...current, ...next },
-          },
-        });
-      }
-    },
-    [isTeam, onChange, value, activeSailor, current_questions, current_prompt]
-  );
-
+  
   const editQuestion = (index: number, text: string) =>
     setQuestions(questions.map((q, i) => (i === index ? text : q)));
 
@@ -193,7 +177,7 @@ export default function Capture({
     setGenerating(true);
     try {
       const next = await onGenerate({
-        prompt: value.prompt,
+        prompt: prompt,
         scope,
         sailor: isTeam ? undefined : sailor,
         squadGoals,
@@ -314,13 +298,13 @@ export default function Capture({
               isTeam ? "Questions — everyone" : `Questions — ${sailor?.name}`
             }
           >
-            {current_questions.map((question, i) => (
+            {questions.map((question, i) => (
               <QuestionRow
                 key={i}
                 index={i}
                 value={question}
                 isFirst={i === 0}
-                isLast={i === current_questions.length - 1}
+                isLast={i === questions.length - 1}
                 onEdit={(text) => editQuestion(i, text)}
                 onMove={(delta) => moveQuestion(i, delta)}
                 onRemove={() => removeQuestion(i)}
@@ -384,8 +368,8 @@ export default function Capture({
             </p>
 
             <textarea
-              value={value.prompt}
-              onChange={(e) => onChange({ ...value, prompt: e.target.value })}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
               style={{
                 width: "100%",
                 minHeight: 176,

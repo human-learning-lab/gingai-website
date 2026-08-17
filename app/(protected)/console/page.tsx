@@ -28,10 +28,10 @@ export default function ConsolePage() {
      answers carry one; the rest render without a badge. */
   const phases: Phase[] = [
     { id: "skeleton", number: "01", label: "Skeleton brief" },
-    { id: "priming", number: "02", label: "Priming in", count: { done: 2, total: 8 } },
+    { id: "priming", number: "02", label: "Priming in"},
     { id: "briefing", number: "03", label: "Briefing" },
     { id: "capture", number: "04", label: "Capture" },
-    { id: "captures", number: "05", label: "Captures in", count: { done: 0, total: 8 } },
+    { id: "captures", number: "05", label: "Captures in" },
     { id: "debrief", number: "06", label: "Hot debrief" },
   ];
 

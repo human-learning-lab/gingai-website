@@ -25,7 +25,7 @@ export interface Block {
 }
 
 export interface Sailor {
-  id: SailorId;
+  id: string;
   name: string;
   role: string;
 }

@@ -51,7 +51,7 @@ export interface Theme {
 export interface TeamReading {
   /** e.g. "5 of 8" — always shown, never implied. */
   coverage: string;
-  goals: GoalReading[];
+  goals: string[];
   themes: Theme[];
   /**
    * Where accounts of the same moment differ. Left unresolved on
@@ -69,7 +69,6 @@ export interface Prompts {
 
 export interface CapturesInProps {
   sailors: Sailor[];
-  questions: string[];
   responses: CaptureResponse[];
 
   /** As agreed in the briefing — what the captures are measured against. */
@@ -133,7 +132,6 @@ const label: React.CSSProperties = {
 
 export default function CapturesIn({
   sailors,
-  questions,
   responses,
   squadGoals,
   ownGoals,
@@ -163,6 +161,7 @@ export default function CapturesIn({
 
   const setPrompt = (key: keyof Prompts, text: string) =>
     onPromptsChange({ ...prompts, [key]: text });
+  console.log(responses);
 
   const distil = async () => {
     setBusy("distil");
@@ -281,34 +280,20 @@ export default function CapturesIn({
               <Card
                 title={
                   depth === "full"
-                    ? `In their own words${
-                        response.duration ? ` · ${response.duration}` : ""
-                      }`
+                    ? `In their own words`
                     : "Distilled"
                 }
               >
-                {depth === "full" ? (
+                {
                   <>
-                    <div
-                      style={{
-                        fontSize: 13.5,
-                        lineHeight: 1.75,
-                        whiteSpace: "pre-line",
-                      }}
-                    >
-                      {response.response}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {questions.map((question, i) => (
+                    {response.questions.map((question, i) => (
                       <div
                         key={i}
                         style={{
                           paddingBottom: 14,
                           marginBottom: 14,
                           borderBottom:
-                            i < questions.length - 1
+                            i < response.questions.length - 1
                               ? `1px solid ${C.line}`
                               : "none",
                         }}
@@ -327,7 +312,7 @@ export default function CapturesIn({
                           {question}
                         </div>
                         <div style={{ fontSize: 13, lineHeight: 1.65 }}>
-                          {response.distilled?.[i] ?? "—"}
+                          {response.responses[i] ?? "—"}
                         </div>
                       </div>
                     ))}
@@ -337,7 +322,7 @@ export default function CapturesIn({
                       rounded to achieved or not.
                     </Footnote>
                   </>
-                )}
+                }
               </Card>
             ) : (
               <Card title="Nothing in yet">
@@ -401,44 +386,8 @@ export default function CapturesIn({
                           {i + 1}
                         </span>
                         <div style={{ flex: 1 }}>
-                          <div
-                            style={{ fontSize: 13, color: C.warm, lineHeight: 1.5 }}
-                          >
-                            {reading.goal}
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "baseline",
-                              gap: 10,
-                              marginTop: 7,
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontFamily: DISPLAY,
-                                fontSize: 17,
-                                fontWeight: 600,
-                              }}
-                            >
-                              {reading.verdict}
-                            </span>
-                            <span
-                              style={{
-                                fontFamily: MONO,
-                                fontSize: 11,
-                                color: C.warmLt,
-                              }}
-                            >
-                              {reading.addressedBy} addressed it
-                            </span>
-                          </div>
-                          <div
-                            style={{ fontSize: 13, lineHeight: 1.7, marginTop: 8 }}
-                          >
-                            {reading.detail}
-                          </div>
-                        </div>
+                        	{reading}                          
+						</div>
                       </div>
                     </div>
                   ))}
@@ -735,9 +684,6 @@ function CrewRow({
         <span style={{ display: "block", fontSize: 11, color: C.warmLt }}>
           {sailor.role}
         </span>
-      </span>
-      <span style={{ fontFamily: MONO, fontSize: 10.5, color: C.warmLt }}>
-        {response?.duration ?? "—"}
       </span>
     </button>
   );

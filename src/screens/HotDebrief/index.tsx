@@ -80,7 +80,7 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
     prompt: string;
     sourceIds: string[];
   }) {
-    const res = await fetch(`/api/sessions/${sessionId}/debrief`, {
+    const res = await fetch(`/api/sessions/${runId}/debrief`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, sourceIds }),
@@ -107,7 +107,7 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
   function handleDocumentChange(text: string) {
     setDraft((d) => (d ? { ...d, edited: text } : d));
     // Debounce this in production.
-    void fetch(`/api/sessions/${sessionId}/debrief/document`, {
+    void fetch(`/api/sessions/${runId}/debrief/document`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),

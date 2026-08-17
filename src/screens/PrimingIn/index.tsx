@@ -23,6 +23,7 @@ const SAILORS: Sailor[] = [
   { id: "bre", name: "Breno", role: "Trim" },
   { id: "ric", name: "Rich", role: "Strategy & performance" },
   { id: "nic", name: "Nico", role: "Data analyst" },
+  { id: "chr", name: "Christian", role: "HuleLab" },
 ];
 
 const QUESTIONS = [
@@ -99,9 +100,9 @@ export default function PrimingInPage({
       distilled: Record<string, string[]>;
     };
 
-    setResponses((prev) =>
+	setResponses((prev) =>
       prev.map((r) =>
-        distilled[r.sailorId] ? { ...r, distilled: distilled[r.sailorId] } : r
+        distilled[r.recipient] ? { ...r, distilled: distilled[r.recipient] } : r
       )
     );
     return distilled;
@@ -145,6 +146,7 @@ export default function PrimingInPage({
   return (
     <div style={{ background: "#F7F4ED", minHeight: "100vh", padding: 22 }}>
       <PrimingIn
+	  	runId={runId}
         sailors={SAILORS}
         questions={QUESTIONS}
         responses={responses}

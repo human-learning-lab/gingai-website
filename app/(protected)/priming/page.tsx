@@ -1,12 +1,21 @@
 import type { Metadata } from 'next';
-import PrimingResponsePage from '@/screens/PrimingResponse'
+import CaptureClient from './CaptureClient';
 
 export const metadata: Metadata = {
-  title: 'Priming response Screen',
-  description: 'Page for collecting sailor priming responses',
+  title: 'Capture response Screen',
+  description: 'Page for collecting sailor capture responses',
 };
 
-export default function ResponsePage() {
-  return <PrimingResponsePage/>;
+
+export default async function ResponsePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ id?: string }>;
+}) {
+  const { id: runId } = await searchParams;
+  if(!runId)
+	  throw new Error("No run ID provided");
+  return <CaptureClient runId={runId}/>;
 }
+
 

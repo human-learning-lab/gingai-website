@@ -25,9 +25,11 @@ const SAILORS: Sailor[] = [
   { id: "vik", name: "Viktor", role: "Developer" },
 ];
 
-const DEFAULT_GOALS = [
-	
-]
+const PERSONAL_GOALS: Record<string, string> = Object.fromEntries(
+    SAILORS.map((s) => [s.name, ""])
+  );
+
+const DEFAULT_GOALS: string[] = [];
 
 
 
@@ -99,7 +101,7 @@ export default function CapturesInPage({
 
     setResponses((prev) =>
       prev.map((r) =>
-        distilled[r.sailorId] ? { ...r, distilled: distilled[r.sailorId] } : r
+        distilled[r.recipient] ? { ...r, distilled: distilled[r.recipient] } : r
       )
     );
     return distilled;
@@ -111,7 +113,7 @@ export default function CapturesInPage({
     const res = await fetch(`/api/captures/${runId}/synthesise`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, squadGoals, ownGoals }),
+      body: JSON.stringify({ prompt }),
     });
     if (!res.ok) throw new Error("Could not build the team reading");
 
@@ -133,10 +135,9 @@ export default function CapturesInPage({
     <div style={{ background: "#F7F4ED", minHeight: "100vh", padding: 22 }}>
       <CapturesIn
         sailors={SAILORS}
-        questions={QUESTIONS}
         responses={responses}
         squadGoals={DEFAULT_GOALS}
-        ownGoals={DEFAULT_GOALS}
+        ownGoals={PERSONAL_GOALS}
         prompts={prompts}
         onPromptsChange={setPrompts}
         teamReading={teamReading}

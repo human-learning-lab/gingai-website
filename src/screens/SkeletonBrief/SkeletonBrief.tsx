@@ -2,7 +2,7 @@
 
 import React, { useCallback, useMemo, useState } from "react";
 import { ROLES } from '@/data/roles';
-import Sailor from "@/data/types"
+import { Sailor } from "@/types"
 
 /* ============================================================
    Ginga — Skeleton brief
@@ -35,11 +35,12 @@ export interface SkeletonBriefValue {
 export type Scope = "team" | "personal";
 
 export interface SkeletonBriefProps {
+  runId: string;
   sailors: Sailor[];
   value: SkeletonBriefValue;
   onChange: (next: SkeletonBriefValue) => void;
   /** Called when the coach sends. Resolve when the send has been handed off. */
-  onSend: (runId: String, recipients: SailorId[], scope: Scope) => Promise<void> | void;
+  onSend: (runId: string, recipients: SailorId[], scope: Scope) => Promise<void> | void;
   /** Ask the model for questions from a prompt. */
   onGenerate: (args: {
     prompt: string;
@@ -121,40 +122,23 @@ export default function SkeletonBrief({
   	? value.teamPrompt
 	: value.personal[activeSailor].prompt;
 
+  const [questions, setQuestions] = useState<string[]>(current_questions);
+  const [prompt, setPrompt] = useState<string>(current_prompt);
+
+
   /* ---------- mutations ---------- */
 
-  const write = useCallback(
-    (next: Partial<QuestionSet>) => {
-      if (isTeam) {
-        onChange({ ...value, team: { ...value.team, ...next } });
-      } else {
-        onChange({
-          ...value,
-          personal: {
-            ...value.personal,
-            [activeSailor]: { ...current, ...next },
-          },
-        });
-      }
-    },
-    [isTeam, onChange, value, activeSailor, current_questions, current_prompt]
-  );
-
-  const setQuestions = useCallback(
-    (questions: string[]) => write({ questions }),
-    [write]
-  );
-
-  const editQuestion = (index: number, text: string) =>
-    setQuestions(current_questions.map((q, i) => (i === index ? text : q)));
+  const editQuestion = (index: number, text: string) => {
+    setQuestions(questions.map((q, i) => (i === index ? text : q)));
+  }
 
   const removeQuestion = (index: number) =>
-    setQuestions(current_questions.filter((_, i) => i !== index));
+    setQuestions(questions.filter((_, i) => i !== index));
 
   const moveQuestion = (index: number, delta: number) => {
     const target = index + delta;
-    if (target < 0 || target >= current.questions.length) return;
-    const next = [...current.questions];
+    if (target < 0 || target >= questions.length) return;
+    const next = [...questions];
     [next[index], next[target]] = [next[target], next[index]];
     setQuestions(next);
   };
@@ -163,7 +147,7 @@ export default function SkeletonBrief({
     setGenerating(true);
     try {
       const questions = await onGenerate({
-        prompt: current.prompt,
+        prompt: current_prompt,
         scope,
         sailor: isTeam ? undefined : sailor,
       });
@@ -246,13 +230,13 @@ export default function SkeletonBrief({
               isTeam ? "Questions — everyone" : `Questions — ${sailor?.name}`
             }
           >
-            {current_questions.map((question, index) => (
+            {questions.map((question, index) => (
               <QuestionRow
                 key={index}
                 index={index}
                 value={question}
                 isFirst={index === 0}
-                isLast={index === current_questions.length - 1}
+                isLast={index === questions.length - 1}
                 onEdit={(text) => editQuestion(index, text)}
                 onMove={(delta) => moveQuestion(index, delta)}
                 onRemove={() => removeQuestion(index)}
@@ -261,7 +245,7 @@ export default function SkeletonBrief({
 
             <div style={{ display: "flex", gap: 8, marginTop: 11 }}>
               <button
-                onClick={() => setQuestions([...current_questions, ""])}
+                onClick={() => setQuestions([...questions, ""])}
                 style={dashedButton}
               >
                 + Add question
@@ -292,8 +276,8 @@ export default function SkeletonBrief({
             </p>
 
             <textarea
-              value={current_prompt}
-              onChange={(e) => write({ prompt: e.target.value })}
+              value={prompt}
+              onChange={(e) => {setPrompt(e.target.value);}}
               placeholder={
                 isTeam
                   ? "Describe how the questions should be written…"
@@ -325,15 +309,15 @@ export default function SkeletonBrief({
             >
               <button
                 onClick={generate}
-                disabled={generating || !current_prompt.trim()}
+                disabled={generating}
                 style={{
                   ...primaryButton,
                   width: "auto",
                   padding: "9px 16px",
                   fontSize: 12.5,
-                  opacity: generating || !current_prompt.trim() ? 0.5 : 1,
+                  opacity: generating ? 0.5 : 1,
                   cursor:
-                    generating || !current_prompt.trim()
+                    generating
                       ? "not-allowed"
                       : "pointer",
                 }}

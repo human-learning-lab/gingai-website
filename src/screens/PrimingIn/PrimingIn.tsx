@@ -24,11 +24,13 @@ export interface Sailor {
 
 /** One sailor's response to a priming run. */
 export interface PrimingResponse {
-  sailorId: SailorId;
-  /** Local time the response arrived, e.g. "21:31". */
+  id: number;
+  kind: string;
+  questions: string[];
+  responses: string[];
+  recipient: SailorId;
+  /** Local time it arrived, e.g. "18:34". */
   receivedAt: string;
-  /** The answer as given — one continuous piece, not split by question. */
-  transcript: string;
   /** One condensed line per question, in question order. Absent until distilled. */
   distilled?: string[];
 }
@@ -61,6 +63,7 @@ export interface Prompts {
 }
 
 export interface PrimingInProps {
+  runId: string;
   sailors: Sailor[];
   questions: string[];
   responses: PrimingResponse[];
@@ -119,6 +122,7 @@ const label: React.CSSProperties = {
 /* ---------- component ---------- */
 
 export default function PrimingIn({
+  runId,
   sailors,
   questions,
   responses,
@@ -133,12 +137,11 @@ export default function PrimingIn({
   onCarryForward,
 }: PrimingInProps) {
   const byId = useMemo(
-    () => new Map(responses.map((r) => [r.sailorId, r])),
+    () => new Map(responses.map((r) => [r.recipient, r])),
     [responses]
   );
-
   const answered = useMemo(
-    () => sailors.filter((s) => byId.has(s.id)),
+    () => sailors.filter((s) => byId.has(s.name)),
     [sailors, byId]
   );
 
@@ -279,39 +282,20 @@ export default function PrimingIn({
               <Card
                 title={
                   depth === "full"
-                    ? `In their own words${
-                        response.duration ? ` · ${response.duration}` : ""
-                      }`
+                    ? `In their own words`
                     : "Distilled"
                 }
               >
-                {depth === "full" ? (
+                {
                   <>
-                    <div
-                      style={{
-                        fontSize: 13.5,
-                        lineHeight: 1.75,
-                        whiteSpace: "pre-line",
-                      }}
-                    >
-                      {response.transcript}
-                    </div>
-                    <Footnote>
-                      {response.kind === "voice"
-                        ? "Transcript as spoken. Nothing reordered, nothing cut."
-                        : "As written. Nothing reordered, nothing cut."}
-                    </Footnote>
-                  </>
-                ) : (
-                  <>
-                    {questions.map((question, i) => (
+                    {response.questions.map((question, i) => (
                       <div
                         key={i}
                         style={{
                           paddingBottom: 14,
                           marginBottom: 14,
                           borderBottom:
-                            i < questions.length - 1
+                            i < response.questions.length - 1
                               ? `1px solid ${C.line}`
                               : "none",
                         }}
@@ -330,17 +314,18 @@ export default function PrimingIn({
                           {question}
                         </div>
                         <div style={{ fontSize: 13, lineHeight: 1.65 }}>
-                          {response.distilled?.[i] ?? "—"}
+                          {response.responses[i] ?? "—"}
                         </div>
                       </div>
                     ))}
                     <Footnote>
-                      Condensed by Ginga and mapped to the questions. The full
-                      answer is always one click away — nothing is discarded.
+                      Condensed by Ginga. Their own qualifiers are kept —
+                      &ldquo;half&rdquo;, &ldquo;four of six&rdquo; — never
+                      rounded to achieved or not.
                     </Footnote>
                   </>
-                )}
-              </Card>
+                }
+             </Card>
             ) : (
               <Card title="Nothing in yet">
                 <Empty>Answers appear here as they arrive.</Empty>
@@ -758,9 +743,6 @@ function CrewRow({
         <span style={{ display: "block", fontSize: 11, color: C.warmLt }}>
           {sailor.role}
         </span>
-      </span>
-      <span style={{ fontFamily: MONO, fontSize: 10.5, color: C.warmLt }}>
-        {response?.duration ?? "—"}
       </span>
     </button>
   );
