@@ -22,7 +22,7 @@ const SAILORS: Sailor[] = [
   { id: "bre", name: "Breno", role: "Trim" },
   { id: "ric", name: "Rich", role: "Strategy & performance" },
   { id: "nic", name: "Nico", role: "Data analyst" },
-  { id: "vik", name: "Viktor", role: "Developer" },
+  { id: "chr", name: "Christian", role: "Hulelab" },
 ];
 
 const PERSONAL_GOALS: Record<string, string> = Object.fromEntries(

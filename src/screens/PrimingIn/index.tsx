@@ -79,7 +79,7 @@ export default function PrimingInPage({
 
   useEffect(() => {
 	  async function getResp(){
-	  	const res = await fetch(`/api/responses/${runId}?kind=capture`);
+	  	const res = await fetch(`/api/responses/${runId}?kind=priming`);
 	  	const resps = await res.json();
 	  	setResponses(resps);
 	  }
