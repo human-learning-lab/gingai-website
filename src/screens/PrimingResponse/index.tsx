@@ -109,7 +109,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 
   useEffect(() => {
 	  async function getResp(){
-	  	const res = await fetch(`/api/responses/${runId}?kind=capture&sailor=${sailor.firstName}`);
+	  	const res = await fetch(`/api/responses/${runId}?kind=priming&sailor=${sailor.firstName}`);
 	  	const resps = await res.json();
 		console.log(resps);
 		if (resps.questions)
