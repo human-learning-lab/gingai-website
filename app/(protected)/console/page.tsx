@@ -19,7 +19,9 @@ import HotDebriefPage from "@/screens/HotDebrief";
 
 const venue = 'Sassnitz';
 const kicker = "Race day 1 · Season 6";
-const runId = venue + kicker;
+const day = kicker.replace(/ /g,'')
+
+const runId = venue + day;
 
 export default function ConsolePage() {
   const [phase, setPhase] = useState<PhaseId>("skeleton");
