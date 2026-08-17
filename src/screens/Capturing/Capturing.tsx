@@ -130,7 +130,7 @@ export default function Capture({
   const [activeSailor, setActiveSailor] = useState<SailorId>(
     sailors[0]?.id ?? ""
   );
-  const [recipients, setRecipients] = useState<SailorId[]>(
+  const [recipients, setRecipients] = useState<string[]>(
     sailors.map((s) => s.name)
   );
   const [generating, setGenerating] = useState(false);
@@ -422,13 +422,13 @@ export default function Capture({
 
             {sailors.map((s) => (
               <RecipientRow
-                key={s.id}
+                key={s.name}
                 sailor={s}
-                checked={recipients.includes(s.id)}
+                checked={recipients.includes(s.name)}
                 showSetStatus={!isTeam}
-                hasOwnSet={Boolean(value.personal[s.id])}
+                hasOwnSet={Boolean(value.personal[s.name])}
                 onToggle={() => toggleRecipient(s.name)}
-                onEditTheirs={() => setActiveSailor(s.id)}
+                onEditTheirs={() => setActiveSailor(s.name)}
               />
             ))}
 

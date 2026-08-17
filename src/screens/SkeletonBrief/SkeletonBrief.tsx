@@ -343,9 +343,9 @@ export default function SkeletonBrief({
           <Card title="Send to">
             {sailors.map((s) => (
               <RecipientRow
-                key={s.id}
+                key={s.name}
                 sailor={s}
-                checked={recipients.includes(s.id)}
+                checked={recipients.includes(s.name)}
                 hasOwnPrompt={
                   !isTeam && Boolean(value.personal[s.id]?.prompt?.trim())
                 }
