@@ -377,7 +377,7 @@ export default function PrimingIn({
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {teamPicture ? (
               <>
-                <Card title={`Convergence · coverage ${teamPicture.coverage}`}>
+                <Card title={`Convergence`}>
                   {teamPicture.convergence.map((item) => (
                     <div
                       key={item.theme}
