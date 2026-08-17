@@ -137,7 +137,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 	setPhase("idle");
     setStep(s => s + 1);
 	if (finished)
-	  	fetch(`/api/responses/${runId}?kind=capture&sailor=${sailor.firstName}`, {
+	  	fetch(`/api/responses/${runId}?kind=priming&sailor=${sailor.firstName}`, {
 			method: 'POST',
 			headers: {
           	  "Content-Type": "application/json",
@@ -149,7 +149,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 
   const mm = String(Math.floor(recTime / 60)).padStart(2, '0');
   const ss = String(recTime % 60).padStart(2, '0');
-  const title = 'Capture';
+  const title = 'Priming Questions';
   const kicker = runId;
 
   const liveConvoContent = (
