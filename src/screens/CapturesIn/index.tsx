@@ -159,7 +159,7 @@ async function handleSynthesise(prompt: string) {
       } catch { /* skip non-JSON lines */ }
     }
   }
-  const picture  = JSON.parse(fullText) as TeamPicture;
+  const picture  = JSON.parse(fullText) as TeamReading;
   return picture;
 
   }
