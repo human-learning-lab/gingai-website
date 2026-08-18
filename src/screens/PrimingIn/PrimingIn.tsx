@@ -139,7 +139,7 @@ export default function PrimingIn({
     [responses]
   );
   const answered = useMemo(
-    () => sailors.filter((s) => byId.has(s.name)),
+	() => sailors.filter((s) => (byId.get(s.name)?.responses.length ?? 0) > 0),
     [sailors, byId]
   );
 

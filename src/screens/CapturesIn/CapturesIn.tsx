@@ -147,7 +147,7 @@ export default function CapturesIn({
     [responses]
   );
   const answered = useMemo(
-    () => sailors.filter((s) => byId.has(s.name) && byId.get(s.name).responses.length > 0),
+	() => sailors.filter((s) => (byId.get(s.name)?.responses.length ?? 0) > 0),
     [sailors, byId]
   );
 
