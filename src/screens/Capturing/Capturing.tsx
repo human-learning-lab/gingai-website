@@ -187,7 +187,7 @@ export default function Capture({
 		value.teamQuestions = next;
 		console.log(value.teamQuestions)
 	} else{
-		value.personal[activeSailor] = next
+		value.personal[activeSailor].questions = next
 	}
 
   };

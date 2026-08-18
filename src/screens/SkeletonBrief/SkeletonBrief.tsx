@@ -155,7 +155,7 @@ export default function SkeletonBrief({
 	if (isTeam){
 		value.teamQuestions = next;
 	} else{
-		value.personal[activeSailor] = next;
+		value.personal[activeSailor].questions = next;
 	}
   };
 
