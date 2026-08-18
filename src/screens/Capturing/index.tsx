@@ -159,10 +159,7 @@ export default function CapturePage({
     const text = encodeURIComponent(
       `Capture while it's fresh — a few questions. Voice or text, whatever suits.\n${link}`
     );
-    setTimeout(
-      () => window.open(`https://wa.me/?text=${text}`, "_blank"),
-      i * 400
-    );
+    window.open(`https://wa.me/?text=${text}`, "_blank");
   }
 
   return (

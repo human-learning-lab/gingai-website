@@ -146,7 +146,7 @@ export default function SkeletonBriefPage({
     const text = encodeURIComponent(
     	`Priming for tomorrow — three quick questions. Voice or text, whatever suits.\n${link}`
     );
-    setTimeout(() => window.open(`https://wa.me/?text=${text}`, "_blank"), i * 400);
+    window.open(`https://wa.me/?text=${text}`, "_blank");
   }
 
   return (
