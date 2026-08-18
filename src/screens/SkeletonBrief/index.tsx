@@ -41,7 +41,7 @@ Rules:
 - Plain language. No jargon the sailor wouldn't use themselves.`;
 
 const emptyPersonal = Object.fromEntries(
-    SAILORS.map((s) => [s.id, { questions: [...DEFAULT_QUESTIONS], prompt: "" }])
+    SAILORS.map((s) => [s.name, { questions: [...DEFAULT_QUESTIONS], prompt: "" }])
   );
 
 // GingaAI agent apis
