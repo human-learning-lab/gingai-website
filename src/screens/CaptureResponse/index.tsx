@@ -22,17 +22,6 @@ const UI = "'Inter','IBM Plex Sans',-apple-system,system-ui,sans-serif";
 
 type Phase    = 'idle' | 'recording' | 'transcribing' | 'review';
 
-
-function fmt(secs: number): string {
-  const m = String(Math.floor(secs / 60)).padStart(2, '0');
-  const s = String(secs % 60).padStart(2, '0');
-  return `${m}:${s}`;
-}
-
-
-
-type ShareChoice = "private" | "rich" | "team";
-
 interface Sailor {
 	role: string;
 	firstName: string;
@@ -75,21 +64,62 @@ export default function CaptureResponsePage(
         @media (max-height: 600px){
           .ginga-card{height:min(98svh, 780px)}
         }
+        @media (max-width: 640px){
+          .ginga-viewport{
+            align-items:stretch !important;
+            justify-content:flex-start !important;
+            padding-left:0 !important;
+            padding-right:0 !important;
+            padding-top:env(safe-area-inset-top) !important;
+            padding-bottom:0 !important;
+          }
+          .ginga-card{
+            width:100% !important;
+            height:100svh !important;
+            max-height:none !important;
+            border-left:none;
+            border-right:none;
+            border-radius:0;
+          }
+          @supports (height: 100dvh){ .ginga-card{height:100dvh !important} }
+        }
+	 	/* Extra clearance so the controls aren't hidden behind an app/
+           browser navbar docked at the bottom of the screen. */
+        .ginga-footer{
+          padding-bottom: max(18px, env(safe-area-inset-bottom));
+        }
+        @media (max-width: 640px){
+          .ginga-footer{
+            padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important;
+          }
+        }
+        .rec-btn{
+          width:56px; height:56px; border-radius:56px; border:none;
+          display:flex; align-items:center; justify-content:center;
+          cursor:pointer; flex-shrink:0;
+        }
+        .rec-info{ text-align:center; margin-top:8px; }
+        .rec-lbl{ font-size:12px; font-weight:600; color:${C.warm}; }
+        .rec-time{ font-family:${DISPLAY}; font-size:19px; font-weight:600; color:${C.ink}; margin-top:2px;}
       `}</style>
 
 
-      <Page runId={runId} sailor={sailor} transcriptLines={transcriptLines} onRecordingChange={onRecordingChange}/>
+	 <Page 
+	  	runId={runId} 
+		sailor={sailor} 
+		transcriptLines={transcriptLines}
+		onRecordingChange={onRecordingChange}/>
     </div>
   );
 }
 
-function Page(
-  { runId, sailor, transcriptLines, onRecordingChange }:
-  { runId: string;
-	sailor: Sailor;
-    transcriptLines?: string[];
-    onRecordingChange?: (recording: boolean) => void;
-  }) {
+function Page({ runId, sailor, transcriptLines, onRecordingChange }: 
+{
+  runId: string;
+  sailor: Sailor;
+  transcriptLines?: string[];
+  onRecordingChange?: (recording: boolean) => void;
+}){
   const [step, setStep] = useState(0);
   const [inputMode, setInputMode] = useState<"voice" | "text">("voice");
   const [draft, setDraft] = useState("");
@@ -127,7 +157,6 @@ function Page(
 	  async function getResp(){
 	  	const res = await fetch(`/api/responses/${runId}?kind=capture&sailor=${sailor.firstName}`);
 	  	const resps = await res.json();
-		console.log(resps);
 		if (resps.questions)
 	  		setQuestions(resps.questions);
 	  }
@@ -320,12 +349,12 @@ function Page(
             {liveConvoContent}
           </div>
 
-          <div style={{ padding: "13px 19px 18px", borderTop: `1px solid ${C.line}`, flexShrink: 0 }}>
+		  <div className="ginga-footer" style={{ padding: "13px 19px", borderTop: `1px solid ${C.line}`, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
             {inputMode === "voice" ? (
               <>
 			  	{liveControlsContent}
                 {!micDenied && (
-                  <button onClick={() => setPhase('review')} style={link}>or type instead</button>
+                  <button onClick={() => setPhase('review')} style={{ ...link, color: C.green, fontWeight: 600 }}>or type instead</button>
                 )}
               </>
             ) : (
@@ -346,7 +375,6 @@ function Page(
 }
 
 function Done({questions, sent, sailor}: {questions: string[], sent: string[]; sailor: Sailor}) {
-  const [share, setShare] = useState<ShareChoice>("private");
   return (
     <div style={{ padding: "32px 22px", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
