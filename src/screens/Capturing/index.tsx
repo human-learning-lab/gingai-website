@@ -21,6 +21,7 @@ const SAILORS: Sailor[] = [
   { id: "bre", name: "Breno", role: "Trim" },
   { id: "ric", name: "Rich", role: "Strategy & performance" },
   { id: "nic", name: "Nico", role: "Data analyst" },
+  { id: "chr", name: "Christian", role: "HuleLab" },
 ];
 
 const DEFAULT_GOALS: string[] = [
