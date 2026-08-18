@@ -82,7 +82,7 @@ export interface CapturesInProps {
   teamReading?: TeamReading | null;
 
   /** Re-condense every response. Returns distilled lines keyed by sailor. */
-  onDistil: (prompt: string) => Promise<Record<SailorId, string[]>>;
+  onDistil: (prompt: string) => Promise<Record<string, string[]>>;
   /** Build the team reading. Safe to run before everyone has answered. */
   onSynthesise: (prompt: string) => Promise<TeamReading>;
   /** Hand the reading to the debrief. */
@@ -161,12 +161,13 @@ export default function CapturesIn({
 
   const setPrompt = (key: keyof Prompts, text: string) =>
     onPromptsChange({ ...prompts, [key]: text });
-  console.log(responses);
 
   const distil = async () => {
     setBusy("distil");
     try {
-      await onDistil(prompts.distil);
+	  const distilled_resps = await onDistil(prompts.distil)
+	  for(const [sailor, dist] of Object.entries(distilled_resps))
+		  byId.get(sailor)!.distilled = dist;
       setDepth("distilled");
     } finally {
       setBusy(null);
@@ -312,15 +313,18 @@ export default function CapturesIn({
                           {question}
                         </div>
                         <div style={{ fontSize: 13, lineHeight: 1.65 }}>
-                          {response.responses[i] ?? "—"}
+						  { depth === 'distilled' && (response?.distilled ? response.distilled[i] : "—" )} 
+						  { depth === 'full' && (response.responses[i] ?? "—")}
                         </div>
                       </div>
                     ))}
+					{ depth === 'distilled' && (
                     <Footnote>
                       Condensed by Ginga. Their own qualifiers are kept —
                       &ldquo;half&rdquo;, &ldquo;four of six&rdquo; — never
                       rounded to achieved or not.
                     </Footnote>
+					)}
                   </>
                 }
               </Card>
@@ -609,7 +613,7 @@ function DepthToggle({
   return (
     <div style={{ display: "flex", gap: 4 }}>
       {options.map(([key, text]) => {
-        const disabled = key === "distilled" && !canDistil;
+        const disabled = false;
         return (
           <button
             key={key}

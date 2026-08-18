@@ -14,7 +14,8 @@ import CapturesIn, {
    ============================================================ */
 
 const AGENT_BASE = '/api/agent';
-const APP_NAME = 'synthesize';
+const SYNTH_APP_NAME = 'synthesize';
+const DIST_APP_NAME = 'distill'
 
 const SAILORS: Sailor[] = [
   { id: "mar", name: "Martine", role: "Strategist" },
@@ -23,6 +24,8 @@ const SAILORS: Sailor[] = [
   { id: "ras", name: "Rasmus", role: "Flight controller" },
   { id: "mrc", name: "Marco", role: "Trim" },
   { id: "bre", name: "Breno", role: "Trim" },
+  { id: "mat", name: "Mateus", role: "G1"},
+  { id: "jer", name: "Jeremy", role: "Performance coach"},
   { id: "ric", name: "Rich", role: "Strategy & performance" },
   { id: "nic", name: "Nico", role: "Data analyst" },
   { id: "chr", name: "Christian", role: "Hulelab" },
@@ -90,33 +93,15 @@ export default function CapturesInPage({
 	  getResp();
   }, [runId]);
 
-  async function handleDistil(prompt: string) {
-    const res = await fetch(`/api/captures/${runId}/distil`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
-    });
-    if (!res.ok) throw new Error("Could not distil the answers");
+  /* Re-condense every response. Server route keeps the model key off the client. */
+  async function handleDistil(prompt: string): Promise<Record<string, string[]>> {
+    const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  	const userId = 'user-1';
 
-    const { distilled } = (await res.json()) as {
-      distilled: Record<string, string[]>;
-    };
+	const responses_body = Object.fromEntries(
+		responses.map((r) => [r.recipient, {questions: r.questions, responses: r.responses}]))
 
-    setResponses((prev) =>
-      prev.map((r) =>
-        distilled[r.recipient] ? { ...r, distilled: distilled[r.recipient] } : r
-      )
-    );
-    return distilled;
-  }
-
-  /* Safe to run before everyone has answered — the reading states
-     its own coverage rather than speaking for the whole crew. */
-async function handleSynthesise(prompt: string) {
-  const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const userId = 'user-1';
-
-  await fetch(`${AGENT_BASE}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
+  await fetch(`${AGENT_BASE}/apps/${DIST_APP_NAME}/users/${userId}/sessions/${sessionId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({}),
@@ -126,7 +111,60 @@ async function handleSynthesise(prompt: string) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify({
-      appName: APP_NAME,
+      appName: DIST_APP_NAME,
+      userId,
+      sessionId,
+      newMessage: { role: 'user', parts: [{ text: prompt + "Responses:\n" + JSON.stringify(responses_body) }] },
+      streaming: false,
+    }),
+  });
+  if (!res.ok) throw new Error("Could not generate distillation");
+
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("Unable to generate distillation");
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if (!raw || raw === '[DONE]') continue;
+      try {
+        const event = JSON.parse(raw);
+        const parts = event?.content?.parts ?? [];
+        for (const part of parts) {
+          if (typeof part.text === 'string' && part.text) fullText += part.text;
+        }
+      } catch { /* skip non-JSON lines */ }
+    }
+  }
+  const distilled = JSON.parse(fullText).distilled as Record<string, string[]>;
+  return distilled;
+  }
+
+  /* Safe to run before everyone has answered — the reading states
+     its own coverage rather than speaking for the whole crew. */
+async function handleSynthesise(prompt: string) {
+  const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const userId = 'user-1';
+
+  await fetch(`${AGENT_BASE}/apps/${SYNTH_APP_NAME}/users/${userId}/sessions/${sessionId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+
+  const res = await fetch(`${AGENT_BASE}/run_sse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    body: JSON.stringify({
+      appName: SYNTH_APP_NAME,
       userId,
       sessionId,
       newMessage: { role: 'user', parts: [{ text: prompt }] },
