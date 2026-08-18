@@ -204,9 +204,9 @@ export default function Capture({
       });
       setQuestions(next);
 	  if (isTeam){
-		value.teamQuestions[index] = next;
+		value.teamQuestions = next;
 	  } else{
-		value.personal[activeSailor] = next
+		value.personal[activeSailor].questions = next;
 	  }
     } finally {
       setGenerating(false);

@@ -168,6 +168,11 @@ export default function SkeletonBrief({
         sailor: isTeam ? undefined : sailor,
       });
       setQuestions(questions);
+  	  if (isTeam){
+		value.teamQuestions = questions;
+	  } else{
+		value.personal[activeSailor].questions = questions;
+  	  }
     } finally {
       setGenerating(false);
     }
