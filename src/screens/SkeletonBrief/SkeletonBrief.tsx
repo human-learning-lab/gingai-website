@@ -100,7 +100,7 @@ export default function SkeletonBrief({
 }: SkeletonBriefProps) {
   const [scope, setScope] = useState<Scope>("team");
   const [activeSailor, setActiveSailor] = useState<SailorId>(
-    sailors[0]?.id ?? ""
+    sailors[0]?.name ?? ""
   );
   const [recipients, setRecipients] = useState<SailorId[]>(
     sailors.map((s) => s.name)
@@ -111,7 +111,7 @@ export default function SkeletonBrief({
 
   const isTeam = scope === "team";
   const sailor = useMemo(
-    () => sailors.find((s) => s.id === activeSailor),
+    () => sailors.find((s) => s.name === activeSailor),
     [sailors, activeSailor]
   );
 
@@ -347,7 +347,7 @@ export default function SkeletonBrief({
                 sailor={s}
                 checked={recipients.includes(s.name)}
                 hasOwnPrompt={
-                  !isTeam && Boolean(value.personal[s.id]?.prompt?.trim())
+                  !isTeam && Boolean(value.personal[s.name]?.prompt?.trim())
                 }
                 onToggle={() => toggleRecipient(s.name)}
               />
@@ -355,7 +355,7 @@ export default function SkeletonBrief({
 
             <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
               <button
-                onClick={() => setRecipients(sailors.map((s) => s.id))}
+                onClick={() => setRecipients(sailors.map((s) => s.name))}
                 style={quietButton}
               >
                 All
@@ -475,16 +475,16 @@ function SailorPicker({
     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
       {sailors.map((s) => (
         <button
-          key={s.id}
-          onClick={() => onSelect(s.id)}
+          key={s.name}
+          onClick={() => onSelect(s.name)}
           style={{
             padding: "8px 13px",
             borderRadius: 7,
             cursor: "pointer",
             textAlign: "left",
             fontFamily: UI,
-            background: active === s.id ? C.sand : "transparent",
-            border: `1px solid ${active === s.id ? C.green : C.line}`,
+            background: active === s.name ? C.sand : "transparent",
+            border: `1px solid ${active === s.name ? C.green : C.line}`,
           }}
         >
           <span

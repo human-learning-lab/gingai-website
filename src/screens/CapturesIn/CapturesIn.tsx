@@ -147,17 +147,17 @@ export default function CapturesIn({
     [responses]
   );
   const answered = useMemo(
-    () => sailors.filter((s) => byId.has(s.name)),
+    () => sailors.filter((s) => byId.has(s.name) && byId.get(s.name).responses.length > 0),
     [sailors, byId]
   );
 
   const [view, setView] = useState<View>("individuals");
   const [depth, setDepth] = useState<Depth>("full");
-  const [selected, setSelected] = useState<SailorId>(answered[0]?.id ?? "");
+  const [selected, setSelected] = useState<SailorId>(answered[0]?.name ?? "");
   const [busy, setBusy] = useState<"distil" | "synthesis" | null>(null);
 
   const response = byId.get(selected);
-  const sailor = sailors.find((s) => s.id === selected);
+  const sailor = sailors.find((s) => s.name === selected);
 
   const setPrompt = (key: keyof Prompts, text: string) =>
     onPromptsChange({ ...prompts, [key]: text });
@@ -216,11 +216,11 @@ export default function CapturesIn({
           <Card title="Crew">
             {sailors.map((s) => (
               <CrewRow
-                key={s.id}
+                key={s.name}
                 sailor={s}
-                response={byId.get(s.id)}
-                active={selected === s.id}
-                onSelect={() => byId.has(s.id) && setSelected(s.id)}
+                response={byId.get(s.name)}
+                active={selected === s.name}
+                onSelect={() => byId.has(s.name) && setSelected(s.name)}
               />
             ))}
           </Card>

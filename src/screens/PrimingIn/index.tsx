@@ -85,9 +85,9 @@ export default function PrimingInPage({
 	  async function getResp(){
 	  	const res = await fetch(`/api/responses/${runId}?kind=priming`);
 	  	const resps = await res.json();
+	  	console.log(resps);
 	  	setResponses(resps);
 	  }
-	  
 	  getResp();
   }, [runId]);  
 

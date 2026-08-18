@@ -55,7 +55,7 @@ Rules:
 - Plain language. No coaching vocabulary they wouldn't use themselves.`;
 
 const emptyPersonal = Object.fromEntries(
-	SAILORS.map((s) => [s.id, { questions: [...DEFAULT_QUESTIONS], prompt: "" }]));
+	SAILORS.map((s) => [s.name, { questions: [...DEFAULT_QUESTIONS], prompt: "" }]));
 
 const AGENT_BASE = '/api/agent';
 const APP_NAME = 'generate_questions';
