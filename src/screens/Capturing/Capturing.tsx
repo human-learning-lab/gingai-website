@@ -389,13 +389,13 @@ export default function Capture({
 
             <button
               onClick={generate}
-              disabled={generating || !current_prompt.trim()}
+              disabled={generating}
               style={{
                 ...primaryButton,
                 marginTop: 9,
-                opacity: generating || !current_prompt.trim() ? 0.5 : 1,
+                opacity: generating ? 0.5 : 1,
                 cursor:
-                  generating || !current_prompt.trim() ? "not-allowed" : "pointer",
+                  generating ? "not-allowed" : "pointer",
               }}
             >
               {generating ? "Writing…" : "Generate questions"}
