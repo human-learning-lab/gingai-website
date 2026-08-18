@@ -143,12 +143,10 @@ export default function SkeletonBriefPage({
        so open them on a short stagger. 
 	*/
 
-    recipients.forEach((sailor, i) => {
-      const text = encodeURIComponent(
-        `Priming for tomorrow — three quick questions. Voice or text, whatever suits.\n${link}`
-      );
-      setTimeout(() => window.open(`https://wa.me/?text=${text}`, "_blank"), i * 400);
-    });
+    const text = encodeURIComponent(
+    	`Priming for tomorrow — three quick questions. Voice or text, whatever suits.\n${link}`
+    );
+    setTimeout(() => window.open(`https://wa.me/?text=${text}`, "_blank"), i * 400);
   }
 
   return (
