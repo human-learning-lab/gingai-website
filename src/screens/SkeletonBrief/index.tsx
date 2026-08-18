@@ -41,7 +41,7 @@ Rules:
 - Plain language. No jargon the sailor wouldn't use themselves.`;
 
 const emptyPersonal = Object.fromEntries(
-    SAILORS.map((s) => [s.name, { questions: [...DEFAULT_QUESTIONS], prompt: "" }])
+    SAILORS.map((s) => [s.name, { questions: [...DEFAULT_QUESTIONS], prompt: DEFAULT_PROMPT }])
   );
 
 // GingaAI agent apis
@@ -69,6 +69,7 @@ export default function SkeletonBriefPage({
     scope: "team" | "personal";
     sailor?: Sailor;
   }): Promise<string[]> {
+  console.log(prompt);
   const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const userId = 'user-1';
 
