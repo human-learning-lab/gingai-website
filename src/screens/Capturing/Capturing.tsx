@@ -159,8 +159,14 @@ export default function Capture({
   const [prompt, setPrompt] = useState<string>(current_prompt);
 
   
-  const editQuestion = (index: number, text: string) =>
+  const editQuestion = (index: number, text: string) => {
     setQuestions(questions.map((q, i) => (i === index ? text : q)));
+	if (isTeam){
+		value.teamQuestions[index] = text;
+	} else{
+		value.personal[activeSailor].questions[index] = text;
+	}
+  }
 
   const removeQuestion = (index: number) =>
     setQuestions(questions.filter((_, i) => i !== index));

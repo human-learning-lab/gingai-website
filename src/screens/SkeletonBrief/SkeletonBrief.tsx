@@ -130,6 +130,11 @@ export default function SkeletonBrief({
 
   const editQuestion = (index: number, text: string) => {
     setQuestions(questions.map((q, i) => (i === index ? text : q)));
+	if (isTeam){
+		value.teamQuestions[index] = text;
+	} else{
+		value.personal[activeSailor].questions[index] = text;
+	}
   }
 
   const removeQuestion = (index: number) =>
@@ -163,8 +168,8 @@ export default function SkeletonBrief({
     try {
       await onSend(runId, recipients, scope);
       setSent(true);
-    } finally {
-      setSending(false);
+    } finally { 
+	  setSending(false);
     }
   };
 
