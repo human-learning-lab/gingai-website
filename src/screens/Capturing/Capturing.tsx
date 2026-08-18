@@ -168,8 +168,14 @@ export default function Capture({
 	}
   }
 
-  const removeQuestion = (index: number) =>
+  const removeQuestion = (index: number) => {
     setQuestions(questions.filter((_, i) => i !== index));
+	if (isTeam){
+		value.teamQuestions.splice(index, 1);
+	} else{
+		value.personal[activeSailor].questions.splice(index, 1);
+	}
+  }
 
   const moveQuestion = (index: number, delta: number) => {
     const target = index + delta;
@@ -177,6 +183,13 @@ export default function Capture({
     const next = [...questions];
     [next[index], next[target]] = [next[target], next[index]];
     setQuestions(next);
+	if (isTeam){
+		value.teamQuestions = next;
+		console.log(value.teamQuestions)
+	} else{
+		value.personal[activeSailor] = next
+	}
+
   };
 
   const generate = async () => {
@@ -190,6 +203,11 @@ export default function Capture({
         ownGoal: isTeam ? undefined : ownGoals[activeSailor],
       });
       setQuestions(next);
+	  if (isTeam){
+		value.teamQuestions[index] = next;
+	  } else{
+		value.personal[activeSailor] = next
+	  }
     } finally {
       setGenerating(false);
     }

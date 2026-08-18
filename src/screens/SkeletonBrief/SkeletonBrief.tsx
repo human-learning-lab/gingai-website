@@ -137,8 +137,14 @@ export default function SkeletonBrief({
 	}
   }
 
-  const removeQuestion = (index: number) =>
+  const removeQuestion = (index: number) => {
     setQuestions(questions.filter((_, i) => i !== index));
+	if (isTeam){
+		value.teamQuestions.splice(index, 1);
+	} else{
+		value.personal[activeSailor].questions.splice(index, 1);
+	}
+  }
 
   const moveQuestion = (index: number, delta: number) => {
     const target = index + delta;
@@ -146,6 +152,11 @@ export default function SkeletonBrief({
     const next = [...questions];
     [next[index], next[target]] = [next[target], next[index]];
     setQuestions(next);
+	if (isTeam){
+		value.teamQuestions = next;
+	} else{
+		value.personal[activeSailor] = next;
+	}
   };
 
   const generate = async () => {
