@@ -18,6 +18,7 @@ import PrimingIn, {
 const AGENT_BASE = '/api/agent';
 const SYNTH_APP_NAME = 'synthesize';
 const DIST_APP_NAME = 'distill';
+const GOAL_APP_NAME = 'propose_goals';
 
 
 const SAILORS: Sailor[] = [
@@ -61,7 +62,7 @@ Return:
 4. Uncertainties worth answering in the briefing.
 
 Rules:
-- Never speak for sailors who haven't answered. State the coverage.
+- Never speak for sailors who haven't answered.
 - Use their language, not yours.
 - One line per point. This is read under time pressure.`,
 
@@ -204,12 +205,53 @@ export default function PrimingInPage({
   }
 
   async function handleProposeGoals(prompt: string) {
-    const res = await fetch(`/api/priming/${runId}/squad-goals`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, teamPicture }),
-    });
-    if (!res.ok) throw new Error("Could not propose goals");
+  const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const userId = 'user-1';
+
+  await fetch(`${AGENT_BASE}/apps/${SYNTH_APP_NAME}/users/${userId}/sessions/${sessionId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+
+  const res = await fetch(`${AGENT_BASE}/run_sse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    body: JSON.stringify({
+      appName: GOAL_APP_NAME,
+      userId,
+      sessionId,
+      newMessage: { role: 'user', parts: [{ text: JSON.stringify(teamPicture) + prompt }] },
+      streaming: false,
+    }),
+  });
+  if (!res.ok) throw new Error("Could not generate synthesis");
+
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("Unable to generate synthesis");
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if (!raw || raw === '[DONE]') continue;
+      try {
+        const event = JSON.parse(raw);
+        const parts = event?.content?.parts ?? [];
+        for (const part of parts) {
+          if (typeof part.text === 'string' && part.text) fullText += part.text;
+        }
+      } catch { /* skip non-JSON lines */ }
+    }
+  }
+
 
     const { goals } = (await res.json()) as { goals: SquadGoal[] };
     return goals;
