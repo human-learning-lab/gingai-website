@@ -25,6 +25,7 @@ const SAILORS: Sailor[] = [
   { id: "mrc", name: "Marco", role: "Trim" },
   { id: "bre", name: "Breno", role: "Trim" },
   { id: "mat", name: "Mateus", role: "G1"},
+  { id: "mah", name: "Marina", role: "Spare Sailor"},
   { id: "jer", name: "Jeremy", role: "Performance coach"},
   { id: "ric", name: "Rich", role: "Strategy & performance" },
   { id: "nic", name: "Nico", role: "Data analyst" },

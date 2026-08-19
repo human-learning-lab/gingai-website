@@ -9,6 +9,7 @@ export const ROLES: Role[] = [
   { id: 'pietro',  name: 'Pietro',  initial: 'PS', label: 'Wing Trimmer',      view: 'sailor', avatar: '/images/team/pietro.png',   screens: ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms'] },
   { id: 'paul-g',  name: 'Paul G.', initial: 'PG', label: 'Strategist',        view: 'sailor', avatar: '/images/team/goodison.png', screens: ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms'] },
   { id: 'mateus',  name: 'Mateus',  initial: 'MI', label: 'Grinder G1',        view: 'sailor', avatar: '/images/team/mateus.png',   screens: ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms'] },
+  { id: 'marina',  name: 'Marina',  initial: 'MA', label: 'Spare Sailor',        view: 'sailor', avatar: '/images/team/mateus.png',   screens: ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms'] },
   { id: 'marco',   name: 'Marco',   initial: 'MC', label: 'Grinder G2',        view: 'sailor', avatar: '/images/team/marco.png',    screens: ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms'] },
   { id: 'breno',   name: 'Breno',   initial: 'BK', label:  'Trim',             view: 'sailor' , screens: ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms']},
   // ── Coaching & Analysis ───────────────────────────────────────
@@ -32,6 +33,7 @@ export const EMAIL_ROLE_MAP: Record<string, string> = {
   'rkostner@sailgpbra.com':     'rasmus',
   'pgoodison@sailgpbra.com':    'paul-g',
   'misaac@sailgpbra.com':       'mateus',
+  'marndt@sailgpbra.com':       'marina',
   'psibello@sailgpbra.com':     'pietro',
   'marcograel@sailgpbra.com':   'marco',
   'bkneipp@sailgpbra.com':      'breno',

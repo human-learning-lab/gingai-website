@@ -22,13 +22,14 @@ const GOAL_APP_NAME = 'propose_goals';
 
 
 const SAILORS: Sailor[] = [
-  { id: "mar", name: "Martine", role: "Strategist" },
-  { id: "pau", name: "Paul", role: "Helm" },
+  { id: "mar", name: "Martine", role: "Helm" },
+  { id: "pau", name: "Paul", role: "Strategist" },
   { id: "pie", name: "Pietro", role: "Speed" },
   { id: "ras", name: "Rasmus", role: "Flight controller" },
   { id: "mrc", name: "Marco", role: "Trim" },
   { id: "bre", name: "Breno", role: "Trim" },
   { id: "mat", name: "Mateus", role: "G1"},
+  { id: "mah", name: "Marina", role: "Spare Sailor"},
   { id: "jer", name: "Jeremy", role: "Performance coach"},
   { id: "ric", name: "Rich", role: "Strategy & performance" },
   { id: "nic", name: "Nico", role: "Data analyst" },
