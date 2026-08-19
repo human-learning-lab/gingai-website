@@ -89,7 +89,6 @@ export default function PrimingInPage({
 	  async function getResp(){
 	  	const res = await fetch(`/api/responses/${runId}?kind=priming`);
 	  	const resps = await res.json();
-	  	console.log(resps);
 	  	setResponses(resps);
 	  }
 	  getResp();
@@ -150,6 +149,9 @@ export default function PrimingInPage({
   }
 
   async function handleSynthesise(prompt: string) {
+
+  const responses_body = Object.fromEntries(
+		responses.map((r) => [r.recipient, {questions: r.questions, responses: r.responses}]))
   const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const userId = 'user-1';
 
@@ -166,7 +168,7 @@ export default function PrimingInPage({
       appName: SYNTH_APP_NAME,
       userId,
       sessionId,
-      newMessage: { role: 'user', parts: [{ text: prompt }] },
+      newMessage: { role: 'user', parts: [{ text: prompt +  "Responses:\n" + JSON.stringify(responses_body)}] },
       streaming: false,
     }),
   });
@@ -197,8 +199,8 @@ export default function PrimingInPage({
     }
   }
   const picture  = JSON.parse(fullText) as TeamPicture;
+  setTeamPicture(picture);
   return picture;
-
   }
 
   async function handleProposeGoals(prompt: string) {
