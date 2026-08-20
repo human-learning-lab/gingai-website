@@ -123,6 +123,7 @@ export default function PrimingInPage({
   });
   if (!res.ok) throw new Error("Could not generate distillation");
 
+
   const reader = res.body?.getReader();
   if (!reader) throw new Error("Unable to generate distillation");
   const decoder = new TextDecoder();
@@ -148,6 +149,7 @@ export default function PrimingInPage({
     }
   }
   const distilled = JSON.parse(fullText).distilled as Record<string, string[]>;
+  console.log(distilled);
   return distilled;
   }
 

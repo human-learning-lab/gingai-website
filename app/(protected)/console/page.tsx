@@ -18,7 +18,7 @@ import HotDebriefPage from "@/screens/HotDebrief";
    ============================================================ */
 
 const venue = 'Sassnitz';
-const kicker = "Race day 1 Season 6";
+const kicker = "Race day 2 Season 6";
 const day = kicker.replace(/ /g,'')
 
 const runId = venue + day;

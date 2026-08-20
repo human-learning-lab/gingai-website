@@ -145,6 +145,7 @@ export default function CapturesInPage({
       } catch { /* skip non-JSON lines */ }
     }
   }
+  console.log(fullText);
   const distilled = JSON.parse(fullText).distilled as Record<string, string[]>;
   return distilled;
   }
