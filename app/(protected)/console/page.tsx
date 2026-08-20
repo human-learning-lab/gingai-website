@@ -42,7 +42,7 @@ export default function ConsolePage() {
     <ConsoleShell
       event={{
         venue: "Sassnitz",
-        kicker: "Race day 1 · Season 6",
+        kicker: kicker,
         live: true,
       }}
       user={{ name: "Rich Mason" }}
