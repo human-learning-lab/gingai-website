@@ -91,6 +91,7 @@ export default function PrimingInPage({
 	  async function getResp(){
 	  	const res = await fetch(`/api/responses/${runId}?kind=priming`);
 	  	const resps = await res.json();
+		console.log(resps);
 	  	setResponses(resps);
 	  }
 	  getResp();
@@ -171,7 +172,7 @@ export default function PrimingInPage({
       userId,
       sessionId,
       newMessage: { role: 'user', parts: [{ text: prompt +  "Responses:\n" + JSON.stringify(responses_body)}] },
-      streaming: false,
+     streaming: false,
     }),
   });
   if (!res.ok) throw new Error("Could not generate synthesis");
@@ -209,7 +210,7 @@ export default function PrimingInPage({
   const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const userId = 'user-1';
 
-  await fetch(`${AGENT_BASE}/apps/${SYNTH_APP_NAME}/users/${userId}/sessions/${sessionId}`, {
+  await fetch(`${AGENT_BASE}/apps/${GOAL_APP_NAME}/users/${userId}/sessions/${sessionId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({}),
@@ -253,19 +254,18 @@ export default function PrimingInPage({
     }
   }
 
-
-    const { goals } = (await res.json()) as { goals: SquadGoal[] };
+	console.log(fullText);
+    const goals = JSON.parse(fullText) as SquadGoal[];
     return goals;
   }
 
   /* Hand the picture and goals to the briefing, then navigate. */
   async function handleCarryForward() {
-    await fetch(`/api/priming/${runId}/carry-forward`, {
+    await fetch(`/api/priming?id=${runId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ teamPicture, squadGoals }),
     });
-    // router.push(`/briefing/${runId}`)
   }
 
   return (

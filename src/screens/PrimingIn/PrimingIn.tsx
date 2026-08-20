@@ -30,7 +30,7 @@ export interface PrimingResponse {
   responses: string[];
   recipient: SailorId;
   /** Local time it arrived, e.g. "18:34". */
-  receivedAt: string;
+  updated_at: string;
   /** One condensed line per question, in question order. Absent until distilled. */
   distilled?: string[];
 }
@@ -268,7 +268,7 @@ export default function PrimingIn({
                     marginLeft: 9,
                   }}
                 >
-                  {response?.receivedAt}
+                  {response?.updated_at}
                 </span>
               </h2>
               <DepthToggle
