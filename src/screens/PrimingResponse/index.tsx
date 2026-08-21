@@ -4,14 +4,6 @@ import { useRole } from '@/context/RoleContext';
 import React, { useCallback, useState, useRef, useEffect } from "react";
 import { IconStop } from '@/components/Icons';
 
-// ============================================================
-// Ginga — sailor capture page · reference implementation
-//
-// Hand this to Claude Code alongside ginga-sailor-page-spec.md.
-// Real MediaRecorder audio. Three modes driven by one prop.
-// Replace the mock `run` object with a fetch from your API.
-// ============================================================
-
 const C = {
   paper: "#F7F4ED", sand: "#EDE7DA", line: "#DDD5C4",
   green: "#00A651", greenLt: "#E6F4EA", clay: "#C4622D",
@@ -136,6 +128,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
   const [inputMode, setInputMode] = useState<"voice" | "text">("voice");
   const [draft, setDraft] = useState("");
   const [sent, setSent] = useState<string[]>([]);
+  const [kinds, setKinds] = useState<string[]>([]);
   const [micDenied, setMicDenied] = useState(false);
   const { recording, secs, start, stop, error } = useRecorder();
   const [questions, setQuestions] = useState<string[]>([]);
@@ -161,7 +154,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
     if (timerRef.current) clearInterval(timerRef.current);
     setDraft(lines.join('\n'));
     onRecordingChange?.(false);
-    setPhase('review');
+	submitText();
   }, [lines, onRecordingChange]);
 
 
@@ -184,14 +177,15 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 
 
   function submitText() {
+	setPhase("idle");
     if (!draft.trim()) return;
     push(draft.trim());
   }
 
   function push(answer: string) {
     setSent(s => [...s, answer]);
+	setKinds(s => [...s, inputMode]);
     setDraft("");
-	setPhase("idle");
     setStep(s => s + 1);
 	if (step >= questions.length - 1)
 	  	fetch(`/api/responses/${runId}?kind=priming`, {
@@ -214,17 +208,15 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
       {phase === 'recording' && (
         <div className="ai-q">
           <div className="ai-q-bub">
-            {lines.length === 0
-              ? <span style={{ color: 'var(--text4)', fontStyle: 'italic' }}>Listening…</span>
-              : lines.map((line, i) => <p key={i} style={{ margin: '0 0 4px', fontSize: 13, lineHeight: 1.6, color: 'var(--text2)' }}>{line}</p>)
-            }
-          </div>
+            { <Waveform secs={recTime} /> }
+		  </div>
         </div>
       )}
 
       {phase === 'review' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div className="sailor-r" style={{ alignItems: 'flex-start' }}>
+		  	
             <textarea
               autoFocus
               value={draft}
@@ -282,7 +274,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
         </div>
       ) : phase === 'idle' ? (
  		<>
-          <button className="rec-btn" onClick={startRecording}>
+          <button className="rec-btn" onClick={() => {startRecording(); setInputMode('voice');}}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="white">
               <rect x="5" y="1" width="6" height="9" rx="3" fill="white"/>
               <path d="M3 8a5 5 0 0 0 10 0" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
@@ -330,7 +322,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
       </header>
 
       {finished ? (
-        <Done sent={sent} questions={questions} sailor={sailor}/>
+        <Done sent={sent} questions={questions} sailor={sailor} kinds={kinds} />
       ) : (
         <>
           { 
@@ -366,7 +358,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
               <>
 			  	{liveControlsContent}
                 {!micDenied && (
-                  <button onClick={() => setPhase('review')} style={{ ...link, color: C.green, fontWeight: 600 }}>or type instead</button>
+                  <button onClick={() => {setPhase('review'); setInputMode('text');}} style={{ ...link, color: C.green, fontWeight: 600 }}>or type instead</button>
                 )}
               </>
             ) : (
@@ -386,7 +378,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
   );
 }
 
-function Done({questions, sent, sailor}: {questions: string[], sent: string[]; sailor: Sailor}) {
+function Done({questions, sent, kinds, sailor}: {questions: string[], sent: string[]; kinds: string[]; sailor: Sailor}) {
   return (
     <div style={{ padding: "32px 22px", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
@@ -409,7 +401,7 @@ function Done({questions, sent, sailor}: {questions: string[], sent: string[]; s
               <div key={i} style={{ display: "flex", gap: 9, padding: "6px 0", fontSize: 12, color: C.warm, alignItems: "baseline" }}>
                 <span style={{ color: C.green, fontWeight: 600 }}>{i + 1}</span>
                 <span style={{ flex: 1, lineHeight: 1.45 }}>{questions[i]}</span>
-                <span style={{ flex: 1, lineHeight: 1.45 }}>{a}</span>
+                <span style={{ flex: 1, lineHeight: 1.45 }}>{kinds[i] === 'voice' ? 'Voice Note' : 'Text'}</span>
               </div>
             ))}
           </div>
