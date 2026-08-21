@@ -117,6 +117,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
   const [inputMode, setInputMode] = useState<"voice" | "text">("voice");
   const [draft, setDraft] = useState("");
   const [sent, setSent] = useState<string[]>([]);
+  const [times, setTimes] = useState<number[]>([]);
   const [kinds, setKinds] = useState<string[]>([]);
   const [micDenied, setMicDenied] = useState(false);
   const { recording, secs, start, stop, error } = useRecorder();
@@ -168,11 +169,13 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 	setPhase('idle');
     if (!draft.trim()) return;
     push(draft.trim());
+	setInputMode("voice");
   }
 
   function push(answer: string) {
     setSent(s => [...s, answer]);
     setKinds(s => [...s, inputMode]);
+    setTimes(s => [...s, recTime]);
     setDraft("");
     setStep(s => s + 1);
 	if (step >= questions.length - 1)
@@ -310,7 +313,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
       </header>
 
       {finished ? (
-        <Done sent={sent} questions={questions} sailor={sailor} kinds={kinds}/>
+        <Done sent={sent} questions={questions} sailor={sailor} kinds={kinds} times={times} />
       ) : (
         <>
           { 
@@ -366,7 +369,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
   );
 }
 
-function Done({questions, sent, kinds, sailor}: {questions: string[], sent: string[]; kinds: string[]; sailor: Sailor}) {
+function Done({questions, sent, kinds, times, sailor}: {questions: string[], sent: string[]; kinds: string[]; times: number[]; sailor: Sailor}) {
   return (
     <div style={{ padding: "32px 22px", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
@@ -389,7 +392,7 @@ function Done({questions, sent, kinds, sailor}: {questions: string[], sent: stri
               <div key={i} style={{ display: "flex", gap: 9, padding: "6px 0", fontSize: 12, color: C.warm, alignItems: "baseline" }}>
                 <span style={{ color: C.green, fontWeight: 600 }}>{i + 1}</span>
                 <span style={{ flex: 1, lineHeight: 1.45 }}>{questions[i]}</span>
-                <span style={{ flex: 1, lineHeight: 1.45 }}>{kinds[i] === 'voice' ? 'Voice Note' : 'Text'}</span>
+                <span style={{ flex: 1, lineHeight: 1.45 }}>{kinds[i] === 'voice' ? `Voice Note: ${times[i]}s` : 'Text'}</span>
               </div>
             ))}
           </div>
