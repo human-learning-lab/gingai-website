@@ -167,7 +167,6 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 
   function submitText() {
 	setPhase('idle');
-    if (!draft.trim()) return;
     push(draft.trim());
 	setInputMode("voice");
   }
