@@ -166,8 +166,8 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 		if (resps.questions)
 	  		setQuestions(resps.questions);
 	  }
-	  setQuestions(['TEST1', 'TEST2']);
-	  //getResp();
+	  //setQuestions(['TEST1', 'TEST2']);
+	  getResp();
   }, []); 
 
 
