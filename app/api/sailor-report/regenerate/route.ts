@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { regenerateFromTranscripts, regenerateProfile } from '@/lib/sailorReport';
-import { saveDailyReport, saveSailorDoc, readSailorDoc } from '@/lib/sailorStore';
+import { regenerateProfile } from '@/lib/sailorReport';
+import { saveSailorDoc, readSailorDoc } from '@/lib/sailorStore';
 
 /**
  * POST /api/sailor-report/regenerate  { sailor, role?, chars? }
  *
- * Rebuilds both of a sailor's documents from the tail of their transcribed
- * speech and writes them to Firebase Storage:
+ * Rebuilds a sailor's standing profile — description, strengths, weaknesses,
+ * goals — from the tail of their transcribed speech, revising whatever is
+ * already stored, and writes it to sailors/{name}/current.md.
  *
- *   daily.md    the end-of-day report, one session
- *   current.md  the standing profile — description, strengths, weaknesses,
- *               goals — revised against whatever is already there
+ * The end-of-day report is a separate document and is not produced here; see
+ * POST /api/sailor-report for that.
  *
  * Testing tool for now: attribution of uploads is matched on the free-text
  * title, so results are only as good as the naming convention.
@@ -22,26 +22,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'sailor is required' }, { status: 400 });
     }
     const name = sailor.trim();
-    const limit = chars ?? 2000;
 
     // The profile revises what is already stored, so read it before writing.
     const previous = await readSailorDoc(name, 'current.md');
-
-    const [report, profile] = await Promise.all([
-      regenerateFromTranscripts(name, role ?? '', limit),
-      regenerateProfile(name, role ?? '', previous, limit),
-    ]);
-
-    const [daily, current] = await Promise.all([
-      saveDailyReport(report),
-      saveSailorDoc(name, 'current.md', profile.content, profile.generatedAt),
-    ]);
+    const profile = await regenerateProfile(name, role ?? '', previous, chars ?? 2000);
+    const saved = await saveSailorDoc(name, 'current.md', profile.content, profile.generatedAt);
 
     return NextResponse.json({
+      ...saved,
       scanned: profile.scanned,
       revised: profile.revised,
-      daily: { ...daily, content: report.content },
-      current: { ...current, content: profile.content },
+      content: profile.content,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
