@@ -126,3 +126,88 @@ export async function generateSailorReport(
     generatedAt: new Date().toISOString(),
   };
 }
+
+/* ── Transcribed material ──────────────────────────────────────
+ * A sailor's actual voice notes, as opposed to their questionnaire answers.
+ *
+ * Attribution here is by convention rather than by column: `captures.username`
+ * is the author, but `uploads.username` is whoever pressed upload — Martine's
+ * recordings are filed under Rich or Richard and identified only by the free
+ * text title being her name. So uploads are matched on title. That is a
+ * heuristic and should be replaced when the backend gains a sailor field.
+ */
+
+interface CaptureRow { username?: string; content?: string; created_at?: string }
+interface UploadRow  { title?: string; content?: string; created_at?: string }
+
+async function getJson<T>(path: string): Promise<T[]> {
+  // These paths 307-redirect; fetch follows redirects by default.
+  const res = await fetch(`${VIKTOR_BASE}${path}`, { headers: VIKTOR_HEADERS, cache: 'no-store' });
+  if (!res.ok) return [];
+  const data = await res.json().catch(() => null);
+  return Array.isArray(data) ? data as T[] : [];
+}
+
+/**
+ * Every transcribed line by or about `sailor`, oldest first, truncated to the
+ * last `limit` characters — the most recent material is the useful end.
+ */
+export async function collectTranscribed(sailor: string, limit = 2000) {
+  const name = sailor.trim().toLowerCase();
+  const [captures, uploads] = await Promise.all([
+    getJson<CaptureRow>('/captures/'),
+    getJson<UploadRow>('/uploads/'),
+  ]);
+
+  const parts: { at: string; text: string }[] = [];
+
+  for (const c of captures) {
+    if ((c.username ?? '').trim().toLowerCase() !== name) continue;
+    if (c.content?.trim()) parts.push({ at: c.created_at ?? '', text: c.content.trim() });
+  }
+  for (const u of uploads) {
+    if (!(u.title ?? '').trim().toLowerCase().startsWith(name)) continue;
+    if (u.content?.trim()) parts.push({ at: u.created_at ?? '', text: u.content.trim() });
+  }
+
+  parts.sort((a, b) => a.at.localeCompare(b.at));
+  const joined = parts.map(p => p.text).join('\n\n');
+
+  return {
+    rows: parts.length,
+    totalChars: joined.length,
+    text: joined.slice(-limit),
+  };
+}
+
+/** Rebuilds a sailor's document from their most recent transcribed speech. */
+export async function regenerateFromTranscripts(
+  sailor: string,
+  role: string,
+  limit = 2000,
+): Promise<SailorReport & { scanned: { rows: number; totalChars: number; usedChars: number } }> {
+  const found = await collectTranscribed(sailor, limit);
+  if (!found.rows) throw new Error(`No transcribed material found for "${sailor}"`);
+
+  const prompt = [
+    `Sailor: ${sailor}${role ? `, ${role}` : ''}`,
+    '',
+    'The following is this sailor\'s own transcribed speech — voice notes and captures,',
+    'oldest first. It is raw speech-to-text, so it is fragmentary and contains errors.',
+    'Build their document from what they actually say. Do not invent detail, and where a',
+    'section has no material, say so plainly in one line.',
+    '',
+    'TRANSCRIBED SPEECH:',
+    found.text,
+  ].join('\n');
+
+  const content = await runAgent(prompt);
+  return {
+    sailor,
+    runId: 'transcripts',
+    content,
+    sources: { priming: false, capture: found.rows > 0 },
+    generatedAt: new Date().toISOString(),
+    scanned: { rows: found.rows, totalChars: found.totalChars, usedChars: found.text.length },
+  };
+}

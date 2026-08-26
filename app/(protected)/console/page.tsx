@@ -8,6 +8,7 @@ import BriefingPage from "@/screens/Briefing";
 import CapturePage from "@/screens/Capturing";
 import CapturesInPage from "@/screens/CapturesIn";
 import HotDebriefPage from "@/screens/HotDebrief";
+import RegenerateSailorDoc from "@/screens/Console/RegenerateSailorDoc";
 
 /* ============================================================
    The console. One shell, six phases.
@@ -50,6 +51,8 @@ export default function ConsolePage() {
       activePhase={phase}
       onPhaseChange={setPhase}
     >
+      <RegenerateSailorDoc />
+
       {phase === "skeleton" && <SkeletonBriefPage runId={runId} />}
       {phase === "priming" && <PrimingInPage runId={runId} />}
       {phase === "briefing" && <BriefingPage runId={runId} />}
