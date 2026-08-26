@@ -7,6 +7,7 @@ import Capture, {
   type Sailor,
 } from "./Capturing";
 import { teamSailors } from '@/data/roles.hll';
+import { shareBaseUrl } from '@/lib/appUrl';
 
 /* ============================================================
    Example wiring. Replace local state with your own fetch/save
@@ -161,9 +162,10 @@ export default function CapturePage({
     });
     if (!res.ok) throw new Error("Could not create the capture run");
 
-	/* Same origin the sender is on, so a link sent from alpha or localhost
-	   does not drop the recipient into production. */
-	const link = `${window.location.origin}/capturing?id=${runId}`
+	/* The deployed origin when there is one, so a link sent from alpha opens
+	   alpha. On localhost it falls back to NEXT_PUBLIC_APP_URL — a localhost
+	   link is not something the recipient can open. */
+	const link = `${shareBaseUrl()}/capturing?id=${runId}`
     const text = encodeURIComponent(
       `Capture while it's fresh — a few questions. Voice or text, whatever suits.\n${link}`
     );

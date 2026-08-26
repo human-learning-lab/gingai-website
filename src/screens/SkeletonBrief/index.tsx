@@ -6,6 +6,7 @@ import SkeletonBrief, {
   type SkeletonBriefValue,
 } from "./SkeletonBrief";
 import { teamSailors } from '@/data/roles.hll';
+import { shareBaseUrl } from '@/lib/appUrl';
 
 /* ============================================================
    Example wiring. Replace the local state with your own
@@ -157,9 +158,10 @@ export default function SkeletonBriefPage({
     });
     if (!res.ok) throw new Error("Could not create the capture run");
 
-	/* Same origin the sender is on, so a link sent from alpha or localhost
-	   does not drop the recipient into production. */
-	const link = `${window.location.origin}/priming?id=${runId}`
+	/* The deployed origin when there is one, so a link sent from alpha opens
+	   alpha. On localhost it falls back to NEXT_PUBLIC_APP_URL — a localhost
+	   link is not something the recipient can open. */
+	const link = `${shareBaseUrl()}/priming?id=${runId}`
 
 
     /* wa.me opens WhatsApp with the message ready. One tap per sailor —
