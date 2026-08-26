@@ -1,88 +1,95 @@
 import type { SailorReport } from './sailorReport';
 
 /**
- * Firestore persistence for per-sailor documents.
+ * Per-sailor documents, stored in Firebase Storage.
  *
- * Uses the REST API rather than the client SDK. The SDK talks gRPC over a
- * long-lived stream, which does not settle inside a Next.js request handler —
- * writes hang for minutes and log "GRPC error has no .code". REST is a plain
- * fetch, so it works in any runtime.
+ * The document body is prose, not queryable data, so it belongs in a bucket
+ * rather than a Firestore field — no 1 MB document ceiling, and it can be
+ * fetched or downloaded directly.
  *
- * It also needs no service account: rules are currently open, so the public
- * web API key is enough. When access moves behind Clerk-gated routes properly,
- * switch to the Admin SDK in firebaseAdmin.ts, which bypasses rules and does
- * not depend on them being permissive.
+ * Uses the Storage REST API rather than the SDK, for the same reason the
+ * Firestore write did: the SDKs assume a browser and do not settle cleanly
+ * inside a Next.js request handler. REST is a plain fetch and works anywhere.
  *
- * Shape: `sailor/{name}` holds the current document so a read is one lookup,
- * and `sailor/{name}/versions/{auto}` keeps every prior generation —
- * regenerating over a single mutable field would quietly destroy an athlete's
- * own record of what they said.
+ * Layout:
+ *   sailors/{name}/current.md            the living document
+ *   sailors/{name}/versions/{iso}.md     every prior generation
+ *
+ * The versions copy is not optional. Regenerating over a single object would
+ * quietly destroy an athlete's own record of what they said, and Storage has
+ * no history unless object versioning is enabled on the bucket.
  */
 
-const PROJECT = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-const ROOT = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
+const BUCKET = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+const API = 'https://firebasestorage.googleapis.com/v0/b';
 
-type Value =
-  | { stringValue: string }
-  | { booleanValue: boolean }
-  | { integerValue: string }
-  | { mapValue: { fields: Record<string, Value> } };
+interface UploadResult {
+  name: string;
+  downloadTokens?: string;
+}
 
-/** Firestore REST wants every value tagged with its type. */
-function toValue(v: unknown): Value {
-  if (typeof v === 'boolean') return { booleanValue: v };
-  if (typeof v === 'number') return { integerValue: String(Math.trunc(v)) };
-  if (v && typeof v === 'object') {
-    return {
-      mapValue: {
-        fields: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, toValue(x)])),
+/** Object paths are a single URL-encoded segment — slashes become %2F. */
+function objectUrl(path: string) {
+  return `${API}/${BUCKET}/o/${encodeURIComponent(path)}`;
+}
+
+async function put(path: string, body: string, meta: Record<string, string>) {
+  const res = await fetch(
+    `${API}/${BUCKET}/o?uploadType=media&name=${encodeURIComponent(path)}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/markdown; charset=utf-8',
+        // Surfaces in the console and comes back on download, so a stored
+        // document carries its own provenance without a database lookup.
+        'X-Goog-Meta-Sailor': meta.sailor,
+        'X-Goog-Meta-Run-Id': meta.runId,
+        'X-Goog-Meta-Generated-At': meta.generatedAt,
       },
-    };
-  }
-  return { stringValue: String(v ?? '') };
-}
+      body,
+    },
+  );
 
-function toFields(obj: Record<string, unknown>) {
-  return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, toValue(v)]));
-}
-
-async function write(url: string, method: 'POST' | 'PATCH', fields: Record<string, unknown>) {
-  const res = await fetch(url, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fields: toFields(fields) }),
-  });
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`Firestore ${method} ${res.status}: ${body.slice(0, 300)}`);
+    const detail = await res.text().catch(() => '');
+    if (res.status === 404) {
+      throw new Error(
+        `Storage bucket "${BUCKET}" not found. Enable Firebase Storage for this ` +
+        `project (console -> Storage -> Get Started), then run npm run rules:deploy.`,
+      );
+    }
+    throw new Error(`Storage upload ${res.status}: ${detail.slice(0, 300)}`);
   }
-  return res.json() as Promise<{ name: string }>;
+
+  return res.json() as Promise<UploadResult>;
 }
 
 export async function saveSailorReport(report: SailorReport) {
-  if (!PROJECT || !API_KEY) throw new Error('Firebase project id or API key is not configured');
+  if (!BUCKET) throw new Error('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is not configured');
 
-  const id = encodeURIComponent(report.sailor);
-  const body = {
+  const safeName = report.sailor.trim().replace(/[^\w.-]+/g, '_');
+  const meta = {
     sailor: report.sailor,
-    content: report.content,
     runId: report.runId,
-    sources: report.sources,
-    updatedAt: report.generatedAt,
+    generatedAt: report.generatedAt,
   };
 
-  // PATCH with no updateMask creates the document if it is absent.
-  await write(`${ROOT}/sailor/${id}?key=${API_KEY}`, 'PATCH', body);
+  // Timestamps carry colons, which are awkward in object paths.
+  const stamp = report.generatedAt.replace(/[:.]/g, '-');
+  const currentPath = `sailors/${safeName}/current.md`;
+  const versionPath = `sailors/${safeName}/versions/${stamp}.md`;
 
-  const version = await write(
-    `${ROOT}/sailor/${id}/versions?key=${API_KEY}`,
-    'POST',
-    { ...body, generatedAt: report.generatedAt },
-  );
+  const [current] = await Promise.all([
+    put(currentPath, report.content, meta),
+    put(versionPath, report.content, meta),
+  ]);
+
+  const token = current.downloadTokens?.split(',')[0];
 
   return {
-    path: `sailor/${report.sailor}`,
-    versionId: version.name.split('/').pop() ?? '',
+    path: currentPath,
+    versionId: stamp,
+    /** Direct link, readable without the SDK. Absent if the bucket issues no token. */
+    url: token ? `${objectUrl(currentPath)}?alt=media&token=${token}` : undefined,
   };
 }

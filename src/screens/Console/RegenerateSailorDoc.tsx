@@ -4,7 +4,7 @@ import { useState } from "react";
 
 /* ============================================================
    Testing tool — rebuild a sailor's document from the tail of
-   their transcribed speech and write it to Firestore.
+   their transcribed speech and write it to Firebase Storage.
 
    Attribution of uploads is matched on the free-text title, so
    this is only as reliable as the naming convention. Remove or
@@ -14,6 +14,7 @@ import { useState } from "react";
 interface Result {
   path: string;
   versionId: string;
+  url?: string;
   scanned: { rows: number; totalChars: number; usedChars: number };
   content: string;
 }
@@ -112,7 +113,11 @@ export default function RegenerateSailorDoc() {
       {result && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <p style={{ margin: 0, fontSize: 12, color: "var(--text3, #6B5F4E)" }}>
-            Saved to <code>{result.path}</code> · version <code>{result.versionId}</code> ·
+            Saved to{" "}
+            {result.url
+              ? <a href={result.url} target="_blank" rel="noreferrer"><code>{result.path}</code></a>
+              : <code>{result.path}</code>}
+            {" "}· version <code>{result.versionId}</code> ·
             {" "}{result.scanned.rows} rows, {result.scanned.totalChars.toLocaleString()} chars found,
             {" "}{result.scanned.usedChars.toLocaleString()} used
           </p>
