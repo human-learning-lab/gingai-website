@@ -93,33 +93,64 @@ export default function SailorProfilePreview({ sailor }: { sailor: string }) {
     );
   }
 
-  // The body is markdown but renders here as plain text, so the syntax is
-  // just noise — a two-line preview led by a literal "## Description".
-  const clean = (l: string) =>
-    l.replace(/^#{1,6}\s*/, "").replace(/\*\*/g, "").replace(/^[-*]\s+/, "• ");
-
-  // Blank lines would burn the two-line preview, so measure by lines that
-  // actually carry text.
-  const lines = state.content.split("\n").filter((l) => l.trim()).map(clean);
-  const preview = lines.slice(0, PREVIEW_LINES).join("\n");
-  const hasMore = lines.length > PREVIEW_LINES;
+  const blocks = parse(state.content);
+  const shown = expanded ? blocks : blocks.slice(0, PREVIEW_LINES);
+  const hasMore = blocks.length > PREVIEW_LINES;
 
   return (
     <div style={wrap}>
       {label}
-      <p
+
+      <div
         style={{
-          margin: 0,
-          fontSize: 12.5,
-          lineHeight: 1.5,
-          color: C.ink,
-          whiteSpace: "pre-wrap",
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
           maxHeight: expanded ? 300 : undefined,
           overflowY: expanded ? "auto" : undefined,
         }}
       >
-        {expanded ? lines.join("\n") : preview}
-      </p>
+        {shown.map((b, i) =>
+          b.kind === "heading" ? (
+            <h4
+              key={i}
+              style={{
+                margin: i === 0 ? 0 : "10px 0 2px",
+                fontSize: 10.5,
+                fontWeight: 700,
+                letterSpacing: "0.09em",
+                textTransform: "uppercase",
+                color: C.green,
+              }}
+            >
+              {b.text}
+            </h4>
+          ) : b.kind === "bullet" ? (
+            <p
+              key={i}
+              style={{
+                margin: "3px 0 0",
+                paddingLeft: 12,
+                fontSize: 12.5,
+                lineHeight: 1.5,
+                color: C.ink,
+                textIndent: -12,
+              }}
+            >
+              <span style={{ color: C.warmLt }}>•&nbsp;</span>
+              {b.lead && <strong style={{ fontWeight: 600 }}>{b.lead}: </strong>}
+              {b.text}
+            </p>
+          ) : (
+            <p
+              key={i}
+              style={{ margin: "3px 0 0", fontSize: 12.5, lineHeight: 1.55, color: C.ink }}
+            >
+              {b.text}
+            </p>
+          ),
+        )}
+      </div>
 
       {hasMore && (
         <button
@@ -127,6 +158,7 @@ export default function SailorProfilePreview({ sailor }: { sailor: string }) {
           aria-expanded={expanded}
           style={{
             alignSelf: "flex-start",
+            marginTop: 2,
             padding: 0,
             border: "none",
             background: "none",
@@ -142,4 +174,39 @@ export default function SailorProfilePreview({ sailor }: { sailor: string }) {
       )}
     </div>
   );
+}
+
+interface Block {
+  kind: "heading" | "bullet" | "text";
+  text: string;
+  /** The bold lead-in on a bullet, e.g. "Maneuver Consistency". */
+  lead?: string;
+}
+
+/**
+ * The profile is markdown but renders here as styled elements rather than
+ * raw text, so the syntax is parsed away instead of being shown.
+ * Blank lines are dropped — otherwise a two-block preview spends one on
+ * whitespace.
+ */
+function parse(md: string): Block[] {
+  return md
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map<Block>((line) => {
+      if (/^#{1,6}\s/.test(line)) {
+        return { kind: "heading", text: line.replace(/^#{1,6}\s*/, "").replace(/\*\*/g, "") };
+      }
+      if (/^[-*]\s/.test(line)) {
+        const body = line.replace(/^[-*]\s+/, "");
+        // Bullets are written as "**Label:** detail" — keep the label as an
+        // actual lead-in rather than flattening it into the sentence.
+        const m = body.match(/^\*\*(.+?):?\*\*:?\s*(.*)$/);
+        return m
+          ? { kind: "bullet", lead: m[1], text: m[2] }
+          : { kind: "bullet", text: body.replace(/\*\*/g, "") };
+      }
+      return { kind: "text", text: line.replace(/\*\*/g, "") };
+    });
 }
