@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 import PrimingResponsePage from '@/screens/PrimingResponse';
 import { useTranscript } from '@/hooks/useTranscript';
 
-export default function DebriefClient({runId}: {runId: string}) {
+export default function DebriefClient({runId, sailor}: {runId: string; sailor?: string}) {
   const { lines, topics, sentiment, connect, disconnect, reset } = useTranscript();
 
   const handleRecordingChange = useCallback((recording: boolean) => {
@@ -19,6 +19,7 @@ export default function DebriefClient({runId}: {runId: string}) {
   return (
     <PrimingResponsePage
 	  runId={runId}
+      sailorName={sailor}
       transcriptLines={lines}
       onRecordingChange={handleRecordingChange}
     />

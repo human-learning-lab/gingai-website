@@ -161,18 +161,31 @@ export default function SkeletonBriefPage({
 	/* The deployed origin when there is one, so a link sent from alpha opens
 	   alpha. On localhost it falls back to NEXT_PUBLIC_APP_URL — a localhost
 	   link is not something the recipient can open. */
-	const link = `${shareBaseUrl()}/priming?id=${runId}`
+	const base = shareBaseUrl();
 
+    /* In personal scope each sailor gets their own link, carrying their name.
+       Without it the response page falls back to the Clerk first name of
+       whoever opens it, so a forwarded link — or a second person on the same
+       device — answers against someone else's questions.
 
-    /* wa.me opens WhatsApp with the message ready. One tap per sailor —
-       no business account needed. Popup blockers allow the first window,
-       so open them on a short stagger. 
-	*/
+       wa.me opens WhatsApp with the message ready; no business account
+       needed. Popup blockers allow the first window without a gesture but
+       not the rest, so the others follow on a short stagger. */
+    const links = scope === "personal"
+      ? recipients.map((name) => ({
+          name,
+          url: `${base}/priming?id=${encodeURIComponent(runId)}&sailor=${encodeURIComponent(name)}`,
+        }))
+      : [{ name: null, url: `${base}/priming?id=${encodeURIComponent(runId)}` }];
 
-    const text = encodeURIComponent(
-    	`Priming for tomorrow — three quick questions. Voice or text, whatever suits.\n${link}`
-    );
-    window.open(`https://wa.me/?text=${text}`, "_blank");
+    links.forEach(({ name, url }, i) => {
+      const text = encodeURIComponent(
+        `${name ? `${name} — priming` : "Priming"} for tomorrow — three quick questions. Voice or text, whatever suits.\n${url}`,
+      );
+      const open = () => window.open(`https://wa.me/?text=${text}`, "_blank");
+      if (i === 0) open();
+      else setTimeout(open, i * 600);
+    });
   }
 
   return (

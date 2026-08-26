@@ -163,13 +163,28 @@ export default function CapturePage({
     if (!res.ok) throw new Error("Could not create the capture run");
 
 	/* The deployed origin when there is one, so a link sent from alpha opens
-	   alpha. On localhost it falls back to NEXT_PUBLIC_APP_URL — a localhost
-	   link is not something the recipient can open. */
-	const link = `${shareBaseUrl()}/capturing?id=${runId}`
-    const text = encodeURIComponent(
-      `Capture while it's fresh — a few questions. Voice or text, whatever suits.\n${link}`
-    );
-    window.open(`https://wa.me/?text=${text}`, "_blank");
+	   alpha. On localhost it falls back to NEXT_PUBLIC_APP_URL. */
+	const base = shareBaseUrl();
+
+    /* One link per sailor in personal scope, carrying their name — otherwise
+       the response page falls back to the Clerk first name of whoever opens
+       it. Popup blockers allow the first window but not the rest, so the
+       others follow on a stagger. */
+    const links = scope === "personal"
+      ? recipients.map((name) => ({
+          name,
+          url: `${base}/capturing?id=${encodeURIComponent(runId)}&sailor=${encodeURIComponent(name)}`,
+        }))
+      : [{ name: null, url: `${base}/capturing?id=${encodeURIComponent(runId)}` }];
+
+    links.forEach(({ name, url }, i) => {
+      const text = encodeURIComponent(
+        `${name ? `${name} — capture` : "Capture"} while it's fresh — a few questions. Voice or text, whatever suits.\n${url}`,
+      );
+      const open = () => window.open(`https://wa.me/?text=${text}`, "_blank");
+      if (i === 0) open();
+      else setTimeout(open, i * 600);
+    });
   }
 
   return (

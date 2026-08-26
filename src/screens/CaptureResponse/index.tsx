@@ -21,8 +21,9 @@ interface Sailor {
 }
 
 export default function CaptureResponsePage(
-  { runId, transcriptLines, onRecordingChange}:
+  { runId, sailorName, transcriptLines, onRecordingChange}:
   { runId: string;
+    sailorName?: string;
     transcriptLines?: string[];
     onRecordingChange?: (recording: boolean) => void;
   }) {
@@ -33,7 +34,10 @@ export default function CaptureResponsePage(
      throw: ProtectedShell reassigns the role and re-renders. Throwing here
      unmounts the shell before its effect can run, so the page never recovers. */
   if (!role) return null;
-  const sailor = { firstName: role.name, role: role.label };
+  /* The link names whose set this is. Falling back to the signed-in role is
+     only right when someone opens their own link — a forwarded link, or a
+     shared device, would otherwise fetch the wrong sailor's questions. */
+  const sailor = { firstName: sailorName || role.name, role: role.label };
   const event =  { venue: "Sassnitz", dayLabel: "Tomorrow" };
   return (
     <div className="ginga-viewport" style={{
