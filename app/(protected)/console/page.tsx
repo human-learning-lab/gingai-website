@@ -51,6 +51,8 @@ export default function ConsolePage() {
       activePhase={phase}
       onPhaseChange={setPhase}
     >
+      {/* TEMPORARY — delete this mount and the component before merging to
+          main. Renders only when NEXT_PUBLIC_TEAM=hll. */}
       <RegenerateSailorDoc />
 
       {phase === "skeleton" && <SkeletonBriefPage runId={runId} />}

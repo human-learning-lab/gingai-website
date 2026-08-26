@@ -3,6 +3,13 @@ import { regenerateProfile } from '@/lib/sailorReport';
 import { saveSailorDoc, readSailorDoc } from '@/lib/sailorStore';
 
 /**
+ * TEMPORARY — DELETE BEFORE MERGING TO MAIN.
+ *
+ * TODO(alpha): remove this route together with
+ * src/screens/Console/RegenerateSailorDoc.tsx. It regenerates any sailor's
+ * profile on demand for anyone who can reach it, with no authorisation check
+ * beyond Clerk having let them into the app, and costs a model call per call.
+ *
  * POST /api/sailor-report/regenerate  { sailor, role?, chars? }
  *
  * Rebuilds a sailor's standing profile — description, strengths, weaknesses,
