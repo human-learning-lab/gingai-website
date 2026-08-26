@@ -5,13 +5,14 @@ import { Sailor } from "@/types"
 import SkeletonBrief, {
   type SkeletonBriefValue,
 } from "./SkeletonBrief";
+import { teamSailors } from '@/data/roles.hll';
 
 /* ============================================================
    Example wiring. Replace the local state with your own
    fetch/save, and the two handlers with real API calls.
    ============================================================ */
 
-const SAILORS: Sailor[] = [
+const BASE_SAILORS: Sailor[] = [
   { id: "mar", name: "Martine", role: "Helm" },
   { id: "pau", name: "Paul", role: "Strategist" },
   { id: "pie", name: "Pietro", role: "Speed" },
@@ -25,6 +26,8 @@ const SAILORS: Sailor[] = [
   { id: "nic", name: "Nico", role: "Data analyst" },
   { id: "chr", name: "Christian", role: "HuleLab" },
 ];
+
+const SAILORS: Sailor[] = teamSailors(BASE_SAILORS);
 
 const DEFAULT_QUESTIONS = [
   "What should be the team's area of focus tomorrow?",

@@ -6,13 +6,14 @@ import Capture, {
   type PrimingMetric,
   type Sailor,
 } from "./Capturing";
+import { teamSailors } from '@/data/roles.hll';
 
 /* ============================================================
    Example wiring. Replace local state with your own fetch/save
    and the handlers with real API calls.
    ============================================================ */
 
-const SAILORS: Sailor[] = [
+const BASE_SAILORS: Sailor[] = [
   { id: "mar", name: "Martine", role: "Strategist" },
   { id: "pau", name: "Paul", role: "Helm" },
   { id: "pie", name: "Pietro", role: "Speed" },
@@ -26,6 +27,8 @@ const SAILORS: Sailor[] = [
   { id: "nic", name: "Nico", role: "Data analyst" },
   { id: "chr", name: "Christian", role: "HuleLab" },
 ];
+
+const SAILORS: Sailor[] = teamSailors(BASE_SAILORS);
 
 const DEFAULT_GOALS: string[] = [
 	

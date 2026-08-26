@@ -7,6 +7,7 @@ import CapturesIn, {
   type Sailor,
   type TeamReading,
 } from "./CapturesIn";
+import { teamSailors } from '@/data/roles.hll';
 
 /* ============================================================
    Example wiring. Replace local state with your own fetch/save
@@ -17,7 +18,7 @@ const AGENT_BASE = '/api/agent';
 const SYNTH_APP_NAME = 'synthesize';
 const DIST_APP_NAME = 'distill'
 
-const SAILORS: Sailor[] = [
+const BASE_SAILORS: Sailor[] = [
   { id: "mar", name: "Martine", role: "Strategist" },
   { id: "pau", name: "Paul", role: "Helm" },
   { id: "pie", name: "Pietro", role: "Speed" },
@@ -31,6 +32,8 @@ const SAILORS: Sailor[] = [
   { id: "nic", name: "Nico", role: "Data analyst" },
   { id: "chr", name: "Christian", role: "Hulelab" },
 ];
+
+const SAILORS: Sailor[] = teamSailors(BASE_SAILORS);
 
 const PERSONAL_GOALS: Record<string, string> = Object.fromEntries(
     SAILORS.map((s) => [s.name, ""])

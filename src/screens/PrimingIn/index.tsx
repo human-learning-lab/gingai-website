@@ -8,6 +8,7 @@ import PrimingIn, {
   type SquadGoal,
   type TeamPicture,
 } from "./PrimingIn";
+import { teamSailors } from '@/data/roles.hll';
 
 /* ============================================================
    Example wiring. Replace local state with your own fetch/save
@@ -21,7 +22,7 @@ const DIST_APP_NAME = 'distill';
 const GOAL_APP_NAME = 'propose_goals';
 
 
-const SAILORS: Sailor[] = [
+const BASE_SAILORS: Sailor[] = [
   { id: "mar", name: "Martine", role: "Helm" },
   { id: "pau", name: "Paul", role: "Strategist" },
   { id: "pie", name: "Pietro", role: "Speed" },
@@ -35,6 +36,8 @@ const SAILORS: Sailor[] = [
   { id: "nic", name: "Nico", role: "Data analyst" },
   { id: "chr", name: "Christian", role: "HuleLab" },
 ];
+
+const SAILORS: Sailor[] = teamSailors(BASE_SAILORS);
 
 const QUESTIONS = [
   "What should be the team's area of focus tomorrow?",
