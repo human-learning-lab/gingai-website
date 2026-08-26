@@ -159,9 +159,13 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 
   const stopRecording = useCallback(async () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    setDraft(lines.join('\n'));
+    /* Hand the transcript to submitText directly. setDraft does not apply
+       until the next render, so reading `draft` here would submit the value
+       from before the recording — an empty answer. */
+    const transcript = lines.join('\n');
+    setDraft(transcript);
     onRecordingChange?.(false);
-	submitText();
+    submitText(transcript);
   }, [lines, onRecordingChange]);
 
 
@@ -183,9 +187,10 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
   const finished = step >= questions.length;
 
 
-  function submitText() {
+  /** `text` is passed by the voice path, where `draft` is still a render behind. */
+  function submitText(text?: string) {
 	setPhase("idle");
-    push(draft.trim());
+    push((text ?? draft).trim());
 	setInputMode("voice");
   }
 
@@ -371,7 +376,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
               </>
             ) : (
               <>
-                <button onClick={submitText} disabled={!draft.trim()} style={{
+                <button onClick={() => submitText()} disabled={!draft.trim()} style={{
                   ...btn,
                   background: draft.trim() ? C.green : C.sand,
                   color: draft.trim() ? "#fff" : C.warmLt,
