@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
 
     // The profile revises what is already stored, so read it before writing.
     const previous = await readSailorDoc(name, 'current.md');
-    const profile = await regenerateProfile(name, role ?? '', previous, chars ?? 2000);
+    // chars omitted or 0 means the whole corpus.
+    const profile = await regenerateProfile(name, role ?? '', previous, chars ?? 0);
     const saved = await saveSailorDoc(name, 'current.md', profile.content, profile.generatedAt);
 
     return NextResponse.json({

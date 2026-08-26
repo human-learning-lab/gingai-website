@@ -155,10 +155,13 @@ async function getJson<T>(path: string): Promise<T[]> {
 }
 
 /**
- * Every transcribed line by or about `sailor`, oldest first, truncated to the
- * last `limit` characters — the most recent material is the useful end.
+ * Every transcribed line by or about `sailor`, oldest first.
+ *
+ * `limit` truncates to the last N characters, the most recent material being
+ * the useful end. Pass 0 or omit it to take everything — the corpus per sailor
+ * is tens of kilobytes at most, well inside the model's context.
  */
-export async function collectTranscribed(sailor: string, limit = 2000) {
+export async function collectTranscribed(sailor: string, limit = 0) {
   const name = sailor.trim().toLowerCase();
   const [captures, uploads] = await Promise.all([
     getJson<CaptureRow>('/captures/'),
@@ -182,7 +185,7 @@ export async function collectTranscribed(sailor: string, limit = 2000) {
   return {
     rows: parts.length,
     totalChars: joined.length,
-    text: joined.slice(-limit),
+    text: limit > 0 ? joined.slice(-limit) : joined,
   };
 }
 
@@ -190,7 +193,7 @@ export async function collectTranscribed(sailor: string, limit = 2000) {
 export async function regenerateFromTranscripts(
   sailor: string,
   role: string,
-  limit = 2000,
+  limit = 0,
 ): Promise<SailorReport & { scanned: { rows: number; totalChars: number; usedChars: number } }> {
   const found = await collectTranscribed(sailor, limit);
   if (!found.rows) throw new Error(`No transcribed material found for "${sailor}"`);
@@ -266,7 +269,7 @@ export async function regenerateProfile(
   sailor: string,
   role: string,
   previous: string | null,
-  limit = 2000,
+  limit = 0,
 ): Promise<SailorProfile> {
   const found = await collectTranscribed(sailor, limit);
   if (!found.rows) throw new Error(`No transcribed material found for "${sailor}"`);

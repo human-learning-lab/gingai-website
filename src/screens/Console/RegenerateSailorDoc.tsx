@@ -3,9 +3,9 @@
 import { useState } from "react";
 
 /* ============================================================
-   Testing tool — rebuild a sailor's standing profile from the
-   tail of their transcribed speech and write it to Firebase
-   Storage as sailors/{name}/current.md.
+   Testing tool — rebuild a sailor's standing profile from all
+   of their transcribed speech and write it to Firebase Storage
+   as sailors/{name}/current.md.
 
    Attribution of uploads is matched on the free-text title, so
    this is only as reliable as the naming convention. Remove or
@@ -20,8 +20,6 @@ interface Result {
   scanned: { rows: number; totalChars: number; usedChars: number };
   content: string;
 }
-
-const CHARS = 2000;
 
 export default function RegenerateSailorDoc() {
   const [sailor, setSailor] = useState("");
@@ -39,7 +37,8 @@ export default function RegenerateSailorDoc() {
       const res = await fetch("/api/sailor-report/regenerate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sailor: name, chars: CHARS }),
+        // No chars limit: scan the sailor's whole corpus.
+        body: JSON.stringify({ sailor: name }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `Request failed (${res.status})`);
@@ -67,7 +66,7 @@ export default function RegenerateSailorDoc() {
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
         <strong style={{ fontSize: 14 }}>Regenerate sailor profile</strong>
         <span style={{ fontSize: 12, color: "var(--text3, #6B5F4E)" }}>
-          Testing — reads the last {CHARS.toLocaleString()} characters of their transcribed speech
+          Testing — reads everything they have transcribed
         </span>
       </div>
 
@@ -119,8 +118,7 @@ export default function RegenerateSailorDoc() {
             {result.url
               ? <a href={result.url} target="_blank" rel="noreferrer"><code>{result.path}</code></a>
               : <code>{result.path}</code>}
-            {" "}· {result.scanned.rows} rows, {result.scanned.totalChars.toLocaleString()} chars found,
-            {" "}{result.scanned.usedChars.toLocaleString()} used ·
+            {" "}· {result.scanned.rows} rows, {result.scanned.usedChars.toLocaleString()} chars scanned ·
             {" "}{result.revised ? "revised existing profile" : "first profile"}
           </p>
           <pre
