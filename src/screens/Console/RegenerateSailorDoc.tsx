@@ -3,29 +3,40 @@
 import { useState } from "react";
 
 /* ============================================================
-   Testing tool — rebuild a sailor's document from the tail of
-   their transcribed speech and write it to Firebase Storage.
+   Testing tool — rebuild a sailor's documents from the tail of
+   their transcribed speech and write them to Firebase Storage.
+
+     current.md   standing profile, revised against what is there
+     daily.md     end-of-day report for the latest session
 
    Attribution of uploads is matched on the free-text title, so
    this is only as reliable as the naming convention. Remove or
    gate this once per-sailor attribution exists in the backend.
    ============================================================ */
 
-interface Result {
+interface Doc {
   path: string;
   versionId: string;
   url?: string;
-  scanned: { rows: number; totalChars: number; usedChars: number };
   content: string;
 }
 
+interface Result {
+  scanned: { rows: number; totalChars: number; usedChars: number };
+  revised: boolean;
+  current: Doc;
+  daily: Doc;
+}
+
 const CHARS = 2000;
+type Tab = "current" | "daily";
 
 export default function RegenerateSailorDoc() {
   const [sailor, setSailor] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("current");
 
   async function regenerate() {
     const name = sailor.trim();
@@ -42,12 +53,15 @@ export default function RegenerateSailorDoc() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `Request failed (${res.status})`);
       setResult(data as Result);
+      setTab("current");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not regenerate");
     } finally {
       setBusy(false);
     }
   }
+
+  const shown = result ? result[tab] : null;
 
   return (
     <section
@@ -63,7 +77,7 @@ export default function RegenerateSailorDoc() {
       }}
     >
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-        <strong style={{ fontSize: 14 }}>Regenerate sailor document</strong>
+        <strong style={{ fontSize: 14 }}>Regenerate sailor documents</strong>
         <span style={{ fontSize: 12, color: "var(--text3, #6B5F4E)" }}>
           Testing — reads the last {CHARS.toLocaleString()} characters of their transcribed speech
         </span>
@@ -110,17 +124,39 @@ export default function RegenerateSailorDoc() {
         <p style={{ margin: 0, fontSize: 13, color: "var(--red, #E8574A)" }}>{error}</p>
       )}
 
-      {result && (
+      {result && shown && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", gap: 6 }}>
+            {(["current", "daily"] as Tab[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: 4,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  border: `1px solid ${tab === t ? "var(--green, #009B3A)" : "var(--line2, #BFB29C)"}`,
+                  background: tab === t ? "var(--gg, rgba(0,155,58,0.12))" : "transparent",
+                  color: tab === t ? "var(--green, #009B3A)" : "var(--text3, #6B5F4E)",
+                }}
+              >
+                {t === "current" ? "Profile · current.md" : "Daily · daily.md"}
+              </button>
+            ))}
+          </div>
+
           <p style={{ margin: 0, fontSize: 12, color: "var(--text3, #6B5F4E)" }}>
             Saved to{" "}
-            {result.url
-              ? <a href={result.url} target="_blank" rel="noreferrer"><code>{result.path}</code></a>
-              : <code>{result.path}</code>}
-            {" "}· version <code>{result.versionId}</code> ·
-            {" "}{result.scanned.rows} rows, {result.scanned.totalChars.toLocaleString()} chars found,
+            {shown.url
+              ? <a href={shown.url} target="_blank" rel="noreferrer"><code>{shown.path}</code></a>
+              : <code>{shown.path}</code>}
+            {" "}· {result.scanned.rows} rows, {result.scanned.totalChars.toLocaleString()} chars found,
             {" "}{result.scanned.usedChars.toLocaleString()} used
+            {tab === "current" && (result.revised ? " · revised existing profile" : " · first profile")}
           </p>
+
           <pre
             style={{
               margin: 0,
@@ -136,7 +172,7 @@ export default function RegenerateSailorDoc() {
               border: "1px solid var(--line, #CFC4B0)",
             }}
           >
-            {result.content}
+            {shown.content}
           </pre>
         </div>
       )}

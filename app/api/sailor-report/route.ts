@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateSailorReport } from '@/lib/sailorReport';
-import { saveSailorReport } from '@/lib/sailorStore';
+import { saveDailyReport } from '@/lib/sailorStore';
 
 /**
  * POST /api/sailor-report  { runId, sailor, role }
  *
- * Pulls the sailor's answers from Viktor's API, runs the `report` agent — which
- * has existed since "More Agents" but was never called from anywhere — and
- * stores the document in Firestore under `sailor/{name}`, keeping every prior
- * generation in the `versions` subcollection.
+ * Pulls the sailor's questionnaire answers for a run, runs the `report` agent
+ * and stores the result as daily.md in Firebase Storage, keeping every prior
+ * generation alongside it.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     const report = await generateSailorReport(runId, sailor, role ?? '');
-    const saved = await saveSailorReport(report);
+    const saved = await saveDailyReport(report);
 
     return NextResponse.json({ ...saved, sources: report.sources, content: report.content });
   } catch (err) {

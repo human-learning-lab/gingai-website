@@ -14,6 +14,12 @@ const VIKTOR_BASE = process.env.VIKTOR_API_URL ?? 'https://wriggly-tutu-groin.ng
 const VIKTOR_HEADERS = { 'ngrok-skip-browser-warning': '1' };
 const AGENT_BASE = process.env.AGENT_API_URL ?? 'https://ginga-742926686826.us-east1.run.app';
 const REPORT_APP = 'report';
+/* The dedicated `profile` agent exists in Agent/gingai/profile but is not
+   deployed yet — Cloud Run serves whatever was last pushed. Until someone
+   redeploys, the profile is produced by the `report` agent under a directive
+   prompt, which follows the four-section format reliably. Flip this to
+   'profile' after deploying and delete the override in buildProfilePrompt. */
+const PROFILE_APP = process.env.PROFILE_AGENT_APP ?? 'report';
 
 export interface SailorSources {
   priming: { questions: string[]; responses: string[] } | null;
@@ -69,11 +75,11 @@ export function buildPrompt(sailor: string, role: string, sources: SailorSources
 }
 
 /** Runs the agent and concatenates the text parts off the SSE stream. */
-async function runAgent(prompt: string): Promise<string> {
+async function runAgent(prompt: string, app: string = REPORT_APP): Promise<string> {
   const userId = 'report-pipeline';
   const sessionId = `report-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-  await fetch(`${AGENT_BASE}/apps/${REPORT_APP}/users/${userId}/sessions/${sessionId}`, {
+  await fetch(`${AGENT_BASE}/apps/${app}/users/${userId}/sessions/${sessionId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: '{}',
@@ -83,14 +89,14 @@ async function runAgent(prompt: string): Promise<string> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify({
-      appName: REPORT_APP,
+      appName: app,
       userId,
       sessionId,
       streaming: false,
       newMessage: { role: 'user', parts: [{ text: prompt }] },
     }),
   });
-  if (!res.ok) throw new Error(`report agent returned ${res.status}`);
+  if (!res.ok) throw new Error(`${app} agent returned ${res.status}`);
 
   const text = await res.text();
   let out = '';
@@ -104,7 +110,7 @@ async function runAgent(prompt: string): Promise<string> {
       }
     } catch { /* skip non-JSON keepalives */ }
   }
-  if (!out.trim()) throw new Error('report agent returned no text');
+  if (!out.trim()) throw new Error(`${app} agent returned no text`);
   return out;
 }
 
@@ -209,5 +215,72 @@ export async function regenerateFromTranscripts(
     sources: { priming: false, capture: found.rows > 0 },
     generatedAt: new Date().toISOString(),
     scanned: { rows: found.rows, totalChars: found.totalChars, usedChars: found.text.length },
+  };
+}
+
+/* ── Standing profile ──────────────────────────────────────────
+ * The living document: who this sailor is on the water, revised as more of
+ * their own words accumulate. Distinct from the daily report, which covers a
+ * single session and is written to daily.md.
+ */
+
+export interface SailorProfile {
+  sailor: string;
+  content: string;
+  generatedAt: string;
+  scanned: { rows: number; totalChars: number; usedChars: number };
+  /** Whether a previous profile was found and revised rather than written fresh. */
+  revised: boolean;
+}
+
+function buildProfilePrompt(
+  sailor: string,
+  role: string,
+  speech: string,
+  previous: string | null,
+) {
+  return [
+    // Override: the `report` agent's own instruction is the daily format. Once
+    // the dedicated `profile` agent is deployed this paragraph can go.
+    'Ignore your usual daily-report format. You are maintaining this sailor\'s',
+    'standing profile. Produce exactly four sections as H2 headings, in this',
+    'order: Description, Strengths, Weaknesses, Goals.',
+    '',
+    'Write to the sailor, not about them. Use only what the material supports —',
+    'where a section has nothing behind it, say so in one line rather than',
+    'inventing content. Do not attribute a pronoun to the sailor unless their',
+    'own words establish one.',
+    '',
+    `Sailor: ${sailor}${role ? `, ${role}` : ''}`,
+    '',
+    previous
+      ? 'CURRENT PROFILE — revise this. Keep what still holds, update what has\nchanged, and drop only what the new material contradicts.\n\n' + previous
+      : 'No profile exists yet. Write the first one.',
+    '',
+    'THEIR TRANSCRIBED SPEECH (raw speech-to-text, fragmentary, oldest first):',
+    speech,
+  ].join('\n');
+}
+
+export async function regenerateProfile(
+  sailor: string,
+  role: string,
+  previous: string | null,
+  limit = 2000,
+): Promise<SailorProfile> {
+  const found = await collectTranscribed(sailor, limit);
+  if (!found.rows) throw new Error(`No transcribed material found for "${sailor}"`);
+
+  const content = await runAgent(
+    buildProfilePrompt(sailor, role, found.text, previous),
+    PROFILE_APP,
+  );
+
+  return {
+    sailor,
+    content,
+    generatedAt: new Date().toISOString(),
+    scanned: { rows: found.rows, totalChars: found.totalChars, usedChars: found.text.length },
+    revised: Boolean(previous),
   };
 }
