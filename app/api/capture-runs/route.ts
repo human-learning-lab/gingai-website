@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { mirrorQuestionSet } from '@/lib/questionStore';
 
 const BASE = process.env.VIKTOR_API_URL ?? 'https://wriggly-tutu-groin.ngrok-free.dev';
 const HEADERS = { 'ngrok-skip-browser-warning': '1' };
@@ -52,6 +53,10 @@ async function storedFor(runId: string, kind: string, recipient: string): Promis
  * So the stored set is read back and compared. A no-op write is reported as a
  * conflict rather than passing as success. The real fix is upstream: either
  * /create_run upserts, or /responses/{run}/{kind}/{sailor} gains PUT or DELETE.
+ *
+ * The set is also mirrored into Firestore under races/{race}/days/{day}. That
+ * write always replaces, so the mirror holds what was intended even on a send
+ * the backend refuses — which is the case worth having a record of.
  */
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -75,6 +80,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    /* Mirror first and independently of the upstream result: a refused resend
+       is exactly when having the intended set on record is useful. A mirror
+       failure must not fail the send, so it is reported, not thrown. */
+    let mirror: Awaited<ReturnType<typeof mirrorQuestionSet>> | null = null;
+    let mirrorError: string | null = null;
+    try {
+      mirror = await mirrorQuestionSet({
+        runId, kind, scope, recipients: recipients ?? [],
+        teamQuestions: value.teamQuestions,
+        teamPrompt: (value as { teamPrompt?: string }).teamPrompt,
+        personal: value.personal,
+      });
+    } catch (err) {
+      mirrorError = err instanceof Error ? err.message : 'mirror failed';
+      console.error('[capture-runs] firestore mirror:', mirrorError);
+    }
+
     // Confirm the write landed, per recipient.
     const stale: string[] = [];
     await Promise.all(
@@ -96,12 +118,17 @@ export async function POST(req: NextRequest) {
             `inserts — it will not replace a set that already exists for this run, ` +
             `so they would have received the old ones. Nothing was sent.`,
           stale,
+          mirror,
+          mirrorError,
         },
         { status: 409 },
       );
     }
 
-    return NextResponse.json(text ? JSON.parse(text) : {}, { status: res.status });
+    return NextResponse.json(
+      { upstream: text ? JSON.parse(text) : {}, mirror, mirrorError },
+      { status: res.status },
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     console.error('[capture-runs]', msg);
