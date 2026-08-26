@@ -115,64 +115,73 @@ export default function SkeletonBrief({
     [sailors, activeSailor]
   );
 
+  /* `value` is the single source of truth. An absent personal entry means the
+     sailor falls back to the team set, per SkeletonBriefValue — so entries are
+     created on first edit, never pre-filled. */
+  const personalSet = value.personal[activeSailor];
+
   const current_questions = isTeam
     ? value.teamQuestions
-    : value.personal[activeSailor].questions;
+    : personalSet?.questions ?? value.teamQuestions;
   const current_prompt = isTeam
-  	? value.teamPrompt
-	: value.personal[activeSailor].prompt;
-
-  const [questions, setQuestions] = useState<string[]>(current_questions);
-  const [prompt, setPrompt] = useState<string>(current_prompt);
-
+    ? value.teamPrompt
+    : personalSet?.prompt ?? value.teamPrompt;
 
   /* ---------- mutations ---------- */
 
-  const editQuestion = (index: number, text: string) => {
-    setQuestions(questions.map((q, i) => (i === index ? text : q)));
-	if (isTeam){
-		value.teamQuestions[index] = text;
-	} else{
-		value.personal[activeSailor].questions[index] = text;
-	}
-  }
+  /** Write a question list into whichever scope is active. */
+  const setCurrentQuestions = (next: string[]) => {
+    if (isTeam) {
+      onChange({ ...value, teamQuestions: next });
+    } else {
+      onChange({
+        ...value,
+        personal: {
+          ...value.personal,
+          [activeSailor]: { questions: next, prompt: current_prompt },
+        },
+      });
+    }
+  };
 
-  const removeQuestion = (index: number) => {
-    setQuestions(questions.filter((_, i) => i !== index));
-	if (isTeam){
-		value.teamQuestions.splice(index, 1);
-	} else{
-		value.personal[activeSailor].questions.splice(index, 1);
-	}
-  }
+  const setCurrentPrompt = (next: string) => {
+    if (isTeam) {
+      onChange({ ...value, teamPrompt: next });
+    } else {
+      onChange({
+        ...value,
+        personal: {
+          ...value.personal,
+          [activeSailor]: { questions: current_questions, prompt: next },
+        },
+      });
+    }
+  };
+
+  const editQuestion = (index: number, text: string) =>
+    setCurrentQuestions(current_questions.map((q, i) => (i === index ? text : q)));
+
+  const removeQuestion = (index: number) =>
+    setCurrentQuestions(current_questions.filter((_, i) => i !== index));
 
   const moveQuestion = (index: number, delta: number) => {
     const target = index + delta;
-    if (target < 0 || target >= questions.length) return;
-    const next = [...questions];
+    if (target < 0 || target >= current_questions.length) return;
+    const next = [...current_questions];
     [next[index], next[target]] = [next[target], next[index]];
-    setQuestions(next);
-	if (isTeam){
-		value.teamQuestions = next;
-	} else{
-		value.personal[activeSailor].questions = next;
-	}
+    setCurrentQuestions(next);
   };
 
   const generate = async () => {
     setGenerating(true);
     try {
-      const questions = await onGenerate({
-        prompt: current_prompt,
-        scope,
-        sailor: isTeam ? undefined : sailor,
-      });
-      setQuestions(questions);
-  	  if (isTeam){
-		value.teamQuestions = questions;
-	  } else{
-		value.personal[activeSailor].questions = questions;
-  	  }
+      setCurrentQuestions(
+        await onGenerate({
+          prompt: current_prompt,
+          scope,
+          sailor: isTeam ? undefined : sailor,
+        }),
+      );
     } finally {
       setGenerating(false);
     }
@@ -251,13 +260,13 @@ export default function SkeletonBrief({
               isTeam ? "Questions — everyone" : `Questions — ${sailor?.name}`
             }
           >
-            {questions.map((question, index) => (
+            {current_questions.map((question, index) => (
               <QuestionRow
                 key={index}
                 index={index}
                 value={question}
                 isFirst={index === 0}
-                isLast={index === questions.length - 1}
+                isLast={index === current_questions.length - 1}
                 onEdit={(text) => editQuestion(index, text)}
                 onMove={(delta) => moveQuestion(index, delta)}
                 onRemove={() => removeQuestion(index)}
@@ -266,13 +275,13 @@ export default function SkeletonBrief({
 
             <div style={{ display: "flex", gap: 8, marginTop: 11 }}>
               <button
-                onClick={() => setQuestions([...questions, ""])}
+                onClick={() => setCurrentQuestions([...current_questions, ""])}
                 style={dashedButton}
               >
                 + Add question
               </button>
               <button
-                onClick={() => setQuestions([...defaultQuestions])}
+                onClick={() => setCurrentQuestions([...defaultQuestions])}
                 style={quietButton}
               >
                 Reset to default set
@@ -297,8 +306,8 @@ export default function SkeletonBrief({
             </p>
 
             <textarea
-              value={prompt}
-              onChange={(e) => {setPrompt(e.target.value);}}
+              value={current_prompt}
+              onChange={(e) => setCurrentPrompt(e.target.value)}
               placeholder={
                 isTeam
                   ? "Describe how the questions should be written…"

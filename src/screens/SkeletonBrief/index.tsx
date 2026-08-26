@@ -46,9 +46,10 @@ Rules:
 - Each must be answerable in under a minute of speaking.
 - Plain language. No jargon the sailor wouldn't use themselves.`;
 
-const emptyPersonal = Object.fromEntries(
-    SAILORS.map((s) => [s.name, { questions: [...DEFAULT_QUESTIONS], prompt: DEFAULT_PROMPT }])
-  );
+/* Starts empty on purpose. Per SkeletonBriefValue, an absent entry means the
+   sailor falls back to the team set; pre-filling every sailor with the
+   defaults meant a team-scope edit never reached them. */
+const emptyPersonal: SkeletonBriefValue["personal"] = {};
 
 // GingaAI agent apis
 const AGENT_BASE = '/api/agent';

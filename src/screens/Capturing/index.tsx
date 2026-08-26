@@ -60,8 +60,10 @@ Rules:
 - Never ask "how was it". Steer them to their own area.
 - Plain language. No coaching vocabulary they wouldn't use themselves.`;
 
-const emptyPersonal = Object.fromEntries(
-	SAILORS.map((s) => [s.name, { questions: [...DEFAULT_QUESTIONS], prompt: DEFAULT_PROMPT }]));
+/* Starts empty on purpose: an absent entry means the sailor falls back to the
+   team set. Pre-filling every sailor with the defaults meant a team-scope edit
+   never reached them. */
+const emptyPersonal: CaptureValue["personal"] = {};
 
 const AGENT_BASE = '/api/agent';
 const APP_NAME = 'generate_questions';
