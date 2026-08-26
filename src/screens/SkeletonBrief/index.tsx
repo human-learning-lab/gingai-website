@@ -76,7 +76,24 @@ export default function SkeletonBriefPage({
     scope: "team" | "personal";
     sailor?: Sailor;
   }): Promise<string[]> {
-  console.log(prompt);
+  /* Personal questions are written against the sailor's standing profile.
+     Without one there is nothing to personalise, so fail rather than quietly
+     generating the team set under their name. */
+  let profile = '';
+  if (scope === 'personal') {
+    if (!sailor) throw new Error('Select a sailor first.');
+    const res = await fetch(`/api/sailor-profile?sailor=${encodeURIComponent(sailor.name)}`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(data?.error ?? `No profile on file for ${sailor.name}.`);
+    }
+    profile = data.content as string;
+  }
+
+  const text = profile
+    ? `${prompt}\n\nWrite these questions for ${sailor!.name} specifically, using their standing profile below. Draw on their own strengths, weaknesses and goals — ask about what they are actually working on, in their own language.\n\nTHEIR PROFILE:\n${profile}`
+    : prompt;
+
   const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const userId = 'user-1';
 
@@ -93,7 +110,7 @@ export default function SkeletonBriefPage({
       appName: APP_NAME,
       userId,
       sessionId,
-      newMessage: { role: 'user', parts: [{ text: prompt }] },
+      newMessage: { role: 'user', parts: [{ text }] },
       streaming: false,
     }),
   });

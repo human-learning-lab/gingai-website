@@ -106,6 +106,7 @@ export default function SkeletonBrief({
     sailors.map((s) => s.name)
   );
   const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(Boolean(sentAt));
 
@@ -174,6 +175,7 @@ export default function SkeletonBrief({
 
   const generate = async () => {
     setGenerating(true);
+    setGenerateError(null);
     try {
       setCurrentQuestions(
         await onGenerate({
@@ -182,6 +184,10 @@ export default function SkeletonBrief({
           sailor: isTeam ? undefined : sailor,
         }),
       );
+    } catch (e) {
+      // Personal generation fails when the sailor has no profile on file.
+      // Surfacing it beats an unhandled rejection and a button that just stops.
+      setGenerateError(e instanceof Error ? e.message : 'Could not generate questions');
     } finally {
       setGenerating(false);
     }
@@ -358,6 +364,19 @@ export default function SkeletonBrief({
                 replaces the questions above — you can still edit them
               </span>
             </div>
+            {generateError && (
+              <p
+                role="alert"
+                style={{
+                  margin: "10px 0 0",
+                  fontSize: 12.5,
+                  lineHeight: 1.45,
+                  color: "#C4392C",
+                }}
+              >
+                {generateError}
+              </p>
+            )}
           </Card>
         </div>
 
