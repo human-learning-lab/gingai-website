@@ -64,14 +64,14 @@ export default function SailorPage() {
 const MOCK = {
   capture: {
     mode: "capture",
-    sailor: { firstName: role!.name, role: role!.label},
+    sailor: { firstName: role?.name ?? '', role: role?.label ?? '' },
     event: { venue: "Sassnitz", dayLabel: "Race day 2" },
     questions: [ {id: 1, text: "Dette er test spørsmål"}
     ],
   },
   priming: {
     mode: "priming",
-    sailor: { firstName: role!.name, role: "Flight Controller" },
+    sailor: { firstName: role?.name ?? '', role: "Flight Controller" },
     event: { venue: "Sassnitz", dayLabel: "Tomorrow" },
     questions: [
     ],

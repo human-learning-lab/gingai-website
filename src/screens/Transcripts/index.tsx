@@ -569,7 +569,7 @@ function UploadModal({ onClose, onSubmit }: {
 }) {
   const { role } = useRole();
   const [form, setForm] = useState<UploadForm>({
-    file: null, title: '', user: role!.name, regatta: '', tags: [],
+    file: null, title: '', user: role?.name ?? '', regatta: '', tags: [],
   });
   const [dragging, setDragging] = useState(false);
   const [submitting, setSubmitting] = useState(false);

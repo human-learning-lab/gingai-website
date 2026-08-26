@@ -11,9 +11,12 @@ import type { Role, ScreenId } from '@/types';
 
 const SAILOR_SCREENS: ScreenId[] = ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms'];
 
+/* First names only, matching the rest of the roster. The response screens
+   fetch answers with `role.name`, and the backend keys rows by first name —
+   "Daniel Martin" would never match the stored recipient "Daniel". */
 export const HLL_ROLES: Role[] = [
-  { id: 'hll-daniel',   name: 'Daniel Martin', initial: 'DM', label: 'Helm', view: 'sailor', screens: SAILOR_SCREENS },
-  { id: 'hll-benjamin', name: 'Benjamin Nærø', initial: 'BN', label: 'Helm', view: 'sailor', screens: SAILOR_SCREENS },
+  { id: 'hll-daniel',   name: 'Daniel', initial: 'DM', label: 'Helm', view: 'sailor', screens: SAILOR_SCREENS },
+  { id: 'hll-benjamin', name: 'Benjamin', initial: 'BN', label: 'Helm', view: 'sailor', screens: SAILOR_SCREENS },
 ];
 
 /**

@@ -32,7 +32,13 @@ export default function PrimingResponsePage(
     onRecordingChange?: (recording: boolean) => void;
 }) {
   const { role } = useRole();
-  const sailor = { firstName: role!.name, role: role!.label};
+  /* `role` is null while Clerk is still resolving, and when the stored roleId
+     is not in this environment's roster — which happens whenever an account
+     has signed in to both alpha and production. Render nothing rather than
+     throw: ProtectedShell reassigns the role and re-renders. Throwing here
+     unmounts the shell before its effect can run, so the page never recovers. */
+  if (!role) return null;
+  const sailor = { firstName: role.name, role: role.label };
   const event =  { venue: "Sassnitz", dayLabel: "Tomorrow" };
   return (
     <div className="ginga-viewport" style={{
