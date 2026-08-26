@@ -164,6 +164,21 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 
   useEffect(() => {
 	  async function getResp(){
+		/* Firestore first: /create_run will not replace an existing set, so
+		   Viktor's API can still be serving questions that were superseded.
+		   The mirror always holds the latest. Falls back for runs that
+		   predate it. */
+		const mirrored = await fetch(
+			`/api/question-set?runId=${encodeURIComponent(runId)}&sailor=${encodeURIComponent(sailor.firstName)}`,
+		);
+		if (mirrored.ok) {
+			const set = await mirrored.json();
+			if (set.questions?.length) {
+				setQuestions(set.questions);
+				return;
+			}
+		}
+
 	  	const res = await fetch(`/api/responses/${runId}?kind=capture&sailor=${sailor.firstName}`);
 	  	const resps = await res.json();
 		if (resps.questions)

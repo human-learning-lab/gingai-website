@@ -139,3 +139,59 @@ export async function mirrorQuestionSet(input: MirrorInput) {
 
   return { path: dayPath, race: raceId, day: dayId, sailors: written };
 }
+
+/* ── Reading back ──────────────────────────────────────────────
+ * The mirror is also the delivery source now. /create_run will not replace an
+ * existing set, so MySQL can hold questions that were superseded; Firestore
+ * always holds the latest. Response links read here first and fall back to
+ * MySQL for runs that predate the mirror.
+ */
+
+function fromValue(v: Record<string, unknown> | undefined): unknown {
+  if (!v) return undefined;
+  if ('stringValue' in v) return v.stringValue;
+  if ('booleanValue' in v) return v.booleanValue;
+  if ('integerValue' in v) return Number(v.integerValue);
+  if ('arrayValue' in v) {
+    const arr = (v.arrayValue as { values?: Record<string, unknown>[] })?.values ?? [];
+    return arr.map(fromValue);
+  }
+  return undefined;
+}
+
+async function getDoc(path: string): Promise<Record<string, Record<string, unknown>> | null> {
+  const res = await fetch(`${ROOT}/${path}?key=${API_KEY}`, { cache: 'no-store' });
+  if (!res.ok) return null;
+  const data = await res.json().catch(() => null);
+  return (data?.fields as Record<string, Record<string, unknown>>) ?? null;
+}
+
+export interface StoredQuestions {
+  questions: string[];
+  /** "sailor" when they have their own set, "team" when they fall back to it. */
+  source: 'sailor' | 'team';
+}
+
+/**
+ * The questions this sailor should answer for this run, or null when the run
+ * has never been mirrored.
+ */
+export async function readQuestionSet(
+  runId: string,
+  sailor?: string,
+): Promise<StoredQuestions | null> {
+  if (!PROJECT || !API_KEY) return null;
+
+  const { race, day } = parseRunId(runId);
+  const dayPath = `races/${docId(race)}/days/${docId(day)}`;
+
+  if (sailor) {
+    const own = await getDoc(`${dayPath}/sailors/${docId(sailor)}`);
+    const questions = fromValue(own?.questions) as string[] | undefined;
+    if (questions?.length) return { questions, source: 'sailor' };
+  }
+
+  const dayDoc = await getDoc(dayPath);
+  const team = fromValue(dayDoc?.teamQuestions) as string[] | undefined;
+  return team?.length ? { questions: team, source: 'team' } : null;
+}

@@ -50,13 +50,18 @@ async function storedFor(runId: string, kind: string, recipient: string): Promis
  *    with a null body — verified against the live backend. The recipient then
  *    opens their link and gets the previous set.
  *
- * So the stored set is read back and compared. A no-op write is reported as a
- * conflict rather than passing as success. The real fix is upstream: either
- * /create_run upserts, or /responses/{run}/{kind}/{sailor} gains PUT or DELETE.
+ * The stored set is read back and compared, so a no-op is not mistaken for a
+ * success. It is no longer fatal, though: the set is mirrored into Firestore
+ * under races/{race}/days/{day}, that write always replaces, and the response
+ * pages read the mirror first. A recipient therefore gets the current
+ * questions even when MySQL kept the old ones.
  *
- * The set is also mirrored into Firestore under races/{race}/days/{day}. That
- * write always replaces, so the mirror holds what was intended even on a send
- * the backend refuses — which is the case worth having a record of.
+ * So a refused upstream write comes back as 200 with `staleUpstream` naming who
+ * it affects, and the send proceeds. Only a refusal the mirror did not cover is
+ * a 409 — that is the case where a link really would serve stale questions.
+ *
+ * The upstream fix is still worth making: either /create_run upserts, or
+ * /responses/{run}/{kind}/{sailor} gains PUT or DELETE.
  */
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -108,16 +113,22 @@ export async function POST(req: NextRequest) {
       }),
     );
 
-    if (stale.length) {
-      const who = stale.join(', ');
-      console.error('[capture-runs] write did not take for:', who);
+    /* Covered by the mirror means the recipient will read the current set from
+       Firestore regardless of what MySQL kept, so the send is safe to proceed. */
+    const covered = new Set(mirror?.sailors ?? []);
+    const uncovered = stale.filter((name) => !covered.has(name));
+
+    if (uncovered.length) {
+      const who = uncovered.join(', ');
+      console.error('[capture-runs] stale and not mirrored:', who);
       return NextResponse.json(
         {
           error:
-            `The backend kept the previous questions for ${who}. /create_run only ` +
-            `inserts — it will not replace a set that already exists for this run, ` +
-            `so they would have received the old ones. Nothing was sent.`,
+            `The backend kept the previous questions for ${who}, and they were not ` +
+            `mirrored either${mirrorError ? ` (${mirrorError})` : ''}, so they would ` +
+            `have received the old ones. Nothing was sent.`,
           stale,
+          uncovered,
           mirror,
           mirrorError,
         },
@@ -125,8 +136,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (stale.length) {
+      console.warn('[capture-runs] upstream kept old rows, serving from mirror:', stale.join(', '));
+    }
+
     return NextResponse.json(
-      { upstream: text ? JSON.parse(text) : {}, mirror, mirrorError },
+      {
+        upstream: text ? JSON.parse(text) : {},
+        mirror,
+        mirrorError,
+        /* Named rather than silent: their MySQL row is out of date, which
+           matters to anything still reading it directly. */
+        staleUpstream: stale,
+      },
       { status: res.status },
     );
   } catch (err) {
