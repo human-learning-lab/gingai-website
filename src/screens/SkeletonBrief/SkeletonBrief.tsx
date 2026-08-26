@@ -2,6 +2,7 @@
 
 import React, { useCallback, useMemo, useState } from "react";
 import { ROLES } from '@/data/roles';
+import SailorProfilePreview from "./SailorProfilePreview";
 import { Sailor } from "@/types"
 
 /* ============================================================
@@ -259,6 +260,10 @@ export default function SkeletonBrief({
               active={activeSailor}
               onSelect={setActiveSailor}
             />
+          )}
+
+          {!isTeam && activeSailor && (
+            <SailorProfilePreview sailor={activeSailor} />
           )}
 
           <Card
