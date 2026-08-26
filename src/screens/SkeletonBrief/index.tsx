@@ -140,7 +140,9 @@ export default function SkeletonBriefPage({
     });
     if (!res.ok) throw new Error("Could not create the capture run");
 
-	const link = `https://gingai-website.vercel.app/priming?id=${runId}`
+	/* Same origin the sender is on, so a link sent from alpha or localhost
+	   does not drop the recipient into production. */
+	const link = `${window.location.origin}/priming?id=${runId}`
 
 
     /* wa.me opens WhatsApp with the message ready. One tap per sailor —
