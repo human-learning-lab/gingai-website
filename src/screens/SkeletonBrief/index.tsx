@@ -156,7 +156,10 @@ export default function SkeletonBriefPage({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({runId, kind: "priming", scope, recipients, value }),
     });
-    if (!res.ok) throw new Error("Could not create the capture run");
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.error ?? "Could not create the capture run");
+    }
 
 	/* The deployed origin when there is one, so a link sent from alpha opens
 	   alpha. On localhost it falls back to NEXT_PUBLIC_APP_URL — a localhost

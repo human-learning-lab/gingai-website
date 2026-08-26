@@ -109,6 +109,7 @@ export default function SkeletonBrief({
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [sent, setSent] = useState(Boolean(sentAt));
 
   const isTeam = scope === "team";
@@ -197,11 +198,16 @@ export default function SkeletonBrief({
   const send = async () => {
     if (!recipients.length) return;
     setSending(true);
+    setSendError(null);
     try {
       await onSend(runId, recipients, scope);
       setSent(true);
-    } finally { 
-	  setSending(false);
+    } catch (e) {
+      // A failed send must not read as a successful one — the recipient would
+      // open a link serving the previous question set.
+      setSendError(e instanceof Error ? e.message : "Could not send");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -437,6 +443,20 @@ export default function SkeletonBrief({
                 ? "Sent ✓"
                 : `Send to ${recipients.length}`}
             </button>
+
+            {sendError && (
+              <p
+                role="alert"
+                style={{
+                  fontSize: 12,
+                  color: "#C4392C",
+                  lineHeight: 1.5,
+                  margin: "9px 0 0",
+                }}
+              >
+                {sendError}
+              </p>
+            )}
 
             <p
               style={{
