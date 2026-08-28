@@ -94,8 +94,19 @@ export default function SailorProfilePreview({ sailor }: { sailor: string }) {
   }
 
   const blocks = parse(state.content);
-  const shown = expanded ? blocks : blocks.slice(0, PREVIEW_LINES);
-  const hasMore = blocks.length > PREVIEW_LINES;
+  /* Take blocks until two carry actual text. The file opens with a layer
+     heading and a section heading, so a flat slice of two would preview
+     nothing but headings. */
+  const cut = (() => {
+    let content = 0;
+    for (let i = 0; i < blocks.length; i++) {
+      if (blocks[i].kind !== "heading") content++;
+      if (content === PREVIEW_LINES) return i + 1;
+    }
+    return blocks.length;
+  })();
+  const shown = expanded ? blocks : blocks.slice(0, cut);
+  const hasMore = blocks.length > cut;
 
   return (
     <div style={wrap}>
@@ -115,12 +126,14 @@ export default function SailorProfilePreview({ sailor }: { sailor: string }) {
             <h4
               key={i}
               style={{
-                margin: i === 0 ? 0 : "10px 0 2px",
-                fontSize: 10.5,
+                margin: i === 0 ? 0 : (b.level === 1 ? "14px 0 2px" : "10px 0 2px"),
+                fontSize: b.level === 1 ? 11.5 : 10.5,
                 fontWeight: 700,
                 letterSpacing: "0.09em",
                 textTransform: "uppercase",
-                color: C.green,
+                color: b.level === 1 ? C.ink : C.green,
+                borderBottom: b.level === 1 ? `1px solid ${C.line}` : undefined,
+                paddingBottom: b.level === 1 ? 3 : undefined,
               }}
             >
               {b.text}
@@ -179,6 +192,8 @@ export default function SailorProfilePreview({ sailor }: { sailor: string }) {
 interface Block {
   kind: "heading" | "bullet" | "text";
   text: string;
+  /** Heading depth — the context file uses H1 for layers, H2 for sections. */
+  level?: number;
   /** The bold lead-in on a bullet, e.g. "Maneuver Consistency". */
   lead?: string;
 }
@@ -195,8 +210,13 @@ function parse(md: string): Block[] {
     .map((l) => l.trim())
     .filter(Boolean)
     .map<Block>((line) => {
-      if (/^#{1,6}\s/.test(line)) {
-        return { kind: "heading", text: line.replace(/^#{1,6}\s*/, "").replace(/\*\*/g, "") };
+      const h = line.match(/^(#{1,6})\s/);
+      if (h) {
+        return {
+          kind: "heading",
+          level: h[1].length,
+          text: line.replace(/^#{1,6}\s*/, "").replace(/\*\*/g, ""),
+        };
       }
       if (/^[-*]\s/.test(line)) {
         const body = line.replace(/^[-*]\s+/, "");

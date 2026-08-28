@@ -236,6 +236,51 @@ export interface SailorProfile {
   revised: boolean;
 }
 
+/* The Sailor Context File structure, from the format Rich uses. Two layers:
+   stable, which changes slowly and is carried forward, and living, which is
+   rewritten from recent material each time.
+
+   Duplicated here as a directive prompt because the dedicated `profile` agent
+   in Agent/gingai/profile is not deployed — Cloud Run serves what was last
+   pushed, and the `report` agent's own instruction is the daily format. Once
+   it is deployed, set PROFILE_AGENT_APP=profile and this override can go. */
+const CONTEXT_FILE_STRUCTURE = `# Stable Layer — Who I Am as a Sailor and Performer
+
+## Background & Experience
+Career arc, prior classes and campaigns, anything that shaped how they think about performance.
+
+## Role & Technical Ownership
+What the job actually is, including how it changes with crew configuration. Name the throughline across variations.
+
+## Processing Style
+How they take in what is happening and reflect afterwards — visually, by feel, by sound and comms. What kinds of question they engage with, and what makes them disengage.
+
+## Reaction Under Pressure
+What happens when they make an error: first signal, behavioural default, and the root causes their mistakes trace back to. Note any consistent bias.
+
+## Conditions That Raise Internal Pressure
+Conditions and configurations where they grip tighter — including ones they would not complain about out loud.
+
+## What Drives Them
+What makes a genuinely good day independent of the result, and what they are chasing this cycle.
+
+# Living Layer — Current Focus & Patterns
+
+## Current Development Areas
+What is not automatic yet.
+
+## What Good Days Look Like Right Now
+What is different about the sessions where it clicks.
+
+## Recurring Mistakes Not Yet Resolved
+Mistakes showing up more than once that have not become a lesson. Name the suspected root cause where the material supports it.
+
+## Upcoming Context Sensitivity
+Conditions, gear or crew configurations coming up that they are uncertain about.
+
+## What Works / Doesn't Work in Priming
+Question shapes that get something real out of them, and shapes that shut them down. Be concrete — this section directs how their priming questions are written.`;
+
 function buildProfilePrompt(
   sailor: string,
   role: string,
@@ -243,22 +288,34 @@ function buildProfilePrompt(
   previous: string | null,
 ) {
   return [
-    // Override: the `report` agent's own instruction is the daily format. Once
-    // the dedicated `profile` agent is deployed this paragraph can go.
+    // Override: the `report` agent's own instruction is the daily format.
     'Ignore your usual daily-report format. You are maintaining this sailor\'s',
-    'standing profile. Produce exactly four sections as H2 headings, in this',
-    'order: Description, Strengths, Weaknesses, Goals.',
+    'Sailor Context File — the standing picture that feeds their priming',
+    'questions. It is read by the system and the coaching staff, so write in',
+    'third person, analytical and specific. Not a daily report, not a pep talk.',
     '',
-    'Write to the sailor, not about them. Use only what the material supports —',
-    'where a section has nothing behind it, say so in one line rather than',
-    'inventing content. Do not attribute a pronoun to the sailor unless their',
-    'own words establish one.',
+    'Reproduce exactly this structure, with these headings, in this order:',
+    '',
+    CONTEXT_FILE_STRUCTURE,
+    '',
+    'RULES',
+    '- The stable layer changes slowly: carry it forward from the previous',
+    '  version and revise only where new material contradicts or extends it.',
+    '  The living layer is meant to move — rewrite it from recent material.',
+    '- Use only what the material supports. Where a section has nothing behind',
+    '  it, write one line saying so. Never invent a career history, a diagnosis',
+    '  or a motivation.',
+    '- These are session voice notes: expect a lot about the living layer and',
+    '  little about background. Do not pad the stable layer to hide that.',
+    '- Do not attribute a gendered pronoun unless their own words establish one.',
+    '- Describe the difficulty, never the person.',
+    '- Plain language, and their own vocabulary where they have one.',
     '',
     `Sailor: ${sailor}${role ? `, ${role}` : ''}`,
     '',
     previous
-      ? 'CURRENT PROFILE — revise this. Keep what still holds, update what has\nchanged, and drop only what the new material contradicts.\n\n' + previous
-      : 'No profile exists yet. Write the first one.',
+      ? 'CURRENT CONTEXT FILE — revise this:\n\n' + previous
+      : 'No context file exists yet. Write the first one.',
     '',
     'THEIR TRANSCRIBED SPEECH (raw speech-to-text, fragmentary, oldest first):',
     speech,
