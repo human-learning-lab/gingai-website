@@ -79,12 +79,15 @@ export interface PrimingInProps {
 
   onGoalsChange: (goals: SquadGoal[]) => void;
   /** Hand the picture and goals to the briefing. */
-  onCarryForward: () => void;
+  /** Files the picture and goals, then hands off. Rejects if the write fails. */
+  onCarryForward: () => Promise<void> | void;
+  /** Move on to the briefing once the priming is carried forward. */
+  onCarried?: () => void;
 }
 
 type View = "individuals" | "team";
 type Depth = "full" | "distilled";
-type Busy = "distil" | "synthesis" | "goals" | null;
+type Busy = "distil" | "synthesis" | "goals" | "carry" | null;
 
 /* ---------- tokens ---------- */
 
@@ -133,6 +136,7 @@ export default function PrimingIn({
   onProposeGoals,
   onGoalsChange,
   onCarryForward,
+  onCarried,
 }: PrimingInProps) {
   /* Distilled lines are held here rather than written into `responses`, which
      is a prop. The previous version mutated the objects inside the memo, so
@@ -223,6 +227,22 @@ export default function PrimingIn({
       /* These three had try/finally and no catch, so a failure was an unhandled
          rejection: the spinner stopped and nothing said why. */
       setActionError(e instanceof Error ? e.message : "Could not propose goals");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const carryForward = async () => {
+    setBusy("carry");
+    setActionError(null);
+    try {
+      await onCarryForward();
+      /* Only move on once the write has landed. The button used to be a bare
+         void handler with no await and no feedback, so a failure looked
+         identical to a success — and to nothing happening at all. */
+      onCarried?.();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Could not carry the priming forward");
     } finally {
       setBusy(null);
     }
@@ -638,10 +658,16 @@ export default function PrimingIn({
 
             {squadGoals.length > 0 && (
               <button
-                onClick={onCarryForward}
-                style={{ ...primaryButton, background: C.ink }}
+                onClick={carryForward}
+                disabled={busy === "carry"}
+                style={{
+                  ...primaryButton,
+                  background: C.ink,
+                  opacity: busy === "carry" ? 0.55 : 1,
+                  cursor: busy === "carry" ? "not-allowed" : "pointer",
+                }}
               >
-                Carry into the briefing →
+                {busy === "carry" ? "Carrying…" : "Carry into the briefing →"}
               </button>
             )}
           </div>

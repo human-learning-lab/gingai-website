@@ -58,7 +58,9 @@ export default function ConsolePage() {
       <GenerateTeamDoc />
 
       {phase === "skeleton" && <SkeletonBriefPage runId={runId} />}
-      {phase === "priming" && <PrimingInPage runId={runId} />}
+      {phase === "priming" && (
+        <PrimingInPage runId={runId} onCarried={() => setPhase("briefing")} />
+      )}
       {phase === "briefing" && <BriefingPage runId={runId} />}
       {phase === "capture" && <CapturePage runId={runId} />}
       {phase === "captures" && <CapturesInPage runId={runId} />}

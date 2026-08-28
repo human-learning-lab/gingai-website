@@ -101,9 +101,13 @@ Return the goal and, for each, the evidence that would settle whether we hit it.
 };
 
 export default function PrimingInPage({
-  runId
-}: { runId: string}
-) {
+  runId,
+  onCarried,
+}: {
+  runId: string;
+  /** Move on to the briefing once the priming has been carried forward. */
+  onCarried?: () => void;
+}) {
   const [responses, setResponses] = useState<PrimingResponse[]>([]);
   const [prompts, setPrompts] = useState<Prompts>(DEFAULT_PROMPTS);
   const [teamPicture, setTeamPicture] = useState<TeamPicture | null>(null);
@@ -254,8 +258,9 @@ export default function PrimingInPage({
     }
   }
   const picture  = JSON.parse(fullText) as TeamPicture;
+    /* Not filed here. Like the goals, the picture is filed on carry forward —
+       the point the coach commits it to the briefing. */
   setTeamPicture(picture);
-  fileArtifacts({ teamPicture: picture });
   return picture;
   }
 
@@ -322,16 +327,33 @@ export default function PrimingInPage({
 
   /* Hand the picture and goals to the briefing, then navigate. */
   async function handleCarryForward() {
-    /* The commit point for the goals: filed as the coach carries them into the
-       briefing, edits included, rather than as first proposed. Phase 03 reads
-       them back from here. */
-    fileArtifacts({ squadGoals });
+    if (!teamPicture && !squadGoals.length) {
+      throw new Error('Build the team picture or propose goals first.');
+    }
 
-    await fetch(`/api/priming?id=${runId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teamPicture, squadGoals }),
+    /* The commit point: the picture and goals are filed as the coach carries
+       them into the briefing, edits included, rather than as first generated.
+       Phase 03 reads them back from here, so this write is the one that has to
+       land — it is awaited and its failure stops the step. */
+    const res = await fetch('/api/priming-artifacts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ runId, teamPicture, squadGoals }),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.error ?? 'Could not carry the priming forward');
+    }
+
+    /* Viktor's /priming/{runId} answers 404 — the endpoint does not exist, and
+       /api/priming returns 200 with the 404 body, so this never surfaced. Kept
+       so it starts working if the endpoint appears; its failure is not allowed
+       to block a step whose record now lives in Firestore. */
+    void fetch(`/api/priming?id=${runId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teamPicture, squadGoals }),
+    }).catch(() => undefined);
   }
 
   return (
@@ -350,6 +372,7 @@ export default function PrimingInPage({
         onProposeGoals={handleProposeGoals}
         onGoalsChange={setSquadGoals}
         onCarryForward={handleCarryForward}
+        onCarried={onCarried}
       />
     </div>
   );
