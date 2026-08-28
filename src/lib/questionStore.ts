@@ -44,9 +44,19 @@ function toFields(obj: Record<string, unknown>): Record<string, Value> {
   return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, toValue(v)]));
 }
 
-/** PATCH with no updateMask creates the document if absent and replaces the named fields. */
-async function put(path: string, fields: Record<string, unknown>) {
-  const res = await fetch(`${ROOT}/${path}?key=${API_KEY}`, {
+/**
+ * Creates the document if absent, and writes the given fields.
+ *
+ * `merge` matters: without an updateMask, Firestore replaces the whole
+ * document and silently drops every field not in the request — verified
+ * against the live database. Partial writers must pass merge, or writing the
+ * team picture would delete the day's questions.
+ */
+async function put(path: string, fields: Record<string, unknown>, merge = false) {
+  const mask = merge
+    ? Object.keys(fields).map(k => `&updateMask.fieldPaths=${encodeURIComponent(k)}`).join('')
+    : '';
+  const res = await fetch(`${ROOT}/${path}?key=${API_KEY}${mask}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fields: toFields(fields) }),
@@ -106,8 +116,10 @@ export async function mirrorQuestionSet(input: MirrorInput) {
   const updatedAt = new Date().toISOString();
   const dayPath = `races/${raceId}/days/${dayId}`;
 
-  await put(`races/${raceId}`, { venue: race, season: season ?? '' });
+  await put(`races/${raceId}`, { venue: race, season: season ?? '' }, true);
 
+  /* Merges, so a send does not clear the team picture or squad goals already
+     filed against this day. */
   await put(dayPath, {
     day,
     runId: input.runId,
@@ -116,7 +128,7 @@ export async function mirrorQuestionSet(input: MirrorInput) {
     teamQuestions: input.teamQuestions ?? [],
     teamPrompt: input.teamPrompt ?? '',
     updatedAt,
-  });
+  }, true);
 
   /* Only the recipients of this send. Writing every sailor in `personal`
      would resurrect sets for people who were unticked. */
@@ -132,7 +144,7 @@ export async function mirrorQuestionSet(input: MirrorInput) {
         prompt: set?.prompt ?? input.teamPrompt ?? '',
         fromTeamSet: !set?.questions?.length,
         updatedAt,
-      });
+      }, true);
       written.push(name);
     }),
   );
@@ -194,4 +206,104 @@ export async function readQuestionSet(
   const dayDoc = await getDoc(dayPath);
   const team = fromValue(dayDoc?.teamQuestions) as string[] | undefined;
   return team?.length ? { questions: team, source: 'team' } : null;
+}
+
+/* ── Generated artefacts ───────────────────────────────────────
+ * Everything phases 01 and 02 produce, filed against the race day it belongs
+ * to. All of it merges, so regenerating one thing leaves the rest intact and a
+ * coach redoing the briefing overwrites only what they redid.
+ */
+
+/** The day document, ensured to exist before a partial write lands on it. */
+async function ensureDay(runId: string) {
+  const { race, day, season } = parseRunId(runId);
+  const raceId = docId(race);
+  const dayPath = `races/${raceId}/days/${docId(day)}`;
+  await put(`races/${raceId}`, { venue: race, season: season ?? '' }, true);
+  await put(dayPath, { day, runId }, true);
+  return dayPath;
+}
+
+/** Questions as generated, before any send. Scope decides where they land. */
+export async function saveGeneratedQuestions(input: {
+  runId: string;
+  scope: 'team' | 'personal';
+  sailor?: string;
+  questions: string[];
+  prompt?: string;
+}) {
+  if (!PROJECT || !API_KEY) throw new Error('Firebase project id or API key is not configured');
+  if (!input.questions.length) return null;
+
+  const dayPath = await ensureDay(input.runId);
+  const generatedAt = new Date().toISOString();
+
+  if (input.scope === 'personal') {
+    if (!input.sailor) throw new Error('A sailor is required for personal scope');
+    const path = `${dayPath}/sailors/${docId(input.sailor)}`;
+    await put(path, {
+      sailor: input.sailor,
+      questions: input.questions,
+      prompt: input.prompt ?? '',
+      generatedAt,
+    }, true);
+    return { path, generatedAt };
+  }
+
+  await put(dayPath, {
+    teamQuestions: input.questions,
+    teamPrompt: input.prompt ?? '',
+    generatedAt,
+  }, true);
+  return { path: dayPath, generatedAt };
+}
+
+export interface PrimingArtifacts {
+  runId: string;
+  /** The synthesised team picture, shape decided by the synthesize agent. */
+  teamPicture?: unknown;
+  squadGoals?: unknown;
+  /** One condensed line per question, keyed by sailor. */
+  distilled?: Record<string, string[]>;
+}
+
+/**
+ * What phase 02 produces. Each part is optional so a coach redoing one step —
+ * re-distilling without rebuilding the picture, say — does not clear the others.
+ */
+export async function savePrimingArtifacts(input: PrimingArtifacts) {
+  if (!PROJECT || !API_KEY) throw new Error('Firebase project id or API key is not configured');
+
+  const dayPath = await ensureDay(input.runId);
+  const updatedAt = new Date().toISOString();
+  const written: string[] = [];
+
+  const dayFields: Record<string, unknown> = {};
+  if (input.teamPicture !== undefined) {
+    // Stored as JSON: the picture's shape is the agent's to change, and a typed
+    // Firestore map would need migrating every time it does.
+    dayFields.teamPicture = JSON.stringify(input.teamPicture);
+    written.push('teamPicture');
+  }
+  if (input.squadGoals !== undefined) {
+    dayFields.squadGoals = JSON.stringify(input.squadGoals);
+    written.push('squadGoals');
+  }
+  if (Object.keys(dayFields).length) {
+    await put(dayPath, { ...dayFields, primingUpdatedAt: updatedAt }, true);
+  }
+
+  const sailors: string[] = [];
+  for (const [sailor, lines] of Object.entries(input.distilled ?? {})) {
+    if (!lines?.length) continue;
+    await put(`${dayPath}/sailors/${docId(sailor)}`, {
+      sailor,
+      distilled: lines,
+      distilledAt: updatedAt,
+    }, true);
+    sailors.push(sailor);
+  }
+  if (sailors.length) written.push(`distilled(${sailors.length})`);
+
+  return { path: dayPath, written, sailors, updatedAt };
 }

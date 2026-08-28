@@ -120,6 +120,18 @@ export default function PrimingInPage({
   }, [runId]);  
 
   /* Re-condense every response. Server route keeps the model key off the client. */
+
+  /* Everything phase 02 produces is filed against the race day. Each call
+     carries only what that step generated, and the write merges, so redoing
+     one step does not clear the others. Not worth failing the action over. */
+  function fileArtifacts(body: Record<string, unknown>) {
+    void fetch('/api/priming-artifacts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ runId, ...body }),
+    }).catch(() => undefined);
+  }
+
   async function handleDistil(prompt: string) {
     const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   	const userId = 'user-1';
@@ -187,6 +199,7 @@ export default function PrimingInPage({
   if (!distilled || !Object.keys(distilled).length) {
     throw new Error('The distiller returned nothing to show.');
   }
+  fileArtifacts({ distilled });
   return distilled;
   }
 
@@ -242,6 +255,7 @@ export default function PrimingInPage({
   }
   const picture  = JSON.parse(fullText) as TeamPicture;
   setTeamPicture(picture);
+  fileArtifacts({ teamPicture: picture });
   return picture;
   }
 
@@ -299,8 +313,8 @@ export default function PrimingInPage({
     }
   }
 
-	console.log(fullText);
     const goals = JSON.parse(fullText) as SquadGoal[];
+    fileArtifacts({ squadGoals: goals });
     return goals;
   }
 
