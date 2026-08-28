@@ -2,7 +2,7 @@
 
 import React, { useCallback, useMemo, useState } from "react";
 import { ROLES } from '@/data/roles';
-import SailorProfilePreview from "./SailorProfilePreview";
+import ContextFilePreview from "./ContextFilePreview";
 import { Sailor } from "@/types"
 
 /* ============================================================
@@ -268,8 +268,17 @@ export default function SkeletonBrief({
             />
           )}
 
-          {!isTeam && activeSailor && (
-            <SailorProfilePreview sailor={activeSailor} />
+          {/* What the questions will be written against — the squad's file in
+              team scope, the selected sailor's in personal. */}
+          {isTeam ? (
+            <ContextFilePreview label="Team context" endpoint="/api/team-profile" />
+          ) : (
+            activeSailor && (
+              <ContextFilePreview
+                label={`Profile · ${activeSailor}`}
+                endpoint={`/api/sailor-profile?sailor=${encodeURIComponent(activeSailor)}`}
+              />
+            )
           )}
 
           <Card

@@ -3,13 +3,17 @@
 import { useEffect, useState } from "react";
 
 /* ============================================================
-   The selected sailor's standing profile, shown under the
-   picker so you can see what the personal questions will be
-   written against before generating them.
+   A context file, shown above the questions so you can see what
+   they will be written against before generating them.
 
-   Collapsed to the first two lines; "See more" reveals the
-   rest. Reads the same /api/sailor-profile route the generate
-   step uses, so what is shown here is what the agent gets.
+   Used for both scopes: the selected sailor's file in personal,
+   the squad's in team. It reads the same routes the generate
+   step uses, so what is on screen is what the agent gets — if
+   this panel says the file is missing, generation will fail for
+   the same reason.
+
+   Collapsed until two blocks carry text; "See more" reveals the
+   rest.
    ============================================================ */
 
 const C = {
@@ -31,36 +35,43 @@ type State =
   | { status: "error"; message: string }
   | { status: "ready"; content: string };
 
-export default function SailorProfilePreview({ sailor }: { sailor: string }) {
+export default function ContextFilePreview({
+  label,
+  endpoint,
+}: {
+  /** Shown as the panel's eyebrow — e.g. "Profile · Martine" or "Team context". */
+  label: string;
+  /** Route returning { content }, 404 when no file exists yet. */
+  endpoint: string;
+}) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    if (!sailor) return;
     let cancelled = false;
 
     setState({ status: "loading" });
     setExpanded(false);
 
-    fetch(`/api/sailor-profile?sailor=${encodeURIComponent(sailor)}`)
+    fetch(endpoint)
       .then(async (res) => {
         const data = await res.json().catch(() => null);
         if (cancelled) return;
         if (res.status === 404) {
-          setState({ status: "missing", message: data?.error ?? `No profile on file for ${sailor}.` });
+          setState({ status: "missing", message: data?.error ?? "No context file yet." });
         } else if (!res.ok) {
-          setState({ status: "error", message: data?.error ?? "Could not load the profile." });
+          setState({ status: "error", message: data?.error ?? "Could not load the context file." });
         } else {
           setState({ status: "ready", content: data.content as string });
         }
       })
       .catch(() => {
-        if (!cancelled) setState({ status: "error", message: "Could not load the profile." });
+        if (!cancelled) setState({ status: "error", message: "Could not load the context file." });
       });
 
-    // The sailor can change before the request lands; ignore the stale reply.
+    // The endpoint can change before the request lands; ignore the stale reply.
     return () => { cancelled = true; };
-  }, [sailor]);
+  }, [endpoint]);
 
   const wrap: React.CSSProperties = {
     border: `1px solid ${C.line}`,
@@ -72,20 +83,20 @@ export default function SailorProfilePreview({ sailor }: { sailor: string }) {
     gap: 6,
   };
 
-  const label = (
+  const eyebrow = (
     <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.warmLt }}>
-      Profile · {sailor}
+      {label}
     </div>
   );
 
   if (state.status === "loading") {
-    return <div style={wrap}>{label}<p style={{ margin: 0, fontSize: 12.5, color: C.warmLt }}>Loading…</p></div>;
+    return <div style={wrap}>{eyebrow}<p style={{ margin: 0, fontSize: 12.5, color: C.warmLt }}>Loading…</p></div>;
   }
 
   if (state.status === "missing" || state.status === "error") {
     return (
       <div style={{ ...wrap, borderColor: state.status === "missing" ? C.line : C.red }}>
-        {label}
+        {eyebrow}
         <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.45, color: state.status === "missing" ? C.warm : C.red }}>
           {state.message}
         </p>
@@ -110,7 +121,7 @@ export default function SailorProfilePreview({ sailor }: { sailor: string }) {
 
   return (
     <div style={wrap}>
-      {label}
+      {eyebrow}
 
       <div
         style={{
