@@ -208,10 +208,13 @@ export async function readQuestionSet(
   return team?.length ? { questions: team, source: 'team' } : null;
 }
 
-/* ── Generated artefacts ───────────────────────────────────────
- * Everything phases 01 and 02 produce, filed against the race day it belongs
- * to. All of it merges, so regenerating one thing leaves the rest intact and a
- * coach redoing the briefing overwrites only what they redid.
+/* ── Phase 02 artefacts ────────────────────────────────────────
+ * What priming in produces, filed against the race day it belongs to. All of
+ * it merges, so redoing one step leaves the rest intact.
+ *
+ * Questions are not written here. They reach Firestore through
+ * mirrorQuestionSet when the coach sends them, so the record is what the
+ * sailors were actually asked rather than every draft along the way.
  */
 
 /** The day document, ensured to exist before a partial write lands on it. */
@@ -222,40 +225,6 @@ async function ensureDay(runId: string) {
   await put(`races/${raceId}`, { venue: race, season: season ?? '' }, true);
   await put(dayPath, { day, runId }, true);
   return dayPath;
-}
-
-/** Questions as generated, before any send. Scope decides where they land. */
-export async function saveGeneratedQuestions(input: {
-  runId: string;
-  scope: 'team' | 'personal';
-  sailor?: string;
-  questions: string[];
-  prompt?: string;
-}) {
-  if (!PROJECT || !API_KEY) throw new Error('Firebase project id or API key is not configured');
-  if (!input.questions.length) return null;
-
-  const dayPath = await ensureDay(input.runId);
-  const generatedAt = new Date().toISOString();
-
-  if (input.scope === 'personal') {
-    if (!input.sailor) throw new Error('A sailor is required for personal scope');
-    const path = `${dayPath}/sailors/${docId(input.sailor)}`;
-    await put(path, {
-      sailor: input.sailor,
-      questions: input.questions,
-      prompt: input.prompt ?? '',
-      generatedAt,
-    }, true);
-    return { path, generatedAt };
-  }
-
-  await put(dayPath, {
-    teamQuestions: input.questions,
-    teamPrompt: input.prompt ?? '',
-    generatedAt,
-  }, true);
-  return { path: dayPath, generatedAt };
 }
 
 export interface PrimingArtifacts {

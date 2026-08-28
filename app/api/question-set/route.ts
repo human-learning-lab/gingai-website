@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readQuestionSet, saveGeneratedQuestions } from '@/lib/questionStore';
+import { readQuestionSet } from '@/lib/questionStore';
 
 /**
  * GET /api/question-set?runId=...&sailor=...
@@ -29,28 +29,3 @@ export async function GET(req: NextRequest) {
   }
 }
 
-/**
- * POST /api/question-set  { runId, scope, sailor?, questions, prompt? }
- *
- * Files a generated set against its race day, before any send. Merges, so
- * regenerating one sailor leaves the rest of the day untouched and a coach
- * redoing the briefing overwrites only what they redid.
- */
-export async function POST(req: NextRequest) {
-  try {
-    const { runId, scope, sailor, questions, prompt } = await req.json();
-    if (!runId || !scope) {
-      return NextResponse.json({ error: 'runId and scope are required' }, { status: 400 });
-    }
-    if (!Array.isArray(questions) || !questions.length) {
-      return NextResponse.json({ error: 'questions must be a non-empty array' }, { status: 400 });
-    }
-
-    const saved = await saveGeneratedQuestions({ runId, scope, sailor, questions, prompt });
-    return NextResponse.json(saved ?? {});
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    console.error('[question-set:POST]', msg);
-    return NextResponse.json({ error: msg }, { status: 502 });
-  }
-}

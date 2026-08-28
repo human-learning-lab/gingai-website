@@ -152,22 +152,9 @@ export default function SkeletonBriefPage({
   }
   const { questions } = JSON.parse(fullText) as { questions: string[] };
 
-  /* File the set against its race day as soon as it is generated, not only on
-     send — a coach who regenerates and walks away should still find what they
-     produced. The write merges, so redoing one sailor leaves the rest of the
-     day alone. Storing is not worth failing the generation over. */
-  void fetch('/api/question-set', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      runId,
-      scope,
-      sailor: sailor?.name,
-      questions,
-      prompt,
-    }),
-  }).catch(() => undefined);
-
+  /* Not filed here. A generated set is a draft — it reaches Firestore when the
+     coach sends it, mirrored from /api/capture-runs, so what is on record is
+     what the sailors were actually asked. */
   return questions;
   }
 
