@@ -134,9 +134,15 @@ export default function PrimingIn({
   onGoalsChange,
   onCarryForward,
 }: PrimingInProps) {
+  /* Distilled lines are held here rather than written into `responses`, which
+     is a prop. The previous version mutated the objects inside the memo, so
+     nothing told React they had changed and the result depended on the memo
+     not recomputing. */
+  const [distilled, setDistilled] = useState<Record<SailorId, string[]>>({});
+
   const byId = useMemo(
-    () => new Map(responses.map((r) => [r.recipient, r])),
-    [responses]
+    () => new Map(responses.map((r) => [r.recipient, { ...r, distilled: distilled[r.recipient] }])),
+    [responses, distilled]
   );
   const answered = useMemo(
 	() => sailors.filter((s) => (byId.get(s.name)?.responses.length ?? 0) > 0),
@@ -147,20 +153,50 @@ export default function PrimingIn({
   const [depth, setDepth] = useState<Depth>("full");
   const [selected, setSelected] = useState<SailorId>(answered[0]?.name ?? "");
   const [busy, setBusy] = useState<Busy>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const response = byId.get(selected);
   const sailor = sailors.find((s) => s.name === selected);
+
+  const errorBanner = actionError ? (
+    <p
+      role="alert"
+      style={{
+        margin: "0 0 12px",
+        padding: "9px 12px",
+        borderRadius: 5,
+        border: "1px solid #C4392C",
+        background: "rgba(196,57,44,0.07)",
+        color: "#C4392C",
+        fontSize: 12.5,
+        lineHeight: 1.45,
+      }}
+    >
+      {actionError}
+    </p>
+  ) : null;
 
   const setPrompt = (key: keyof Prompts, text: string) =>
     onPromptsChange({ ...prompts, [key]: text });
 
   const distil = async () => {
     setBusy("distil");
+    setActionError(null);
     try {
-      const distilled_resps = await onDistil(prompts.distil)
-	  for(const [sailor, dist] of Object.entries(distilled_resps))
-		  byId.get(sailor)!.distilled = dist;
+      const next = await onDistil(prompts.distil);
+      /* Only sailors we actually know about. The distiller returning a name
+         that is not in the roster used to throw on a non-null assertion, which
+         surfaced as the button doing nothing at all. */
+      const known = Object.fromEntries(
+        Object.entries(next).filter(([name]) => byId.has(name)),
+      );
+      if (!Object.keys(known).length) {
+        throw new Error("The distiller returned no sailors this run recognises.");
+      }
+      setDistilled(known);
       setDepth("distilled");
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Could not distil the answers");
     } finally {
       setBusy(null);
     }
@@ -168,8 +204,11 @@ export default function PrimingIn({
 
   const synthesise = async () => {
     setBusy("synthesis");
+    setActionError(null);
     try {
       await onSynthesise(prompts.synthesis);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Could not build the team picture");
     } finally {
       setBusy(null);
     }
@@ -177,9 +216,13 @@ export default function PrimingIn({
 
   const proposeGoals = async () => {
     setBusy("goals");
+    setActionError(null);
     try {
-      const goals = await onProposeGoals(prompts.squadGoals);
-      onGoalsChange(goals);
+      onGoalsChange(await onProposeGoals(prompts.squadGoals));
+    } catch (e) {
+      /* These three had try/finally and no catch, so a failure was an unhandled
+         rejection: the spinner stopped and nothing said why. */
+      setActionError(e instanceof Error ? e.message : "Could not propose goals");
     } finally {
       setBusy(null);
     }
@@ -217,6 +260,8 @@ export default function PrimingIn({
           {sailors.length} in.
         </p>
       </header>
+
+      {errorBanner}
 
       <ViewToggle view={view} onChange={setView} />
 

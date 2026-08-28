@@ -18,8 +18,27 @@ import { teamSailors } from '@/data/roles.hll';
 // GingaAI agent apis
 const AGENT_BASE = '/api/agent';
 const SYNTH_APP_NAME = 'synthesize';
-const DIST_APP_NAME = 'distill';
-const GOAL_APP_NAME = 'propose_goals';
+
+/* `distill` and `propose_goals` are deployed but not working:
+     propose_goals — cannot be constructed at all. run_sse answers 404 with
+       "Node name 'Propose Goals' must be a valid Python identifier", so the
+       agent is defined with a space in its name.
+     distill — returns {"distilled": {}} padded with several thousand spaces,
+       whatever the prompt.
+   Neither is in the GINGA-ai repo, so both are unpushed code on Viktor's
+   machine and cannot be fixed from here. Until they are, both run through
+   `report` under a directive prompt, which produces the right shapes — the
+   same workaround the profile generation uses. Set the env vars once the real
+   agents work and the FALLBACK_* prompts can go. */
+const DIST_APP_NAME = process.env.NEXT_PUBLIC_DISTIL_AGENT ?? 'report';
+const GOAL_APP_NAME = process.env.NEXT_PUBLIC_GOALS_AGENT ?? 'report';
+
+const FALLBACK_DISTIL_FORMAT = `Ignore your usual format. Condense each sailor answer to one line.
+Return ONLY JSON: {"distilled": {"SailorName": ["one line per question", ...]}}
+Use the sailor names exactly as given. Keep every sailor, even where their answers are empty.`;
+
+const FALLBACK_GOALS_FORMAT = `Ignore your usual format. Propose 2-3 squad goals from the team picture below.
+Return ONLY a JSON array: [{"goal": "...", "evidence": "what would settle whether it was met"}]`;
 
 
 const BASE_SAILORS: Sailor[] = [
@@ -120,7 +139,13 @@ export default function PrimingInPage({
       appName: DIST_APP_NAME,
       userId,
       sessionId,
-      newMessage: { role: 'user', parts: [{ text: prompt + "Responses:\n" + JSON.stringify(responses_body) }] },
+      newMessage: {
+        role: 'user',
+        parts: [{
+          text: (DIST_APP_NAME === 'report' ? FALLBACK_DISTIL_FORMAT + '\n\n' : '')
+            + prompt + "\n\nResponses:\n" + JSON.stringify(responses_body),
+        }],
+      },
       streaming: false,
     }),
   });
@@ -151,8 +176,17 @@ export default function PrimingInPage({
       } catch { /* skip non-JSON lines */ }
     }
   }
-  const distilled = JSON.parse(fullText).distilled as Record<string, string[]>;
-  console.log(distilled);
+  let distilled: Record<string, string[]>;
+  try {
+    distilled = JSON.parse(fullText).distilled as Record<string, string[]>;
+  } catch {
+    throw new Error('The distiller did not return readable JSON.');
+  }
+  /* An empty object used to pass silently: the view switched to Distilled and
+     every line showed a dash. Treat it as the failure it is. */
+  if (!distilled || !Object.keys(distilled).length) {
+    throw new Error('The distiller returned nothing to show.');
+  }
   return distilled;
   }
 
@@ -228,7 +262,13 @@ export default function PrimingInPage({
       appName: GOAL_APP_NAME,
       userId,
       sessionId,
-      newMessage: { role: 'user', parts: [{ text: JSON.stringify(teamPicture) + prompt }] },
+      newMessage: {
+        role: 'user',
+        parts: [{
+          text: (GOAL_APP_NAME === 'report' ? FALLBACK_GOALS_FORMAT + '\n\n' : '')
+            + prompt + '\n\nTEAM PICTURE:\n' + JSON.stringify(teamPicture),
+        }],
+      },
       streaming: false,
     }),
   });
