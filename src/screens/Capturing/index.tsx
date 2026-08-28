@@ -191,7 +191,7 @@ export default function CapturePage({
   }
 
   return (
-    <div style={{ background: "#F7F4ED", minHeight: "100vh", padding: 22 }}>
+    <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
       <Capture
         sailors={SAILORS}
         squadGoals={DEFAULT_GOALS}

@@ -94,15 +94,29 @@ export default function ConsoleShell({
   onPhaseChange,
   children,
 }: ConsoleShellProps) {
+  /* The app shell is fixed-viewport — html and body set overflow:hidden and
+     each screen scrolls its own content. The console had no scroll of its own,
+     so anything past the fold was unreachable. The header stays put and the
+     phase content scrolls under it. */
   return (
-      <div style={{ minWidth: 0 }}>
+      <div
+        style={{
+          minWidth: 0,
+          flex: 1,
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <EventHeader
           event={event}
           phases={phases}
           activePhase={activePhase}
           onPhaseChange={onPhaseChange}
         />
-        <main style={{ padding: 22 }}>{children}</main>
+        <main style={{ padding: 22, flex: 1, minHeight: 0, overflowY: "auto" }}>
+          {children}
+        </main>
       </div>
   );
 }

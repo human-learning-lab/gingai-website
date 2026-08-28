@@ -274,7 +274,7 @@ export default function PrimingInPage({
   }
 
   return (
-    <div style={{ background: "#F7F4ED", minHeight: "100vh", padding: 22 }}>
+    <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
       <PrimingIn
 	  	runId={runId}
         sailors={SAILORS}
