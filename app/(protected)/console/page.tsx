@@ -9,6 +9,7 @@ import CapturePage from "@/screens/Capturing";
 import CapturesInPage from "@/screens/CapturesIn";
 import HotDebriefPage from "@/screens/HotDebrief";
 import RegenerateSailorDoc from "@/screens/Console/RegenerateSailorDoc";
+import GenerateTeamDoc from "@/screens/Console/GenerateTeamDoc";
 
 /* ============================================================
    The console. One shell, six phases.
@@ -54,6 +55,7 @@ export default function ConsolePage() {
       {/* TEMPORARY — delete this mount and the component before merging to
           main. Renders only when NEXT_PUBLIC_TEAM=hll. */}
       <RegenerateSailorDoc />
+      <GenerateTeamDoc />
 
       {phase === "skeleton" && <SkeletonBriefPage runId={runId} />}
       {phase === "priming" && <PrimingInPage runId={runId} />}

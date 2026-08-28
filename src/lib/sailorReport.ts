@@ -344,3 +344,105 @@ export async function regenerateProfile(
     revised: Boolean(previous),
   };
 }
+
+/* ── Team context file ─────────────────────────────────────────
+ * Built by reading across the individual context files rather than from
+ * transcripts. What it is for is the part the individual files cannot answer:
+ * where the squad agrees, where it does not, and what that means for how the
+ * team is briefed.
+ */
+
+const TEAM_CONTEXT_STRUCTURE = `# Stable Layer — Who We Are as a Squad
+
+## Composition & Roles
+The roles represented, and how responsibility shifts with crew configuration.
+
+## How the Squad Communicates
+How information moves on the boat — who calls what, and where the handoffs are.
+
+## Collective Reaction Under Pressure
+What the squad does when things go wrong. Where individual defaults compound rather than cancel out.
+
+## Conditions That Raise Team Pressure
+Conditions and configurations that stretch several people at once.
+
+## What Drives the Squad
+What the group is chasing, and where individual motivations pull in different directions.
+
+# Living Layer — Current Focus & Patterns
+
+## Shared Development Areas
+What more than one sailor is working on right now.
+
+## Where the Squad Converges
+Themes several sailors independently raise. Name who, so a reader can check it.
+
+## Where the Squad Diverges
+Points where sailors describe the same thing differently, or want different things. Leave these unresolved — flagging them is the value.
+
+## Recurring Team-Level Mistakes
+Mistakes that recur across sailors rather than within one.
+
+## Upcoming Context Sensitivity
+Conditions or configurations ahead that several people are uncertain about.
+
+## What Works / Doesn't Work in Team Priming
+Question shapes that work across the squad, and where individuals need something different from the team default.`;
+
+export interface TeamContext {
+  content: string;
+  generatedAt: string;
+  sailors: string[];
+  revised: boolean;
+}
+
+export async function generateTeamContext(
+  files: { sailor: string; content: string }[],
+  previous: string | null,
+): Promise<TeamContext> {
+  if (!files.length) throw new Error('No sailor context files to read');
+
+  const prompt = [
+    'Ignore your usual daily-report format. You are maintaining the SQUAD context',
+    'file for the Mubadala Brazil SailGP Team — the standing picture of the team as',
+    'a group. It is read by the coaching staff, so write third person, analytical',
+    'and specific. Not a daily report, not a pep talk.',
+    '',
+    'You are given each sailor\'s individual context file. Read across them. Your job',
+    'is the part no individual file can answer: what the squad has in common, where',
+    'it agrees, and where it does not.',
+    '',
+    'Reproduce exactly this structure, with these headings, in this order:',
+    '',
+    TEAM_CONTEXT_STRUCTURE,
+    '',
+    'RULES',
+    '- Common ground first. A pattern one sailor mentions is an individual note; a',
+    '  pattern two or more raise independently belongs here. Say how many.',
+    '- Name sailors when attributing a theme, so a reader can check it against their',
+    '  file.',
+    '- Do not resolve divergence. Where sailors want different things, record both.',
+    '- Use only what the files support. Where a section has nothing behind it, write',
+    '  one line saying so rather than inventing a team dynamic.',
+    '- Some files may be marked as example or synthetic data. Exclude them from',
+    '  convergence counts and say that you have.',
+    '- Do not attribute a gendered pronoun to anyone unless their file establishes one.',
+    '- Describe the difficulty, never the person.',
+    '',
+    previous
+      ? 'CURRENT SQUAD CONTEXT FILE — revise this:\n\n' + previous
+      : 'No squad context file exists yet. Write the first one.',
+    '',
+    `SAILOR CONTEXT FILES (${files.length}):`,
+    ...files.map(f => `\n===== ${f.sailor} =====\n${f.content}`),
+  ].join('\n');
+
+  const content = await runAgent(prompt, PROFILE_APP);
+
+  return {
+    content,
+    generatedAt: new Date().toISOString(),
+    sailors: files.map(f => f.sailor),
+    revised: Boolean(previous),
+  };
+}
