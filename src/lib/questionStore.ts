@@ -276,3 +276,44 @@ export async function savePrimingArtifacts(input: PrimingArtifacts) {
 
   return { path: dayPath, written, sailors, updatedAt };
 }
+
+export interface StoredPrimingArtifacts {
+  teamPicture: unknown | null;
+  squadGoals: unknown | null;
+  distilled: Record<string, string[]>;
+}
+
+/**
+ * What phase 02 filed for this run. The picture and goals are stored as JSON
+ * strings, so they are parsed here rather than by every caller.
+ */
+export async function readPrimingArtifacts(runId: string): Promise<StoredPrimingArtifacts | null> {
+  if (!PROJECT || !API_KEY) return null;
+
+  const { race, day } = parseRunId(runId);
+  const dayPath = `races/${docId(race)}/days/${docId(day)}`;
+  const dayDoc = await getDoc(dayPath);
+  if (!dayDoc) return null;
+
+  const parse = (raw: unknown) => {
+    if (typeof raw !== 'string' || !raw) return null;
+    try { return JSON.parse(raw); } catch { return null; }
+  };
+
+  const distilled: Record<string, string[]> = {};
+  const res = await fetch(`${ROOT}/${dayPath}/sailors?key=${API_KEY}`, { cache: 'no-store' });
+  if (res.ok) {
+    const data = await res.json().catch(() => null) as
+      { documents?: { name: string; fields?: Record<string, Record<string, unknown>> }[] } | null;
+    for (const d of data?.documents ?? []) {
+      const lines = fromValue(d.fields?.distilled) as string[] | undefined;
+      if (lines?.length) distilled[d.name.split('/').pop() ?? ''] = lines;
+    }
+  }
+
+  return {
+    teamPicture: parse(fromValue(dayDoc.teamPicture)),
+    squadGoals: parse(fromValue(dayDoc.squadGoals)),
+    distilled,
+  };
+}

@@ -313,13 +313,20 @@ export default function PrimingInPage({
     }
   }
 
+    /* Not filed here. Proposed goals are a draft the coach edits — they reach
+       Firestore on carry forward, which is the point the coach commits them to
+       the briefing. */
     const goals = JSON.parse(fullText) as SquadGoal[];
-    fileArtifacts({ squadGoals: goals });
     return goals;
   }
 
   /* Hand the picture and goals to the briefing, then navigate. */
   async function handleCarryForward() {
+    /* The commit point for the goals: filed as the coach carries them into the
+       briefing, edits included, rather than as first proposed. Phase 03 reads
+       them back from here. */
+    fileArtifacts({ squadGoals });
+
     await fetch(`/api/priming?id=${runId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

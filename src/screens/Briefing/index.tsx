@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Briefing, {
   type Recording,
   type Stage,
@@ -33,7 +33,8 @@ Rules:
   says so. Never manufacture a conclusion.
 - Attribute a decision only if the transcript makes the owner clear.`;
 
-const DEFAULT_GOALS: string[] = [];
+/* Shape the goals agent returns, and what phase 02 files. */
+interface CarriedGoal { goal?: string; evidence?: string }
 
 export default function BriefingPage({
   runId,
@@ -44,6 +45,31 @@ export default function BriefingPage({
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [recording, setRecording] = useState<Recording | null>(null);
   const [structured, setStructured] = useState<StructuredBriefing | null>(null);
+  const [carriedGoals, setCarriedGoals] = useState<string[]>([]);
+
+  /* The squad goals the coach carried in from priming. They are filed on carry
+     forward rather than when first proposed, so what arrives here is what the
+     coach committed, edits included. A run with nothing carried in yet answers
+     404 and the panel simply stays empty. */
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(`/api/priming-artifacts?runId=${encodeURIComponent(runId)}`)
+      .then(async (res) => {
+        if (!res.ok || cancelled) return;
+        const data = await res.json().catch(() => null);
+        const goals = data?.squadGoals;
+        if (!Array.isArray(goals) || cancelled) return;
+        setCarriedGoals(
+          goals
+            .map((g: CarriedGoal | string) => (typeof g === "string" ? g : g?.goal ?? ""))
+            .filter(Boolean),
+        );
+      })
+      .catch(() => undefined);
+
+    return () => { cancelled = true; };
+  }, [runId]);
 
 
   /* Upload → transcribe → structure. Each step reports its own stage so the
@@ -121,7 +147,7 @@ export default function BriefingPage({
   return (
     <div style={{ background: "#F7F4ED", minHeight: "100vh", padding: 22 }}>
       <Briefing
-        carriedGoals={DEFAULT_GOALS}
+        carriedGoals={carriedGoals}
         recording={recording}
         structured={structured}
         prompt={prompt}
