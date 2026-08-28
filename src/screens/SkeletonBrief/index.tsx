@@ -77,23 +77,32 @@ export default function SkeletonBriefPage({
     scope: "team" | "personal";
     sailor?: Sailor;
   }): Promise<string[]> {
-  /* Personal questions are written against the sailor's standing profile.
-     Without one there is nothing to personalise, so fail rather than quietly
-     generating the team set under their name. */
-  let profile = '';
-  if (scope === 'personal') {
-    if (!sailor) throw new Error('Select a sailor first.');
-    const res = await fetch(`/api/sailor-profile?sailor=${encodeURIComponent(sailor.name)}`);
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      throw new Error(data?.error ?? `No profile on file for ${sailor.name}.`);
-    }
-    profile = data.content as string;
-  }
+  /* Both scopes are written against a context file: the sailor's for personal,
+     the squad's for team. Without one there is nothing to write against, so
+     fail rather than quietly producing generic questions that read as though
+     they were informed. */
+  const isPersonal = scope === 'personal';
+  if (isPersonal && !sailor) throw new Error('Select a sailor first.');
 
-  const text = profile
-    ? `${prompt}\n\nWrite these questions for ${sailor!.name} specifically, using their standing profile below. Draw on their own strengths, weaknesses and goals — ask about what they are actually working on, in their own language.\n\nTHEIR PROFILE:\n${profile}`
-    : prompt;
+  const profileRes = await fetch(
+    isPersonal
+      ? `/api/sailor-profile?sailor=${encodeURIComponent(sailor!.name)}`
+      : '/api/team-profile',
+  );
+  const data = await profileRes.json().catch(() => null);
+  if (!profileRes.ok) {
+    throw new Error(
+      data?.error ??
+        (isPersonal
+          ? `No profile on file for ${sailor!.name}.`
+          : 'No team context file on file.'),
+    );
+  }
+  const profile = data.content as string;
+
+  const text = isPersonal
+    ? `${prompt}\n\nWrite these questions for ${sailor!.name} specifically, using their context file below. Draw on what they are actually working on, in their own language.\n\nTHEIR CONTEXT FILE:\n${profile}`
+    : `${prompt}\n\nWrite these questions for the squad as a whole, using the team context file below. Draw on the shared development areas and the themes the squad converges on. Where the file records a divergence, a question may probe it — do not resolve it.\n\nTEAM CONTEXT FILE:\n${profile}`;
 
   const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const userId = 'user-1';
