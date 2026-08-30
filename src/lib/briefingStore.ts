@@ -75,6 +75,8 @@ function dayPath(runId: string) {
 }
 
 export interface BriefingRecord {
+  /** The goals as agreed in the room, developed from briefingGoals against the
+   *  transcript. Filed as `squadGoals` — the squad's actual goals for the day. */
   goals: unknown[];
   decisions: unknown[];
   sections: unknown[];
@@ -91,7 +93,7 @@ export async function saveBriefing(runId: string, record: BriefingRecord) {
   const fields: Record<string, { stringValue: string }> = {
     // Stored as JSON: the shapes belong to the agent, and a typed Firestore
     // map would need migrating every time one changes.
-    briefingGoals: { stringValue: JSON.stringify(record.goals ?? []) },
+    squadGoals: { stringValue: JSON.stringify(record.goals ?? []) },
     briefingDecisions: { stringValue: JSON.stringify(record.decisions ?? []) },
     briefingSections: { stringValue: JSON.stringify(record.sections ?? []) },
     briefingUpdatedAt: { stringValue: record.updatedAt ?? new Date().toISOString() },
@@ -138,7 +140,7 @@ export async function readBriefing(runId: string): Promise<BriefingRecord | null
   };
 
   return {
-    goals: parse(f.briefingGoals?.stringValue),
+    goals: parse(f.squadGoals?.stringValue),
     decisions: parse(f.briefingDecisions?.stringValue),
     sections: parse(f.briefingSections?.stringValue),
     prompt: f.briefingPrompt?.stringValue,

@@ -231,7 +231,12 @@ export interface PrimingArtifacts {
   runId: string;
   /** The synthesised team picture, shape decided by the synthesize agent. */
   teamPicture?: unknown;
-  squadGoals?: unknown;
+  /**
+   * The goals the coach carries into the briefing. Stored as `briefingGoals`:
+   * they are the briefing's input. What the briefing agrees, developed from
+   * these against the transcript, is filed separately as `squadGoals`.
+   */
+  briefingGoals?: unknown;
   /** One condensed line per question, keyed by sailor. */
   distilled?: Record<string, string[]>;
 }
@@ -254,9 +259,9 @@ export async function savePrimingArtifacts(input: PrimingArtifacts) {
     dayFields.teamPicture = JSON.stringify(input.teamPicture);
     written.push('teamPicture');
   }
-  if (input.squadGoals !== undefined) {
-    dayFields.squadGoals = JSON.stringify(input.squadGoals);
-    written.push('squadGoals');
+  if (input.briefingGoals !== undefined) {
+    dayFields.briefingGoals = JSON.stringify(input.briefingGoals);
+    written.push('briefingGoals');
   }
   if (Object.keys(dayFields).length) {
     await put(dayPath, { ...dayFields, primingUpdatedAt: updatedAt }, true);
@@ -279,7 +284,8 @@ export async function savePrimingArtifacts(input: PrimingArtifacts) {
 
 export interface StoredPrimingArtifacts {
   teamPicture: unknown | null;
-  squadGoals: unknown | null;
+  /** The goals carried into the briefing — its input, not its outcome. */
+  briefingGoals: unknown | null;
   distilled: Record<string, string[]>;
 }
 
@@ -313,7 +319,7 @@ export async function readPrimingArtifacts(runId: string): Promise<StoredPriming
 
   return {
     teamPicture: parse(fromValue(dayDoc.teamPicture)),
-    squadGoals: parse(fromValue(dayDoc.squadGoals)),
+    briefingGoals: parse(fromValue(dayDoc.briefingGoals)),
     distilled,
   };
 }

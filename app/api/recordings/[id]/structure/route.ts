@@ -91,14 +91,14 @@ export async function POST(
        came back empty.
 
        Read from Firestore rather than taken from the caller: they were filed
-       when the coach carried the priming forward, so the source of truth is
-       there and a restructure does not depend on the screen still holding
-       them. `carriedGoals` from the body is a fallback, and the runId is
-       optional so a recording outside a race day still structures. */
+       as briefingGoals when the coach carried the priming forward, so the
+       source of truth is there and a restructure does not depend on the screen
+       still holding them. `carriedGoals` from the body is a fallback, and the
+       runId is optional so a recording outside a race day still structures. */
     let proposedGoals: string[] = [];
     if (runId) {
       const filed = await readPrimingArtifacts(runId);
-      const goals = filed?.squadGoals;
+      const goals = filed?.briefingGoals;
       if (Array.isArray(goals)) {
         proposedGoals = goals
           .map((g: unknown) =>
@@ -106,17 +106,24 @@ export async function POST(
           .filter(Boolean);
       }
     }
-    /* squadGoals is what phase 02 carried in. briefingGoals is this step's own
-       previous output — feeding that back would have the briefing agree with
-       itself rather than with the room. */
+    /* briefingGoals is what the coach carried into the briefing. The agreed
+       goals this step produces are filed separately as squadGoals, so a
+       restructure still works from the proposal rather than from its own last
+       answer. */
     if (!proposedGoals.length && Array.isArray(carriedGoals)) {
       proposedGoals = carriedGoals.filter((g: unknown): g is string => typeof g === 'string' && !!g);
     }
 
     const proposed = proposedGoals.length
-      ? `GOALS PROPOSED IN PRIMING (the room may have kept, changed or dropped these — ` +
-        `report what was agreed, and say what changed):\n` +
-        proposedGoals.map(g => `- ${g}`).join('\n') + '\n\n'
+      ? `GOALS CARRIED INTO THIS BRIEFING\n` +
+        proposedGoals.map(g => `- ${g}`).join('\n') +
+        `\n\nWork the goals out from these against the transcript. For each one, ` +
+        `decide from what the room actually said whether it was kept as is, ` +
+        `reworded, narrowed, merged with another, or dropped — and say which in ` +
+        `the evidence. Add a goal the room raised that is not in the list. Drop ` +
+        `one the room rejected. Where the transcript does not touch a carried ` +
+        `goal at all, keep it and say it went unaddressed rather than inventing ` +
+        `agreement.\n\n`
       : '';
 
     const out = await runAgent(

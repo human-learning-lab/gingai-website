@@ -338,7 +338,7 @@ export default function PrimingInPage({
     const res = await fetch('/api/priming-artifacts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ runId, teamPicture, squadGoals }),
+      body: JSON.stringify({ runId, teamPicture, briefingGoals: squadGoals }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => null);

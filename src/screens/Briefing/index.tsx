@@ -99,7 +99,7 @@ export default function BriefingPage({
       .then(async (res) => {
         if (!res.ok || cancelled) return;
         const data = await res.json().catch(() => null);
-        const goals = data?.squadGoals;
+        const goals = data?.briefingGoals;
         if (!Array.isArray(goals) || cancelled) return;
         setCarriedGoals(
           goals
