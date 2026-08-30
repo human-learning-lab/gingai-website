@@ -7,9 +7,14 @@
  * reshaped, so the screen's upload -> transcribe -> structure flow is untouched.
  *
  * Underneath, Viktor's API offers one relevant thing: POST /upload_media, which
- * takes base64 audio and transcribes it into the uploads table. There is no
- * per-upload read — GET /uploads/{id} answers 405 — so a row is found by
- * listing and matching the title we gave it.
+ * transcribes audio into the uploads table. It takes multipart/form-data with
+ * fields file, filetype, user and title — despite /api/library posting JSON to
+ * it. JSON is rejected with all four fields "missing" while echoing the body
+ * back, which is what a FastAPI Form parameter does when sent a JSON document.
+ *
+ * It answers 200 with a null body, and there is no per-upload read — GET
+ * /uploads/{id} answers 405 — so the new row is found by listing and matching
+ * the title we gave it.
  */
 
 const BASE = process.env.VIKTOR_API_URL ?? 'https://wriggly-tutu-groin.ngrok-free.dev';
@@ -38,22 +43,24 @@ export function briefingTitle(runId: string, filename: string) {
 
 export async function uploadRecording(opts: {
   runId: string;
+  file: Blob;
   filename: string;
   filetype: string;
-  base64: string;
   user: string;
 }): Promise<{ recordingId: string; title: string }> {
   const title = briefingTitle(opts.runId, opts.filename);
 
+  const form = new FormData();
+  form.append('file', opts.file, opts.filename);
+  form.append('filetype', opts.filetype);
+  form.append('user', opts.user);
+  form.append('title', title);
+
+  // No Content-Type header: fetch sets it with the multipart boundary.
   const res = await fetch(`${BASE}/upload_media`, {
     method: 'POST',
-    headers: { ...HEADERS, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      file: opts.base64,
-      filetype: opts.filetype,
-      user: opts.user,
-      title,
-    }),
+    headers: HEADERS,
+    body: form,
   });
 
   if (!res.ok) {
@@ -61,9 +68,9 @@ export async function uploadRecording(opts: {
     throw new Error(`upload_media ${res.status}: ${detail.slice(0, 200)}`);
   }
 
-  /* Prefer an id from the response, but do not depend on one: the endpoint's
-     response shape is undocumented and has been null in other cases. Falling
-     back to the title we just wrote makes this work either way. */
+  /* The endpoint answers 200 with a null body, so the id comes from finding
+     the row by title. The response is still checked first, in case it starts
+     returning one. */
   const body = await res.json().catch(() => null) as { uploadid?: number; id?: number } | null;
   const fromBody = body?.uploadid ?? body?.id;
   if (fromBody) return { recordingId: String(fromBody), title };

@@ -8,9 +8,9 @@ export const maxDuration = 300;
 /**
  * POST /api/sessions/{runId}/recording   multipart, field "audio"
  *
- * Sends the recording to Viktor's /upload_media, which transcribes it, and
- * returns the id the rest of the chain uses. The screen has called this route
- * since it was written; it just never existed.
+ * Sends the recording to Viktor's /upload_media as multipart, which transcribes
+ * it, and returns the id the rest of the chain uses. The screen has called this
+ * route since it was written; it just never existed.
  */
 export async function POST(
   req: NextRequest,
@@ -25,15 +25,17 @@ export async function POST(
       return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
     }
 
-    const bytes = Buffer.from(await file.arrayBuffer());
     const filename = file.name || 'recording';
     const filetype = filename.split('.').pop()?.toLowerCase() || 'wav';
 
+    /* Passed straight through as a file rather than buffered into base64:
+       /upload_media wants multipart, and a briefing recording is large enough
+       that the 33% base64 inflation was worth avoiding anyway. */
     const { recordingId, title } = await uploadRecording({
       runId,
+      file,
       filename,
       filetype,
-      base64: bytes.toString('base64'),
       user: (form.get('user') as string | null) ?? 'briefing',
     });
 
