@@ -73,6 +73,8 @@ export interface BriefingProps {
 
   /** Upload, transcribe, structure. Report progress through onStageChange. */
   onUpload: (file: File) => Promise<void>;
+  /** Why the last attempt failed, if it did. */
+  uploadError?: string | null;
   /** Re-run the prompt against the saved transcript. Never re-processes audio. */
   onRestructure: (prompt: string) => Promise<void>;
   /** Persist an edited transcript. */
@@ -125,6 +127,7 @@ export default function Briefing({
   prompt,
   onPromptChange,
   onUpload,
+  uploadError = null,
   onRestructure,
   onTranscriptChange,
   onSave,
@@ -288,6 +291,24 @@ export default function Briefing({
                 </div>
               </div>
             </>
+          )}
+
+          {uploadError && (
+            <p
+              role="alert"
+              style={{
+                margin: "0 0 12px",
+                padding: "9px 12px",
+                borderRadius: 5,
+                border: "1px solid #C4392C",
+                background: "rgba(196,57,44,0.07)",
+                color: "#C4392C",
+                fontSize: 12.5,
+                lineHeight: 1.45,
+              }}
+            >
+              {uploadError}
+            </p>
           )}
 
           {busy && <Progress stage={stage} />}

@@ -46,6 +46,7 @@ export default function BriefingPage({
   const [recording, setRecording] = useState<Recording | null>(null);
   const [structured, setStructured] = useState<StructuredBriefing | null>(null);
   const [carriedGoals, setCarriedGoals] = useState<string[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   /* The squad goals the coach carried in from priming. They are filed on carry
      forward rather than when first proposed, so what arrives here is what the
@@ -75,6 +76,19 @@ export default function BriefingPage({
   /* Upload → transcribe → structure. Each step reports its own stage so the
      coach sees where it is rather than staring at a spinner. */
   async function handleUpload(file: File) {
+    setUploadError(null);
+    try {
+      await runUpload(file);
+    } catch (e) {
+      /* Briefing calls this as `void onUpload(file)`, so a rejection was an
+         unhandled one: the screen flashed through the stages and dropped back
+         to the upload prompt saying nothing. */
+      setUploadError(e instanceof Error ? e.message : "Could not process the recording");
+      setStage("empty");
+    }
+  }
+
+  async function runUpload(file: File) {
     setStage("uploading");
 
     const form = new FormData();
@@ -85,8 +99,9 @@ export default function BriefingPage({
       body: form,
     });
     if (!upload.ok) {
+      const data = await upload.json().catch(() => null);
       setStage("empty");
-      throw new Error("Could not upload the recording");
+      throw new Error(data?.error ?? "Could not upload the recording");
     }
     const { recordingId } = (await upload.json()) as { recordingId: string };
 
@@ -96,14 +111,20 @@ export default function BriefingPage({
       { method: "POST" }
     );
     if (!transcribe.ok) {
+      const data = await transcribe.json().catch(() => null);
       setStage("empty");
-      throw new Error("Could not transcribe the recording");
+      throw new Error(data?.error ?? "Could not transcribe the recording");
     }
     const rec = (await transcribe.json()) as Recording;
     setRecording(rec);
 
     setStage("structuring");
-    await runStructure(recordingId, prompt);
+    try {
+      await runStructure(recordingId, prompt);
+    } catch (e) {
+      setStage("empty");
+      throw e;
+    }
     setStage("done");
   }
 
@@ -114,7 +135,10 @@ export default function BriefingPage({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt: withPrompt }),
     });
-    if (!res.ok) throw new Error("Could not structure the briefing");
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.error ?? "Could not structure the briefing");
+    }
     setStructured((await res.json()) as StructuredBriefing);
   }
 
@@ -153,6 +177,7 @@ export default function BriefingPage({
         prompt={prompt}
         onPromptChange={setPrompt}
         onUpload={handleUpload}
+        uploadError={uploadError}
         onRestructure={handleRestructure}
         onTranscriptChange={handleTranscriptChange}
         onSave={handleSave}
