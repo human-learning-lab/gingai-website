@@ -82,6 +82,8 @@ export interface BriefingProps {
   /** Persist an edited transcript. */
   onTranscriptChange?: (transcript: string) => void;
   onSave: () => Promise<void> | void;
+  /** Whether anything is unsaved. Drives the save button's enabled state. */
+  dirty?: boolean;
 
   stage: Stage;
 }
@@ -134,10 +136,11 @@ export default function Briefing({
   onRestructure,
   onTranscriptChange,
   onSave,
+  dirty = false,
   stage,
 }: BriefingProps) {
   const [depth, setDepth] = useState<"structured" | "transcript">("structured");
-  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [restructuring, setRestructuring] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -166,8 +169,13 @@ export default function Briefing({
   };
 
   const save = async () => {
-    await onSave();
-    setSaved(true);
+    if (!dirty || saving) return;
+    setSaving(true);
+    try {
+      await onSave();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -561,16 +569,23 @@ export default function Briefing({
 
           {stage === "done" && (
             <>
+              {/* Disabled until something is actually unsaved, so the button
+                  says whether there is anything to do rather than always
+                  inviting a write. */}
               <button
                 onClick={save}
+                disabled={!dirty || saving}
                 style={{
                   ...primaryButton,
-                  background: saved ? C.greenDk : C.ink,
+                  background: dirty ? C.ink : C.sand2,
+                  color: dirty ? "#fff" : C.warmLt,
+                  cursor: dirty && !saving ? "pointer" : "not-allowed",
+                  opacity: saving ? 0.55 : 1,
                 }}
               >
-                {saved ? "Saved ✓" : "Save to the event record"}
+                {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
               </button>
-              {saved && (
+              {!dirty && (
                 <div
                   style={{
                     padding: "11px 12px",

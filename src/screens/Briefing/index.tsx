@@ -48,6 +48,10 @@ export default function BriefingPage({
   const [carriedGoals, setCarriedGoals] = useState<string[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  /* Unsaved work. Set by anything that changes what would be written — a new
+     recording, a restructure, an edited transcript or prompt — and cleared by
+     a successful save or by loading what is already on file. */
+  const [dirty, setDirty] = useState(false);
 
   /* A briefing already filed for this run fills the screen, so reopening the
      phase does not look like nothing ever happened. Nothing on file leaves the
@@ -81,6 +85,8 @@ export default function BriefingPage({
           sections: data.sections ?? [],
         });
         setStage("done");
+        /* Loaded from file, so nothing is outstanding. */
+        setDirty(false);
         setLoaded(true);
       })
       .catch(() => { if (!cancelled) setLoaded(true); });
@@ -167,9 +173,9 @@ export default function BriefingPage({
       throw e;
     }
 
-    /* File it as soon as it exists, so a coach who closes the tab does not lose
-       a transcription. The explicit save is still there for edits. */
-    void persist(next, rec, prompt);
+    /* Deliberately not filed here. Save changes owns the write, so the button
+       reflects whether anything is actually outstanding. */
+    setDirty(true);
     setStage("done");
   }
 
@@ -192,17 +198,17 @@ export default function BriefingPage({
   async function handleRestructure(withPrompt: string) {
     if (!recording) return;
     await runStructure(recording.id, withPrompt);
+    setDirty(true);
   }
 
   function handleTranscriptChange(transcript: string) {
     if (!recording) return;
     setRecording({ ...recording, transcript });
-    // Debounce this in production.
-    void fetch(`/api/recordings/${recording.id}/transcript`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ transcript }),
-    });
+    /* Held until Save changes rather than PATCHed per keystroke. That call went
+       to /api/recordings/{id}/transcript, which does not exist — it was
+       fire-and-forget, so every edit 404'd silently. The transcript is written
+       to Storage by the save, so the edit is not lost, it just waits. */
+    setDirty(true);
   }
 
   /* Goals and decisions flow on: goals into the capture questions,
@@ -230,6 +236,7 @@ export default function BriefingPage({
 
   async function handleSave() {
     await persist(structured, recording, prompt);
+    setDirty(false);
   }
 
   return (
@@ -239,9 +246,10 @@ export default function BriefingPage({
         recording={recording}
         structured={structured}
         prompt={prompt}
-        onPromptChange={setPrompt}
+        onPromptChange={(next) => { setPrompt(next); setDirty(true); }}
         onUpload={handleUpload}
         uploadError={uploadError}
+        dirty={dirty}
         hasRecording={Boolean(recording)}
         onRestructure={handleRestructure}
         onTranscriptChange={handleTranscriptChange}
