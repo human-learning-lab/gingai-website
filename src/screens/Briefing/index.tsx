@@ -178,7 +178,7 @@ export default function BriefingPage({
     const res = await fetch(`/api/recordings/${recordingId}/structure`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: withPrompt, carriedGoals }),
+      body: JSON.stringify({ prompt: withPrompt, runId, carriedGoals }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => null);

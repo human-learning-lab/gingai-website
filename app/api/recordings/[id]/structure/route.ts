@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readRecording } from '@/lib/briefingApi';
+import { readPrimingArtifacts } from '@/lib/questionStore';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -60,7 +61,7 @@ async function runAgent(text: string): Promise<string> {
 }
 
 /**
- * POST /api/recordings/{id}/structure   { prompt, carriedGoals? }
+ * POST /api/recordings/{id}/structure   { prompt, runId?, carriedGoals? }
  *
  * Runs the coach's prompt over the saved transcript and returns the structured
  * briefing. Re-running never touches the audio — the transcript is read back
@@ -73,7 +74,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const { prompt, carriedGoals } = await req.json();
+    const { prompt, runId, carriedGoals } = await req.json();
     if (!prompt?.trim()) {
       return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
     }
@@ -87,11 +88,35 @@ export async function POST(
        coach's prompt asks for the goals "as actually agreed... note what
        changed and why", which is unanswerable from the transcript alone —
        a room that refines a goal rarely restates it from scratch, so goals
-       came back empty. */
-    const proposed = Array.isArray(carriedGoals) && carriedGoals.length
+       came back empty.
+
+       Read from Firestore rather than taken from the caller: they were filed
+       when the coach carried the priming forward, so the source of truth is
+       there and a restructure does not depend on the screen still holding
+       them. `carriedGoals` from the body is a fallback, and the runId is
+       optional so a recording outside a race day still structures. */
+    let proposedGoals: string[] = [];
+    if (runId) {
+      const filed = await readPrimingArtifacts(runId);
+      const goals = filed?.squadGoals;
+      if (Array.isArray(goals)) {
+        proposedGoals = goals
+          .map((g: unknown) =>
+            typeof g === 'string' ? g : (g as { goal?: string })?.goal ?? '')
+          .filter(Boolean);
+      }
+    }
+    /* squadGoals is what phase 02 carried in. briefingGoals is this step's own
+       previous output — feeding that back would have the briefing agree with
+       itself rather than with the room. */
+    if (!proposedGoals.length && Array.isArray(carriedGoals)) {
+      proposedGoals = carriedGoals.filter((g: unknown): g is string => typeof g === 'string' && !!g);
+    }
+
+    const proposed = proposedGoals.length
       ? `GOALS PROPOSED IN PRIMING (the room may have kept, changed or dropped these — ` +
         `report what was agreed, and say what changed):\n` +
-        carriedGoals.map((g: string) => `- ${g}`).join('\n') + '\n\n'
+        proposedGoals.map(g => `- ${g}`).join('\n') + '\n\n'
       : '';
 
     const out = await runAgent(
