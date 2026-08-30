@@ -11,9 +11,11 @@ const AGENT_BASE = process.env.AGENT_API_URL ?? 'https://ginga-742926686826.us-e
    one when it exists and the format block below can go. */
 const APP = process.env.BRIEFING_AGENT_APP ?? 'report';
 
+/* The shapes are the screen's, not ours: Briefing renders goal.text and
+   goal.change, so emitting {goal, evidence} rendered every row blank. */
 const FORMAT = `Ignore your usual format. Return ONLY JSON in exactly this shape:
 {
-  "goals": [{"goal": "...", "evidence": "what would settle whether it was met"}],
+  "goals": [{"text": "the goal as agreed", "change": "what changed from what was proposed, and why — omit if unchanged"}],
   "decisions": [{"text": "...", "owner": "name, only if the transcript makes it clear"}],
   "sections": [{"heading": "...", "body": "...", "items": ["..."], "tone": "default" | "open"}]
 }
@@ -119,10 +121,11 @@ export async function POST(
         proposedGoals.map(g => `- ${g}`).join('\n') +
         `\n\nWork the goals out from these against the transcript. For each one, ` +
         `decide from what the room actually said whether it was kept as is, ` +
-        `reworded, narrowed, merged with another, or dropped — and say which in ` +
-        `the evidence. Add a goal the room raised that is not in the list. Drop ` +
-        `one the room rejected. Where the transcript does not touch a carried ` +
-        `goal at all, keep it and say it went unaddressed rather than inventing ` +
+        `reworded, narrowed, merged with another, or dropped — and put that in ` +
+        `"change", leaving it out where the goal was kept unchanged. Add a goal ` +
+        `the room raised that is not in the list. Drop one the room rejected. ` +
+        `Where the transcript does not touch a carried goal at all, keep it and ` +
+        `say in "change" that it went unaddressed rather than inventing ` +
         `agreement.\n\n`
       : '';
 
@@ -143,8 +146,17 @@ export async function POST(
     }
 
     const s = structured as Record<string, unknown>;
+
+    /* Normalise: models reach for {goal, evidence} often enough that mapping it
+       beats showing an empty card. */
+    const goals = (Array.isArray(s.goals) ? s.goals : []).map((g: unknown) => {
+      if (typeof g === 'string') return { text: g };
+      const o = (g ?? {}) as { text?: string; goal?: string; change?: string; evidence?: string };
+      return { text: o.text ?? o.goal ?? '', change: o.change ?? o.evidence };
+    }).filter(g => g.text);
+
     return NextResponse.json({
-      goals: Array.isArray(s.goals) ? s.goals : [],
+      goals,
       decisions: Array.isArray(s.decisions) ? s.decisions : [],
       sections: Array.isArray(s.sections) ? s.sections : [],
     });
