@@ -113,6 +113,33 @@ export default function PrimingInPage({
   const [prompts, setPrompts] = useState<Prompts>(DEFAULT_PROMPTS);
   const [teamPicture, setTeamPicture] = useState<TeamPicture | null>(null);
   const [squadGoals, setSquadGoals] = useState<SquadGoal[]>([]);
+  const [distilled, setDistilled] = useState<Record<string, string[]>>({});
+  /* Unsaved work. Set by anything that changes what would be written, cleared
+     by a successful save, by carrying forward, and by loading what is on file. */
+  const [dirty, setDirty] = useState(false);
+
+  /* A run already filed fills the screen, so reopening the phase does not look
+     like nothing happened. Nothing on file leaves it empty, as before. */
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(`/api/priming-artifacts?runId=${encodeURIComponent(runId)}`)
+      .then(async (res) => {
+        if (!res.ok || cancelled) return;
+        const data = await res.json().catch(() => null);
+        if (!data || cancelled) return;
+
+        if (data.teamPicture) setTeamPicture(data.teamPicture as TeamPicture);
+        if (Array.isArray(data.briefingGoals)) setSquadGoals(data.briefingGoals as SquadGoal[]);
+        if (data.distilled && typeof data.distilled === "object") {
+          setDistilled(data.distilled as Record<string, string[]>);
+        }
+        setDirty(false);
+      })
+      .catch(() => undefined);
+
+    return () => { cancelled = true; };
+  }, [runId]);
 
   useEffect(() => {
 	  async function getResp(){
@@ -125,17 +152,6 @@ export default function PrimingInPage({
   }, [runId]);  
 
   /* Re-condense every response. Server route keeps the model key off the client. */
-
-  /* Everything phase 02 produces is filed against the race day. Each call
-     carries only what that step generated, and the write merges, so redoing
-     one step does not clear the others. Not worth failing the action over. */
-  function fileArtifacts(body: Record<string, unknown>) {
-    void fetch('/api/priming-artifacts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ runId, ...body }),
-    }).catch(() => undefined);
-  }
 
   async function handleDistil(prompt: string) {
     const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -204,7 +220,8 @@ export default function PrimingInPage({
   if (!distilled || !Object.keys(distilled).length) {
     throw new Error('The distiller returned nothing to show.');
   }
-  fileArtifacts({ distilled });
+  /* Not filed here. Save changes owns the write, so the button reflects
+     whether anything is actually outstanding. */
   return distilled;
   }
 
@@ -262,6 +279,7 @@ export default function PrimingInPage({
     /* Not filed here. Like the goals, the picture is filed on carry forward —
        the point the coach commits it to the briefing. */
   setTeamPicture(picture);
+  setDirty(true);
   return picture;
   }
 
@@ -327,6 +345,19 @@ export default function PrimingInPage({
   }
 
   /* Hand the picture and goals to the briefing, then navigate. */
+  async function handleSave() {
+    const res = await fetch('/api/priming-artifacts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ runId, teamPicture, briefingGoals: squadGoals, distilled }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.error ?? 'Could not save the priming');
+    }
+    setDirty(false);
+  }
+
   async function handleCarryForward() {
     if (!teamPicture && !squadGoals.length) {
       throw new Error('Build the team picture or propose goals first.');
@@ -335,16 +366,18 @@ export default function PrimingInPage({
     /* The commit point: the picture and goals are filed as the coach carries
        them into the briefing, edits included, rather than as first generated.
        Phase 03 reads them back from here, so this write is the one that has to
-       land — it is awaited and its failure stops the step. */
+       land — it is awaited and its failure stops the step. Distilled answers go
+       with it, so carrying forward also leaves nothing outstanding. */
     const res = await fetch('/api/priming-artifacts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ runId, teamPicture, briefingGoals: squadGoals }),
+      body: JSON.stringify({ runId, teamPicture, briefingGoals: squadGoals, distilled }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => null);
       throw new Error(data?.error ?? 'Could not carry the priming forward');
     }
+    setDirty(false);
 
     /* Viktor's /priming/{runId} answers 404 — the endpoint does not exist, and
        /api/priming returns 200 with the 404 body, so this never surfaced. Kept
@@ -369,9 +402,13 @@ export default function PrimingInPage({
         teamPicture={teamPicture}
         squadGoals={squadGoals}
         onDistil={handleDistil}
+        distilled={distilled}
+        onDistilledChange={(next) => { setDistilled(next); setDirty(true); }}
+        dirty={dirty}
+        onSave={handleSave}
         onSynthesise={handleSynthesise}
         onProposeGoals={handleProposeGoals}
-        onGoalsChange={setSquadGoals}
+        onGoalsChange={(next) => { setSquadGoals(next); setDirty(true); }}
         onCarryForward={handleCarryForward}
         onCarried={onCarried}
       />
