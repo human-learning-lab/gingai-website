@@ -60,7 +60,7 @@ async function runAgent(text: string): Promise<string> {
 }
 
 /**
- * POST /api/recordings/{id}/structure   { prompt }
+ * POST /api/recordings/{id}/structure   { prompt, carriedGoals? }
  *
  * Runs the coach's prompt over the saved transcript and returns the structured
  * briefing. Re-running never touches the audio — the transcript is read back
@@ -73,7 +73,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const { prompt } = await req.json();
+    const { prompt, carriedGoals } = await req.json();
     if (!prompt?.trim()) {
       return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
     }
@@ -83,8 +83,19 @@ export async function POST(
       return NextResponse.json({ error: `No transcript for recording ${id}` }, { status: 404 });
     }
 
+    /* The proposed goals give the model something to reconcile against. The
+       coach's prompt asks for the goals "as actually agreed... note what
+       changed and why", which is unanswerable from the transcript alone —
+       a room that refines a goal rarely restates it from scratch, so goals
+       came back empty. */
+    const proposed = Array.isArray(carriedGoals) && carriedGoals.length
+      ? `GOALS PROPOSED IN PRIMING (the room may have kept, changed or dropped these — ` +
+        `report what was agreed, and say what changed):\n` +
+        carriedGoals.map((g: string) => `- ${g}`).join('\n') + '\n\n'
+      : '';
+
     const out = await runAgent(
-      `${FORMAT}\n\n${prompt}\n\nBRIEFING TRANSCRIPT:\n${recording.transcript}`,
+      `${FORMAT}\n\n${prompt}\n\n${proposed}BRIEFING TRANSCRIPT:\n${recording.transcript}`,
     );
 
     // Models fence JSON often enough that stripping it beats failing on it.

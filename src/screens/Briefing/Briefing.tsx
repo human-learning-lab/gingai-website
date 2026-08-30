@@ -75,6 +75,8 @@ export interface BriefingProps {
   onUpload: (file: File) => Promise<void>;
   /** Why the last attempt failed, if it did. */
   uploadError?: string | null;
+  /** A briefing is already on file, so uploading replaces it rather than starting one. */
+  hasRecording?: boolean;
   /** Re-run the prompt against the saved transcript. Never re-processes audio. */
   onRestructure: (prompt: string) => Promise<void>;
   /** Persist an edited transcript. */
@@ -128,6 +130,7 @@ export default function Briefing({
   onPromptChange,
   onUpload,
   uploadError = null,
+  hasRecording = false,
   onRestructure,
   onTranscriptChange,
   onSave,
@@ -262,7 +265,9 @@ export default function Briefing({
                     marginBottom: 6,
                   }}
                 >
-                  Drop the briefing recording
+                  {hasRecording
+                    ? "Replace briefing recording"
+                    : "Drop the briefing recording"}
                 </div>
                 <div
                   style={{
@@ -335,7 +340,26 @@ export default function Briefing({
                   </h2>
                   <span style={label}>{recording.duration}</span>
                 </div>
-                <DepthToggle depth={depth} onChange={setDepth} />
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {/* The drop zone only exists in the empty state, so without
+                      this a briefing already on file could never be replaced. */}
+                  <button
+                    onClick={pickFile}
+                    style={{
+                      border: `1px solid ${C.line}`,
+                      borderRadius: 6,
+                      background: C.field,
+                      color: C.warm,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: "6px 12px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Replace briefing recording
+                  </button>
+                  <DepthToggle depth={depth} onChange={setDepth} />
+                </div>
               </div>
 
               {depth === "transcript" ? (

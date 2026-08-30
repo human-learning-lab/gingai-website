@@ -47,6 +47,46 @@ export default function BriefingPage({
   const [structured, setStructured] = useState<StructuredBriefing | null>(null);
   const [carriedGoals, setCarriedGoals] = useState<string[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  /* A briefing already filed for this run fills the screen, so reopening the
+     phase does not look like nothing ever happened. Nothing on file leaves the
+     stage empty and the upload prompt showing, which is the same first-run
+     behaviour as before. */
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(`/api/sessions/${runId}/briefing`)
+      .then(async (res) => {
+        if (cancelled) return;
+        if (!res.ok) { setLoaded(true); return; }
+        const data = await res.json().catch(() => null);
+        if (!data || cancelled) { setLoaded(true); return; }
+
+        if (data.transcript || data.recordingId) {
+          setRecording({
+            id: data.recordingId ?? "",
+            filename: data.filename ?? "briefing recording",
+            duration: "—",
+            recordedAt: data.updatedAt
+              ? new Date(data.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+              : "—",
+            transcript: data.transcript ?? "",
+          });
+        }
+        if (data.prompt) setPrompt(data.prompt);
+        setStructured({
+          goals: data.goals ?? [],
+          decisions: data.decisions ?? [],
+          sections: data.sections ?? [],
+        });
+        setStage("done");
+        setLoaded(true);
+      })
+      .catch(() => { if (!cancelled) setLoaded(true); });
+
+    return () => { cancelled = true; };
+  }, [runId]);
 
   /* The squad goals the coach carried in from priming. They are filed on carry
      forward rather than when first proposed, so what arrives here is what the
@@ -119,12 +159,17 @@ export default function BriefingPage({
     setRecording(rec);
 
     setStage("structuring");
+    let next: StructuredBriefing;
     try {
-      await runStructure(recordingId, prompt);
+      next = await runStructure(recordingId, prompt);
     } catch (e) {
       setStage("empty");
       throw e;
     }
+
+    /* File it as soon as it exists, so a coach who closes the tab does not lose
+       a transcription. The explicit save is still there for edits. */
+    void persist(next, rec, prompt);
     setStage("done");
   }
 
@@ -133,13 +178,15 @@ export default function BriefingPage({
     const res = await fetch(`/api/recordings/${recordingId}/structure`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: withPrompt }),
+      body: JSON.stringify({ prompt: withPrompt, carriedGoals }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => null);
       throw new Error(data?.error ?? "Could not structure the briefing");
     }
-    setStructured((await res.json()) as StructuredBriefing);
+    const next = (await res.json()) as StructuredBriefing;
+    setStructured(next);
+    return next;
   }
 
   async function handleRestructure(withPrompt: string) {
@@ -160,12 +207,29 @@ export default function BriefingPage({
 
   /* Goals and decisions flow on: goals into the capture questions,
      decisions into the action items, open items onto the debrief agenda. */
-  async function handleSave() {
+  /* Transcript to Storage, structured record to Firestore beside the rest of
+     the race day. Both go through one route so they cannot drift apart. */
+  async function persist(
+    record: StructuredBriefing | null,
+    rec: Recording | null,
+    withPrompt: string,
+  ) {
+    if (!record) return;
     await fetch(`/api/sessions/${runId}/briefing`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ structured, prompt }),
+      body: JSON.stringify({
+        structured: record,
+        prompt: withPrompt,
+        transcript: rec?.transcript,
+        recordingId: rec?.id,
+        filename: rec?.filename,
+      }),
     });
+  }
+
+  async function handleSave() {
+    await persist(structured, recording, prompt);
   }
 
   return (
@@ -178,6 +242,7 @@ export default function BriefingPage({
         onPromptChange={setPrompt}
         onUpload={handleUpload}
         uploadError={uploadError}
+        hasRecording={Boolean(recording)}
         onRestructure={handleRestructure}
         onTranscriptChange={handleTranscriptChange}
         onSave={handleSave}
