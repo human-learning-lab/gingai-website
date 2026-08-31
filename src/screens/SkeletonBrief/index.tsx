@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sailor } from "@/types"
 import SkeletonBrief, {
   type SkeletonBriefValue,
@@ -66,6 +66,44 @@ export default function SkeletonBriefPage({
 	teamPrompt: DEFAULT_PROMPT,
     personal: emptyPersonal,
   });
+  const [loaded, setLoaded] = useState(false);
+
+  /* What was actually sent for this run. Only sent sets are filed — the mirror
+     runs on the send path, never on generate — so reopening shows what the
+     sailors received rather than the last draft.
+
+     A sailor marked fromTeamSet was sent the team set, so they are deliberately
+     left out of `personal`: an absent entry means they fall back to the team
+     questions, and writing one would turn a shared set into a personal override
+     that the coach never made. */
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(`/api/day-questions?runId=${encodeURIComponent(runId)}`)
+      .then(async (res) => {
+        if (cancelled) return;
+        if (!res.ok) { setLoaded(true); return; }
+        const day = await res.json().catch(() => null);
+        if (!day || cancelled) { setLoaded(true); return; }
+
+        const personal: SkeletonBriefValue["personal"] = {};
+        for (const [name, set] of Object.entries(day.sailors ?? {})) {
+          const s = set as { questions?: string[]; prompt?: string; fromTeamSet?: boolean };
+          if (s.fromTeamSet || !s.questions?.length) continue;
+          personal[name] = { questions: s.questions, prompt: s.prompt ?? DEFAULT_PROMPT };
+        }
+
+        setValue({
+          teamQuestions: day.teamQuestions?.length ? day.teamQuestions : [...DEFAULT_QUESTIONS],
+          teamPrompt: day.teamPrompt || DEFAULT_PROMPT,
+          personal,
+        });
+        setLoaded(true);
+      })
+      .catch(() => { if (!cancelled) setLoaded(true); });
+
+    return () => { cancelled = true; };
+  }, [runId]);
 
   /* Ask the model for questions. Server route keeps the API key off the client. */
   async function handleGenerate({
@@ -202,6 +240,16 @@ export default function SkeletonBriefPage({
       if (i === 0) open();
       else setTimeout(open, i * 600);
     });
+  }
+
+  /* Held back until the fetch resolves, so a run with questions already sent
+     does not flash the defaults before filling in. */
+  if (!loaded) {
+    return (
+      <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22, color: "#8E877A", fontSize: 13 }}>
+        Loading the question sets…
+      </div>
+    );
   }
 
   return (

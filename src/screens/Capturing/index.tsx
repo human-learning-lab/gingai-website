@@ -8,7 +8,16 @@ import Capture, {
 } from "./Capturing";
 import { teamSailors } from '@/data/roles.hll';
 import { shareBaseUrl } from '@/lib/appUrl';
-import { fetchOwnGoals, fetchSquadGoals } from '@/lib/carriedContext';
+import {
+  fetchBriefing,
+  fetchOwnGoals,
+  fetchSailorContext,
+  fetchSailorDay,
+  fetchSquadGoals,
+  fetchTeamContext,
+  fetchTeamPicture,
+  type BriefingContext,
+} from '@/lib/carriedContext';
 import { parseAgentJson } from '@/lib/agentJson';
 
 /* ============================================================
@@ -79,11 +88,35 @@ export default function CapturePage({
      that has one now writes its questions against it. */
   const [squadGoals, setSquadGoals] = useState<string[]>([]);
   const [ownGoals, setOwnGoals] = useState<Record<string, string>>({});
+  const [teamContext, setTeamContext] = useState<string | null>(null);
+  const [teamPicture, setTeamPicture] = useState<unknown | null>(null);
+  const [briefing, setBriefing] = useState<BriefingContext | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
+  /* Everything the evening questions are written against: the squad's standing
+     context file from Storage, and what the morning filed against this race day
+     — the team picture, the briefing record and the goals it agreed. Loaded
+     once here rather than per generate, so a coach pressing generate twice does
+     not re-read the same five things. */
   useEffect(() => {
     let cancelled = false;
-    fetchSquadGoals(runId).then((g) => { if (!cancelled) setSquadGoals(g); });
-    fetchOwnGoals(runId).then((g) => { if (!cancelled) setOwnGoals(g); });
+
+    Promise.all([
+      fetchSquadGoals(runId),
+      fetchOwnGoals(runId),
+      fetchTeamContext(),
+      fetchTeamPicture(runId),
+      fetchBriefing(runId),
+    ]).then(([goals, own, ctx, picture, brief]) => {
+      if (cancelled) return;
+      setSquadGoals(goals);
+      setOwnGoals(own);
+      setTeamContext(ctx);
+      setTeamPicture(picture);
+      setBriefing(brief);
+      setLoaded(true);
+    }).catch(() => { if (!cancelled) setLoaded(true); });
+
     return () => { cancelled = true; };
   }, [runId]);
 
@@ -103,14 +136,67 @@ export default function CapturePage({
 
   /* Everything the prompt says the agent is given, actually given. The old
      call sent `text: prompt` — the global window.prompt function, which
-     JSON.stringify drops — so the agent received no instructions at all. */
+     JSON.stringify drops — so the agent received no instructions at all.
+
+     Team scope is written against the squad: its standing context file, the
+     morning's picture, and what the briefing settled. Personal scope swaps the
+     squad file for the sailor's own and adds what this race day holds for them
+     — the questions they were sent and their answers as condensed. The briefing
+     stays in both, because the evening is answering against what the room
+     agreed either way. */
+  const sailorDay = args.sailor
+    ? await fetchSailorDay(runId, args.sailor.name)
+    : null;
+  const sailorContext = args.sailor
+    ? await fetchSailorContext(args.sailor.name)
+    : null;
+
+  const briefingBlock = briefing
+    ? [
+        briefing.decisions.length
+          ? `\nDecisions from the briefing:\n${briefing.decisions.map((d) => `- ${d}`).join('\n')}`
+          : '',
+        briefing.sections.length
+          ? `\nThe briefing record:\n${briefing.sections
+              .map((sec) => {
+                const body = [sec.body, ...(sec.items ?? []).map((i) => `  - ${i}`)]
+                  .filter(Boolean).join('\n');
+                return `${sec.heading}${sec.tone === 'open' ? ' (left open)' : ''}\n${body}`;
+              })
+              .join('\n\n')}`
+          : '',
+      ].filter(Boolean).join('\n')
+    : '';
+
   const text = [
     args.prompt,
     args.squadGoals.length
       ? `\nSquad goals agreed in the briefing:\n${args.squadGoals.map((g) => `- ${g}`).join('\n')}`
       : '\nNo squad goals are on file for this run.',
-    args.sailor ? `\nSailor: ${args.sailor.name} (${args.sailor.role})` : '',
-    args.ownGoal ? `Their own goal from this morning: ${args.ownGoal}` : '',
+    briefingBlock,
+
+    args.sailor
+      ? [
+          `\nSailor: ${args.sailor.name} (${args.sailor.role})`,
+          args.ownGoal ? `Their own goal from this morning: ${args.ownGoal}` : '',
+          sailorContext
+            ? `\nTheir context file — who they are on the water and what they are working on:\n${sailorContext}`
+            : '',
+          sailorDay?.questions.length
+            ? `\nWhat they were asked this morning:\n${sailorDay.questions.map((q) => `- ${q}`).join('\n')}`
+            : '',
+          sailorDay?.distilled.length
+            ? `\nWhat they said, condensed:\n${sailorDay.distilled.map((d) => `- ${d}`).join('\n')}`
+            : '',
+        ].filter(Boolean).join('\n')
+      : [
+          teamContext
+            ? `\nThe squad context file — who this team is and what it is working on:\n${teamContext}`
+            : '',
+          teamPicture
+            ? `\nThe team picture from this morning:\n${JSON.stringify(teamPicture)}`
+            : '',
+        ].filter(Boolean).join('\n'),
   ].filter(Boolean).join('\n');
 
   await fetch(`${AGENT_BASE}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
@@ -206,6 +292,16 @@ export default function CapturePage({
       if (i === 0) open();
       else setTimeout(open, i * 600);
     });
+  }
+
+  /* Held back until the context resolves, so the screen does not offer to
+     generate against a squad file and briefing it has not read yet. */
+  if (!loaded) {
+    return (
+      <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22, color: "#8E877A", fontSize: 13 }}>
+        Loading the day&rsquo;s context…
+      </div>
+    );
   }
 
   return (

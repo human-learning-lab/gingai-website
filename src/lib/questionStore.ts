@@ -468,3 +468,66 @@ export async function readPrimingArtifacts(runId: string): Promise<StoredPriming
     distilled,
   };
 }
+
+/* ── The day's question sets ───────────────────────────────────
+ * Everything filed for one race day, so the skeleton brief can reopen showing
+ * what was actually sent. Only sent sets are here: mirrorQuestionSet runs on
+ * the send path, never on generate, so a draft the coach discarded leaves no
+ * trace.
+ */
+
+export interface DaySailorSet {
+  questions: string[];
+  prompt: string;
+  /** True when the sailor was sent the team set rather than one of their own. */
+  fromTeamSet: boolean;
+}
+
+export interface DayQuestions {
+  teamQuestions: string[];
+  teamPrompt: string;
+  /** Keyed by sailor name. Only those who were actually sent something. */
+  sailors: Record<string, DaySailorSet>;
+  updatedAt?: string;
+}
+
+export async function readDayQuestions(runId: string): Promise<DayQuestions | null> {
+  if (!PROJECT || !API_KEY) return null;
+
+  const { race, day } = parseRunId(runId);
+  const path = `races/${docId(race)}/days/${docId(day)}`;
+  const dayDoc = await getDoc(path);
+  if (!dayDoc) return null;
+
+  const teamQuestions = (fromValue(dayDoc.teamQuestions) as string[] | undefined) ?? [];
+  const teamPrompt = (fromValue(dayDoc.teamPrompt) as string | undefined) ?? '';
+
+  const sailors: Record<string, DaySailorSet> = {};
+  const res = await fetch(`${ROOT}/${path}/sailors?key=${API_KEY}`, { cache: 'no-store' });
+  if (res.ok) {
+    const data = await res.json().catch(() => null) as
+      { documents?: { name: string; fields?: Record<string, Record<string, unknown>> }[] } | null;
+
+    for (const d of data?.documents ?? []) {
+      const f = d.fields;
+      const questions = (fromValue(f?.questions) as string[] | undefined) ?? [];
+      if (!questions.length) continue;
+      const name = (fromValue(f?.sailor) as string | undefined)
+        ?? decodeURIComponent(d.name.split('/').pop() ?? '');
+      sailors[name] = {
+        questions,
+        prompt: (fromValue(f?.prompt) as string | undefined) ?? '',
+        fromTeamSet: Boolean(fromValue(f?.fromTeamSet)),
+      };
+    }
+  }
+
+  if (!teamQuestions.length && !Object.keys(sailors).length) return null;
+
+  return {
+    teamQuestions,
+    teamPrompt,
+    sailors,
+    updatedAt: fromValue(dayDoc.updatedAt) as string | undefined,
+  };
+}

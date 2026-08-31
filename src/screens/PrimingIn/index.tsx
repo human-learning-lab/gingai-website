@@ -117,6 +117,7 @@ export default function PrimingInPage({
   /* Unsaved work. Set by anything that changes what would be written, cleared
      by a successful save, by carrying forward, and by loading what is on file. */
   const [dirty, setDirty] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   /* A run already filed fills the screen, so reopening the phase does not look
      like nothing happened. Nothing on file leaves it empty, as before. */
@@ -125,9 +126,10 @@ export default function PrimingInPage({
 
     fetch(`/api/priming-artifacts?runId=${encodeURIComponent(runId)}`)
       .then(async (res) => {
-        if (!res.ok || cancelled) return;
+        if (cancelled) return;
+        if (!res.ok) { setLoaded(true); return; }
         const data = await res.json().catch(() => null);
-        if (!data || cancelled) return;
+        if (!data || cancelled) { setLoaded(true); return; }
 
         if (data.teamPicture) setTeamPicture(data.teamPicture as TeamPicture);
         if (Array.isArray(data.briefingGoals)) setSquadGoals(data.briefingGoals as SquadGoal[]);
@@ -135,8 +137,9 @@ export default function PrimingInPage({
           setDistilled(data.distilled as Record<string, string[]>);
         }
         setDirty(false);
+        setLoaded(true);
       })
-      .catch(() => undefined);
+      .catch(() => { if (!cancelled) setLoaded(true); });
 
     return () => { cancelled = true; };
   }, [runId]);
@@ -388,6 +391,16 @@ export default function PrimingInPage({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ teamPicture, squadGoals }),
     }).catch(() => undefined);
+  }
+
+  /* Held back until the fetch resolves, so a run already filed does not flash
+     an empty screen before filling in. */
+  if (!loaded) {
+    return (
+      <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22, color: "#8E877A", fontSize: 13 }}>
+        Loading the priming…
+      </div>
+    );
   }
 
   return (

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useMemo, useState } from "react";
 import { ROLES } from '@/data/roles';
-import ContextFilePreview from "./ContextFilePreview";
+import ContextFilePreview from "@/components/ContextFilePreview";
 import { Sailor } from "@/types"
 
 /* ============================================================

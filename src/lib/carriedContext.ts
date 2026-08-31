@@ -75,3 +75,93 @@ export async function fetchOwnGoals(runId: string): Promise<Record<string, strin
     return {};
   }
 }
+
+
+/* ── Standing context and the day's record ────────────────────
+ * What the capture questions are written against. The morning phases file
+ * these; the evening ones read them. Every fetch fails soft: a missing piece
+ * means the questions are written without it, never that the screen breaks.
+ */
+
+async function getJson<T>(url: string): Promise<T | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return (await res.json().catch(() => null)) as T | null;
+  } catch {
+    return null;
+  }
+}
+
+/** The squad context file — team/current.md in Storage. */
+export async function fetchTeamContext(): Promise<string | null> {
+  const data = await getJson<{ content?: string }>('/api/team-profile');
+  return data?.content ?? null;
+}
+
+/** One sailor's context file — team/sailors/{name}/current.md in Storage. */
+export async function fetchSailorContext(sailor: string): Promise<string | null> {
+  const data = await getJson<{ content?: string }>(
+    `/api/sailor-profile?sailor=${encodeURIComponent(sailor)}`,
+  );
+  return data?.content ?? null;
+}
+
+export interface BriefingContext {
+  goals: string[];
+  decisions: string[];
+  sections: { heading: string; body?: string; items?: string[]; tone?: string }[];
+}
+
+/** What the briefing settled — the record the evening is answering against. */
+export async function fetchBriefing(runId: string): Promise<BriefingContext | null> {
+  const data = await getJson<{
+    goals?: (GoalLike | string)[];
+    decisions?: ({ text?: string; owner?: string } | string)[];
+    sections?: BriefingContext['sections'];
+  }>(`/api/sessions/${encodeURIComponent(runId)}/briefing`);
+  if (!data) return null;
+
+  return {
+    goals: (data.goals ?? []).map(goalText).filter(Boolean),
+    decisions: (data.decisions ?? [])
+      .map(d => typeof d === 'string' ? d : [d?.text, d?.owner && `(${d.owner})`].filter(Boolean).join(' '))
+      .filter(Boolean),
+    sections: data.sections ?? [],
+  };
+}
+
+/** The morning's team picture, as the synthesize agent left it. */
+export async function fetchTeamPicture(runId: string): Promise<unknown | null> {
+  const data = await getJson<{ teamPicture?: unknown }>(
+    `/api/priming-artifacts?runId=${encodeURIComponent(runId)}`,
+  );
+  return data?.teamPicture ?? null;
+}
+
+export interface SailorDay {
+  /** The priming questions this sailor was actually sent. */
+  questions: string[];
+  /** Their answers, condensed to a line each in phase 02. */
+  distilled: string[];
+}
+
+/**
+ * What the day holds for one sailor — the subcollection under the race day.
+ * Assembled from the two routes that already read it rather than a third.
+ */
+export async function fetchSailorDay(runId: string, sailor: string): Promise<SailorDay> {
+  const [day, priming] = await Promise.all([
+    getJson<{ sailors?: Record<string, { questions?: string[] }> }>(
+      `/api/day-questions?runId=${encodeURIComponent(runId)}`,
+    ),
+    getJson<{ distilled?: Record<string, string[]> }>(
+      `/api/priming-artifacts?runId=${encodeURIComponent(runId)}`,
+    ),
+  ]);
+
+  return {
+    questions: day?.sailors?.[sailor]?.questions ?? [],
+    distilled: priming?.distilled?.[sailor] ?? [],
+  };
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useCallback, useState } from "react";
+import ContextFilePreview from "@/components/ContextFilePreview";
 
 /* ============================================================
    Ginga — Capture
@@ -321,6 +322,20 @@ export default function Capture({
                 </div>
               )}
             </>
+          )}
+
+          {/* What the questions will be written against — the squad's file in
+              team scope, the selected sailor's in personal. Same panel as the
+              skeleton brief, so both screens show context the same way. */}
+          {isTeam ? (
+            <ContextFilePreview label="Team context" endpoint="/api/team-profile" />
+          ) : (
+            activeSailor && (
+              <ContextFilePreview
+                label={`Context · ${activeSailor}`}
+                endpoint={`/api/sailor-profile?sailor=${encodeURIComponent(activeSailor)}`}
+              />
+            )
           )}
 
           <Card
