@@ -9,6 +9,7 @@ import Capture, {
 import { teamSailors } from '@/data/roles.hll';
 import { shareBaseUrl } from '@/lib/appUrl';
 import { fetchOwnGoals, fetchSquadGoals } from '@/lib/carriedContext';
+import { parseAgentJson } from '@/lib/agentJson';
 
 /* ============================================================
    Example wiring. Replace local state with your own fetch/save
@@ -150,12 +151,12 @@ export default function CapturePage({
         const event = JSON.parse(raw);
         const parts = event?.content?.parts ?? [];
         for (const part of parts) {
-          if (typeof part.text === 'string' && part.text) fullText += part.text;
+          if (typeof part.text === 'string' && part.text && !part.thought) fullText += part.text;
         }
       } catch { /* skip non-JSON lines */ }
     }
   }
-  const questions = JSON.parse(fullText) as { questions: string[] };
+  const questions = parseAgentJson<{ questions: string[] }>(fullText);
   return questions.questions;
   }
 

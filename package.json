@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "dev:safari": "(until curl -so /dev/null http://localhost:3000; do sleep 1; done; open -a Safari http://localhost:3000/console) & next dev",
     "build": "next build",
     "start": "next start",
     "rules:deploy": "firebase deploy --only firestore:rules,storage",

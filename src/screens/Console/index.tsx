@@ -49,6 +49,8 @@ export interface ConsoleShellProps {
   phases: Phase[];
   activePhase: PhaseId;
   onPhaseChange: (id: PhaseId) => void;
+  /** Regatta/day selector, rendered in the header beside the live badge. */
+  picker?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -92,6 +94,7 @@ export default function ConsoleShell({
   phases,
   activePhase,
   onPhaseChange,
+  picker,
   children,
 }: ConsoleShellProps) {
   /* The app shell is fixed-viewport — html and body set overflow:hidden and
@@ -113,6 +116,7 @@ export default function ConsoleShell({
           phases={phases}
           activePhase={activePhase}
           onPhaseChange={onPhaseChange}
+          picker={picker}
         />
         <main style={{ padding: 22, flex: 1, minHeight: 0, overflowY: "auto" }}>
           {children}
@@ -129,11 +133,13 @@ function EventHeader({
   phases,
   activePhase,
   onPhaseChange,
+  picker,
 }: {
   event: EventContext;
   phases: Phase[];
   activePhase: PhaseId;
   onPhaseChange: (id: PhaseId) => void;
+  picker?: React.ReactNode;
 }) {
   return (
     <header
@@ -169,28 +175,31 @@ function EventHeader({
           </h1>
         </div>
 
-        {event.live !== false && (
-          <span
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              padding: "6px 12px",
-              background: C.greenLt,
-              borderRadius: 6,
-            }}
-          >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {picker}
+          {event.live !== false && (
             <span
               style={{
-                width: 6,
-                height: 6,
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                padding: "6px 12px",
+                background: C.greenLt,
                 borderRadius: 6,
-                background: C.green,
               }}
-            />
-            <span style={{ ...label, color: C.greenDk }}>Live mode</span>
-          </span>
-        )}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 6,
+                  background: C.green,
+                }}
+              />
+              <span style={{ ...label, color: C.greenDk }}>Live mode</span>
+            </span>
+          )}
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 2, overflowX: "auto" }}>

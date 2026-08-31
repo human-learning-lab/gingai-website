@@ -73,8 +73,13 @@ export default function ContextFilePreview({
     return () => { cancelled = true; };
   }, [endpoint]);
 
+  /* Longhand rather than the `border` shorthand: the error state overrides
+     borderColor alone, and React warns when a shorthand and its longhand mix
+     across rerenders. */
   const wrap: React.CSSProperties = {
-    border: `1px solid ${C.line}`,
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: C.line,
     borderRadius: 6,
     background: C.sand,
     padding: "10px 12px",

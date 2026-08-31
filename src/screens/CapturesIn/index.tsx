@@ -9,6 +9,7 @@ import CapturesIn, {
 } from "./CapturesIn";
 import { teamSailors } from '@/data/roles.hll';
 import { fetchOwnGoals, fetchSquadGoals } from '@/lib/carriedContext';
+import { parseAgentJson } from '@/lib/agentJson';
 
 /* ============================================================
    Example wiring. Replace local state with your own fetch/save
@@ -196,14 +197,14 @@ export default function CapturesInPage({
         const event = JSON.parse(raw);
         const parts = event?.content?.parts ?? [];
         for (const part of parts) {
-          if (typeof part.text === 'string' && part.text) fullText += part.text;
+          if (typeof part.text === 'string' && part.text && !part.thought) fullText += part.text;
         }
       } catch { /* skip non-JSON lines */ }
     }
   }
   let distilled: Record<string, string[]>;
   try {
-    distilled = JSON.parse(fullText).distilled as Record<string, string[]>;
+    distilled = parseAgentJson<{ distilled: Record<string, string[]> }>(fullText).distilled;
   } catch {
     throw new Error('The distiller did not return readable JSON.');
   }
@@ -270,12 +271,12 @@ async function handleSynthesise(prompt: string) {
         const event = JSON.parse(raw);
         const parts = event?.content?.parts ?? [];
         for (const part of parts) {
-          if (typeof part.text === 'string' && part.text) fullText += part.text;
+          if (typeof part.text === 'string' && part.text && !part.thought) fullText += part.text;
         }
       } catch { /* skip non-JSON lines */ }
     }
   }
-  const picture  = JSON.parse(fullText) as TeamReading;
+  const picture  = parseAgentJson<TeamReading>(fullText);
   /* Held in state so carry forward has something to commit — the old handler
      posted `teamReading`, which nothing ever set, so it always sent null. */
   setTeamReading(picture);

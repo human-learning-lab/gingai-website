@@ -9,6 +9,7 @@ import PrimingIn, {
   type TeamPicture,
 } from "./PrimingIn";
 import { teamSailors } from '@/data/roles.hll';
+import { parseAgentJson } from '@/lib/agentJson';
 
 /* ============================================================
    Example wiring. Replace local state with your own fetch/save
@@ -187,14 +188,14 @@ export default function PrimingInPage({
         const event = JSON.parse(raw);
         const parts = event?.content?.parts ?? [];
         for (const part of parts) {
-          if (typeof part.text === 'string' && part.text) fullText += part.text;
+          if (typeof part.text === 'string' && part.text && !part.thought) fullText += part.text;
         }
       } catch { /* skip non-JSON lines */ }
     }
   }
   let distilled: Record<string, string[]>;
   try {
-    distilled = JSON.parse(fullText).distilled as Record<string, string[]>;
+    distilled = parseAgentJson<{ distilled: Record<string, string[]> }>(fullText).distilled;
   } catch {
     throw new Error('The distiller did not return readable JSON.');
   }
@@ -252,12 +253,12 @@ export default function PrimingInPage({
         const event = JSON.parse(raw);
         const parts = event?.content?.parts ?? [];
         for (const part of parts) {
-          if (typeof part.text === 'string' && part.text) fullText += part.text;
+          if (typeof part.text === 'string' && part.text && !part.thought) fullText += part.text;
         }
       } catch { /* skip non-JSON lines */ }
     }
   }
-  const picture  = JSON.parse(fullText) as TeamPicture;
+  const picture  = parseAgentJson<TeamPicture>(fullText);
     /* Not filed here. Like the goals, the picture is filed on carry forward —
        the point the coach commits it to the briefing. */
   setTeamPicture(picture);
@@ -312,7 +313,7 @@ export default function PrimingInPage({
         const event = JSON.parse(raw);
         const parts = event?.content?.parts ?? [];
         for (const part of parts) {
-          if (typeof part.text === 'string' && part.text) fullText += part.text;
+          if (typeof part.text === 'string' && part.text && !part.thought) fullText += part.text;
         }
       } catch { /* skip non-JSON lines */ }
     }
@@ -321,7 +322,7 @@ export default function PrimingInPage({
     /* Not filed here. Proposed goals are a draft the coach edits — they reach
        Firestore on carry forward, which is the point the coach commits them to
        the briefing. */
-    const goals = JSON.parse(fullText) as SquadGoal[];
+    const goals = parseAgentJson<SquadGoal[]>(fullText);
     return goals;
   }
 
