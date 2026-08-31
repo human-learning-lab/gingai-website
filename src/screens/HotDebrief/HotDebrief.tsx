@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import ContextMarkdown, { parseBlocks } from "@/components/ContextMarkdown";
 
 /* ============================================================
    Ginga — Hot debrief
@@ -291,7 +291,6 @@ export default function HotDebrief({
                 />
               ) : (
                 <div
-                  className="debrief-md"
                   style={{
                     width: "100%",
                     minHeight: 620,
@@ -299,12 +298,14 @@ export default function HotDebrief({
                     border: `1px solid ${C.line}`,
                     borderRadius: 9,
                     background: "#fff",
-                    fontSize: 13.5,
-                    lineHeight: 1.75,
-                    color: C.ink,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
                   }}
                 >
-                  <ReactMarkdown>{draft.edited}</ReactMarkdown>
+                  {/* The same renderer the context file panels use, scaled up
+                      for a full document rather than a preview. */}
+                  <ContextMarkdown blocks={parseBlocks(draft.edited)} scale={1.15} />
                 </div>
               )}
             </>

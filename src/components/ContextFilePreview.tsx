@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ContextMarkdown, { parseBlocks } from "@/components/ContextMarkdown";
 
 /* ============================================================
    A context file, shown above the questions so you can see what
@@ -13,7 +14,9 @@ import { useEffect, useState } from "react";
    the same reason.
 
    Collapsed until two blocks carry text; "See more" reveals the
-   rest.
+   rest. The blocks themselves render through ContextMarkdown,
+   shared with the debrief so every file the system writes reads
+   the same way.
    ============================================================ */
 
 const C = {
@@ -109,7 +112,7 @@ export default function ContextFilePreview({
     );
   }
 
-  const blocks = parse(state.content);
+  const blocks = parseBlocks(state.content);
   /* Take blocks until two carry actual text. The file opens with a layer
      heading and a section heading, so a flat slice of two would preview
      nothing but headings. */
@@ -137,48 +140,7 @@ export default function ContextFilePreview({
           overflowY: expanded ? "auto" : undefined,
         }}
       >
-        {shown.map((b, i) =>
-          b.kind === "heading" ? (
-            <h4
-              key={i}
-              style={{
-                margin: i === 0 ? 0 : (b.level === 1 ? "14px 0 2px" : "10px 0 2px"),
-                fontSize: b.level === 1 ? 11.5 : 10.5,
-                fontWeight: 700,
-                letterSpacing: "0.09em",
-                textTransform: "uppercase",
-                color: b.level === 1 ? C.ink : C.green,
-                borderBottom: b.level === 1 ? `1px solid ${C.line}` : undefined,
-                paddingBottom: b.level === 1 ? 3 : undefined,
-              }}
-            >
-              {b.text}
-            </h4>
-          ) : b.kind === "bullet" ? (
-            <p
-              key={i}
-              style={{
-                margin: "3px 0 0",
-                paddingLeft: 12,
-                fontSize: 12.5,
-                lineHeight: 1.5,
-                color: C.ink,
-                textIndent: -12,
-              }}
-            >
-              <span style={{ color: C.warmLt }}>•&nbsp;</span>
-              {b.lead && <strong style={{ fontWeight: 600 }}>{b.lead}: </strong>}
-              {b.text}
-            </p>
-          ) : (
-            <p
-              key={i}
-              style={{ margin: "3px 0 0", fontSize: 12.5, lineHeight: 1.55, color: C.ink }}
-            >
-              {b.text}
-            </p>
-          ),
-        )}
+        <ContextMarkdown blocks={shown} />
       </div>
 
       {hasMore && (
@@ -203,46 +165,4 @@ export default function ContextFilePreview({
       )}
     </div>
   );
-}
-
-interface Block {
-  kind: "heading" | "bullet" | "text";
-  text: string;
-  /** Heading depth — the context file uses H1 for layers, H2 for sections. */
-  level?: number;
-  /** The bold lead-in on a bullet, e.g. "Maneuver Consistency". */
-  lead?: string;
-}
-
-/**
- * The profile is markdown but renders here as styled elements rather than
- * raw text, so the syntax is parsed away instead of being shown.
- * Blank lines are dropped — otherwise a two-block preview spends one on
- * whitespace.
- */
-function parse(md: string): Block[] {
-  return md
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map<Block>((line) => {
-      const h = line.match(/^(#{1,6})\s/);
-      if (h) {
-        return {
-          kind: "heading",
-          level: h[1].length,
-          text: line.replace(/^#{1,6}\s*/, "").replace(/\*\*/g, ""),
-        };
-      }
-      if (/^[-*]\s/.test(line)) {
-        const body = line.replace(/^[-*]\s+/, "");
-        // Bullets are written as "**Label:** detail" — keep the label as an
-        // actual lead-in rather than flattening it into the sentence.
-        const m = body.match(/^\*\*(.+?):?\*\*:?\s*(.*)$/);
-        return m
-          ? { kind: "bullet", lead: m[1], text: m[2] }
-          : { kind: "bullet", text: body.replace(/\*\*/g, "") };
-      }
-      return { kind: "text", text: line.replace(/\*\*/g, "") };
-    });
 }
