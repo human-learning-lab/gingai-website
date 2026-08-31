@@ -239,8 +239,18 @@ export default function BriefingPage({
     setDirty(false);
   }
 
+  /* Held back until the fetch resolves, so a run with a saved briefing does not
+     flash the upload prompt before filling in. */
+  if (!loaded) {
+    return (
+      <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22, color: "#8E877A", fontSize: 13 }}>
+        Loading the briefing…
+      </div>
+    );
+  }
+
   return (
-    <div style={{ background: "#F7F4ED", minHeight: "100vh", padding: 22 }}>
+    <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
       <Briefing
         carriedGoals={carriedGoals}
         recording={recording}

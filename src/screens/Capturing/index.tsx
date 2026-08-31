@@ -92,6 +92,54 @@ export default function CapturePage({
   const [teamPicture, setTeamPicture] = useState<unknown | null>(null);
   const [briefing, setBriefing] = useState<BriefingContext | null>(null);
   const [loaded, setLoaded] = useState(false);
+  /* Whether this race day has a capture set on file. Nothing is normal — a day
+     whose capture has not been sent — but the screen otherwise shows the
+     built-in defaults, which looks the same as a set that failed to load. */
+  const [hasSent, setHasSent] = useState(false);
+  /* Tracked apart from `loaded`: the questions and the day's context are two
+     fetches, and the screen should wait for both before offering to generate. */
+  const [questionsLoaded, setQuestionsLoaded] = useState(false);
+
+  /* The capture set that was actually sent for this day. Read with kind=capture:
+     the morning's priming set lives in its own fields, and loading that here
+     would show the coach the wrong questions entirely. Only sent sets are
+     filed, since the mirror runs on the send path and never on generate.
+
+     A sailor marked fromTeamSet was sent the team set, so they are left out of
+     `personal` — an absent entry means they fall back to it, and writing one
+     would turn a shared set into a personal override the coach never made. */
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(`/api/day-questions?runId=${encodeURIComponent(runId)}&kind=capture`)
+      .then(async (res) => {
+        if (cancelled) return;
+        if (!res.ok) { setQuestionsLoaded(true); return; }
+        const day = await res.json().catch(() => null);
+        if (!day || cancelled) { setQuestionsLoaded(true); return; }
+
+        const personal: CaptureValue["personal"] = {};
+        for (const [name, set] of Object.entries(day.sailors ?? {})) {
+          const sailorSet = set as { questions?: string[]; prompt?: string; fromTeamSet?: boolean };
+          if (sailorSet.fromTeamSet || !sailorSet.questions?.length) continue;
+          personal[name] = {
+            questions: sailorSet.questions,
+            prompt: sailorSet.prompt ?? DEFAULT_PROMPT,
+          };
+        }
+
+        setValue({
+          teamQuestions: day.teamQuestions?.length ? day.teamQuestions : [...DEFAULT_QUESTIONS],
+          teamPrompt: day.teamPrompt || DEFAULT_PROMPT,
+          personal,
+        });
+        setHasSent(true);
+        setQuestionsLoaded(true);
+      })
+      .catch(() => { if (!cancelled) setQuestionsLoaded(true); });
+
+    return () => { cancelled = true; };
+  }, [runId]);
 
   /* Everything the evening questions are written against: the squad's standing
      context file from Storage, and what the morning filed against this race day
@@ -296,7 +344,7 @@ export default function CapturePage({
 
   /* Held back until the context resolves, so the screen does not offer to
      generate against a squad file and briefing it has not read yet. */
-  if (!loaded) {
+  if (!loaded || !questionsLoaded) {
     return (
       <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22, color: "#8E877A", fontSize: 13 }}>
         Loading the day&rsquo;s context…
@@ -306,6 +354,24 @@ export default function CapturePage({
 
   return (
     <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
+      {!hasSent && (
+        <p
+          style={{
+            margin: "0 0 14px",
+            padding: "9px 12px",
+            borderRadius: 6,
+            border: "1px solid #DDD5C4",
+            background: "#FFFDF8",
+            color: "#6B6459",
+            fontSize: 12.5,
+            lineHeight: 1.45,
+          }}
+        >
+          Nothing sent for this day yet — these are the default questions. Anything
+          you send is filed against this race day and comes back when you return.
+        </p>
+      )}
+
       <Capture
         sailors={SAILORS}
         squadGoals={squadGoals}
