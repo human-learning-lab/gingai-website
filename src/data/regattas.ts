@@ -19,6 +19,10 @@ export interface Regatta {
 	weekAgenda?:  Record<number, { time: string; title: string; tag?: string; tagColor?: string }[]>;
 }
 
+/* The test venue below is alpha-only, gated on the same flag as the Human
+   Learning Lab roster and the temporary console tools. */
+const IS_ALPHA = process.env.NEXT_PUBLIC_TEAM === 'hll';
+
 export const REGATTAS: Regatta[] = [
 	{ id: 'perth',       city: 'Perth',          short: 'Perth',        dates: 'Jan 17–18',     start: '2026-01-17', end: '2026-01-18', lat: -31.95,  lon: 115.86,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 	{ id: 'auckland',    city: 'Auckland',       short: 'Auckland',     dates: 'Feb 14–15',     start: '2026-02-14', end: '2026-02-15', lat: -36.85,  lon: 174.76,  photo: '/images/boat-auckland.jpg',     photoPos: 'center 60%',    days: ['Day 1', 'Day 2'] },
@@ -95,6 +99,17 @@ export const REGATTAS: Regatta[] = [
 	{ id: 'geneva',      city: 'Geneva',         short: 'Geneva',       dates: 'Sep 19–20',     start: '2026-09-19', end: '2026-09-20', lat:  46.20,  lon:   6.14,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 	{ id: 'dubai',       city: 'Dubai',          short: 'Dubai',        dates: 'Nov 21–22',     start: '2026-11-21', end: '2026-11-22', lat:  25.08,  lon:  55.13,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 	{ id: 'abudhabi',    city: 'Abu Dhabi',      short: 'Grand Final',  dates: 'Nov 28–29',     start: '2026-11-28', end: '2026-11-29', lat:  24.47,  lon:  54.37,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+
+	/* Not a real regatta. A place for developers to exercise a race day end to
+	   end without writing into one the team is using — every artefact is keyed
+	   by runId, so a fake venue keeps test records in their own corner of
+	   Firestore and Storage. Only present when NEXT_PUBLIC_TEAM=hll, so it
+	   cannot appear in the squad's picker. */
+	...(IS_ALPHA ? [{
+		id: 'sandvika', city: 'Sandvika', short: 'Sandvika (test)', dates: 'Dec 1–2 · TEST',
+		start: '2026-12-01', end: '2026-12-02', lat: 59.89, lon: 10.53,
+		photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
+	}] : []),
 ];
 
 export function getRegatResult(start: string, end: string): 'Past' | 'Active' | 'Upcoming' {
