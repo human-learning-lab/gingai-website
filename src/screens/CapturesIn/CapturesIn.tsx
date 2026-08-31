@@ -403,7 +403,7 @@ export default function CapturesIn({
                 {/* Coverage belongs beside the title, not inside it — the
                     title was growing to "Against the squad goals · coverage
                     5 of 8" and wrapping. Card already takes a note. */}
-                <Card title="Against the squad goals" note={teamReading.coverage}>
+                <Card title="Against the squad goals">
                   {teamReading.goals.map((g, i) => (
                     <div
                       key={i}
@@ -431,18 +431,7 @@ export default function CapturesIn({
                             }}
                           >
                             <span>{g.goal}</span>
-                            {g.addressedBy > 0 && (
-                              <span
-                                style={{
-                                  fontFamily: MONO,
-                                  fontSize: 11,
-                                  color: C.warmLt,
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                {g.addressedBy} of {answered.length}
-                              </span>
-                            )}
+
                           </div>
 
                           {/* Verdict and evidence in their own panel, the shape
@@ -465,11 +454,25 @@ export default function CapturesIn({
                                   {g.verdict}
                                 </div>
                               )}
-                              {g.detail && (
-                                <div style={{ marginTop: g.verdict ? 4 : 0 }}>
-                                  {g.detail}
+                              {splitQuotes(g.detail).map((q, qi) => (
+                                <div
+                                  key={qi}
+                                  style={{
+                                    marginTop: qi === 0 ? (g.verdict ? 7 : 0) : 7,
+                                    padding: "8px 10px",
+                                    background: C.field,
+                                    border: `1px solid ${C.line}`,
+                                    borderRadius: 5,
+                                  }}
+                                >
+                                  {q.sailor && (
+                                    <span style={{ fontWeight: 600, color: C.ink }}>
+                                      {q.sailor}:{" "}
+                                    </span>
+                                  )}
+                                  {q.quote}
                                 </div>
-                              )}
+                              ))}
                             </div>
                           )}
                         </div>
@@ -493,16 +496,7 @@ export default function CapturesIn({
                           }}
                         >
                           <span style={{ fontSize: 13.5 }}>{theme.text}</span>
-                          <span
-                            style={{
-                              fontFamily: MONO,
-                              fontSize: 11,
-                              color: C.warmLt,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {theme.count} of {answered.length}
-                          </span>
+
                         </div>
                         <div
                           style={{ fontSize: 11.5, color: C.warmLt, marginTop: 4 }}
@@ -972,4 +966,35 @@ function Empty({ children }: { children: React.ReactNode }) {
       {children}
     </div>
   );
+}
+
+/**
+ * One box per voice.
+ *
+ * The evidence arrives as a single run of `Daniel: "…" Benjamin: "…"`, which
+ * reads as one account when it is two people saying the same thing
+ * independently — the very thing the reading is pointing at. Split on a name
+ * followed by an opening quote; anything that does not match that shape is left
+ * whole rather than chopped on a guess.
+ */
+function splitQuotes(detail: string): { sailor?: string; quote: string }[] {
+  if (!detail?.trim()) return [];
+
+  const pattern = /([A-Z][\w'’-]*)\s*:\s*(?=[""«"])/g;
+  const marks = [...detail.matchAll(pattern)];
+  if (!marks.length) return [{ quote: detail.trim() }];
+
+  const out: { sailor?: string; quote: string }[] = [];
+  // Anything before the first name is preamble, kept as its own line.
+  const lead = detail.slice(0, marks[0].index).trim();
+  if (lead) out.push({ quote: lead });
+
+  marks.forEach((m, i) => {
+    const from = (m.index ?? 0) + m[0].length;
+    const to = i + 1 < marks.length ? marks[i + 1].index : detail.length;
+    const quote = detail.slice(from, to).trim();
+    if (quote) out.push({ sailor: m[1], quote });
+  });
+
+  return out;
 }
