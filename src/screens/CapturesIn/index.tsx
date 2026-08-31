@@ -106,14 +106,46 @@ export default function CapturesInPage({
   const [squadGoals, setSquadGoals] = useState<string[]>([]);
   const [ownGoals, setOwnGoals] = useState<Record<string, string>>({});
 
+  /* Answers come from Viktor's API, but the questions come from Firestore.
+     That API is insert-only, so its stored questions are whatever was sent to
+     a sailor first, not what they were actually asked last — and it carries no
+     record of whether a sailor got their own set or the team's. Two sailors can
+     hold different questions for the same run, so reading an answer without
+     knowing which set it answers is misleading. */
   useEffect(() => {
-	  async function getResp(){
-	  	const res = await fetch(`/api/responses/${runId}?kind=capture`);
-	  	const resps = await res.json();
-	  	setResponses(Array.isArray(resps) ? resps : []);
-	  }
+    let cancelled = false;
 
-	  getResp();
+    async function load() {
+      const [respRes, dayRes] = await Promise.all([
+        fetch(`/api/responses/${runId}?kind=capture`),
+        fetch(`/api/day-questions?runId=${encodeURIComponent(runId)}&kind=capture`),
+      ]);
+
+      const resps = await respRes.json().catch(() => null);
+      const day = dayRes.ok ? await dayRes.json().catch(() => null) : null;
+      if (cancelled) return;
+
+      const rows: CaptureResponse[] = Array.isArray(resps) ? resps : [];
+
+      setResponses(rows.map((row) => {
+        const filed = day?.sailors?.[row.recipient] as
+          { questions?: string[]; fromTeamSet?: boolean } | undefined;
+
+        /* A sailor with their own filed set shows it; one marked fromTeamSet
+           shows the team set. Neither on file leaves the API's questions and no
+           marker, rather than claiming a set we cannot vouch for. */
+        if (filed?.fromTeamSet === false && filed.questions?.length) {
+          return { ...row, questions: filed.questions, fromTeamSet: false };
+        }
+        if (filed?.fromTeamSet && day?.teamQuestions?.length) {
+          return { ...row, questions: day.teamQuestions, fromTeamSet: true };
+        }
+        return row;
+      }));
+    }
+
+    load().catch(() => undefined);
+    return () => { cancelled = true; };
   }, [runId]);
 
   useEffect(() => {

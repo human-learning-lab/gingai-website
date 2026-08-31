@@ -29,6 +29,8 @@ export interface CaptureResponse {
   updated_at: string;
   /** One condensed line per question, in question order. Absent until distilled. */
   distilled?: string[];
+  /** True when this sailor answered the team set rather than one of their own. */
+  fromTeamSet?: boolean;
 }
 
 /** How the captures read against one squad goal. */
@@ -301,6 +303,16 @@ export default function CapturesIn({
                   depth === "full"
                     ? `In their own words`
                     : "Distilled"
+                }
+                /* Which set they were actually asked. Two sailors can hold
+                   different questions for the same run, and reading an answer
+                   without knowing which is misleading. */
+                note={
+                  response.fromTeamSet === undefined
+                    ? undefined
+                    : response.fromTeamSet
+                    ? "Team set"
+                    : "Personal set"
                 }
               >
                 {
@@ -762,9 +774,12 @@ function PromptBox({
 
 function Card({
   title,
+  note,
   children,
 }: {
   title: string;
+  /** Small right-aligned qualifier on the title row. */
+  note?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -776,7 +791,35 @@ function Card({
         padding: 15,
       }}
     >
-      <h2 style={{ ...label, margin: "0 0 11px" }}>{title}</h2>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 10,
+          margin: "0 0 11px",
+        }}
+      >
+        <h2 style={{ ...label, margin: 0 }}>{title}</h2>
+        {note && (
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: "0.07em",
+              textTransform: "uppercase",
+              padding: "2px 7px",
+              borderRadius: 3,
+              color: note === "Personal set" ? C.green : C.warm,
+              border: `1px solid ${note === "Personal set" ? C.green : C.line}`,
+              background: note === "Personal set" ? C.greenLt : "transparent",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {note}
+          </span>
+        )}
+      </div>
       {children}
     </section>
   );
