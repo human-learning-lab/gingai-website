@@ -61,6 +61,11 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
   /* Unsaved edits to the document. Cleared by a save, by a fresh run, and by
      loading what is already on file. */
   const [dirty, setDirty] = useState(false);
+  /* Two independent loads — the sources and the debrief already on file. The
+     screen waits for both: offering to run the prompt before the sources have
+     landed would run it over nothing. */
+  const [sourcesLoaded, setSourcesLoaded] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [publishState, setPublishState] = useState<{
@@ -150,17 +155,19 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
       ];
       setSources(next);
       setSelectedSourceIds(next.filter((s) => s.enabled).map((s) => s.id));
+      setSourcesLoaded(true);
     }
 
-    load();
+    load().catch(() => { if (!cancelled) setSourcesLoaded(true); });
 
     /* A debrief already written for this run fills the screen, edits included,
        so reopening the phase does not look like nothing ever happened. */
     fetch(`/api/sessions/${encodeURIComponent(runId)}/debrief`)
       .then(async (res) => {
-        if (!res.ok || cancelled) return;
+        if (cancelled) return;
+        if (!res.ok) { setDraftLoaded(true); return; }
         const data = await res.json().catch(() => null);
-        if (!data?.generatedAt || cancelled) return;
+        if (!data?.generatedAt) { setDraftLoaded(true); return; }
         if (data.prompt) setPrompt(data.prompt);
         setDraft({
           generated: data.generated ?? "",
@@ -170,8 +177,9 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
           promptVersion: data.promptVersion ?? 1,
         });
         setDirty(false);
+        setDraftLoaded(true);
       })
-      .catch(() => undefined);
+      .catch(() => { if (!cancelled) setDraftLoaded(true); });
 
     return () => { cancelled = true; };
   }, [runId]);
@@ -246,8 +254,16 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
     }
   }
 
+  if (!sourcesLoaded || !draftLoaded) {
+    return (
+      <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22, color: "#8E877A", fontSize: 13 }}>
+        Loading the debrief…
+      </div>
+    );
+  }
+
   return (
-    <div style={{ background: "#F7F4ED", minHeight: "100vh", padding: 22 }}>
+    <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
       <HotDebrief
         sources={sources}
         selectedSourceIds={selectedSourceIds}
