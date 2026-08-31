@@ -6,6 +6,7 @@ import {
   readPrimingArtifacts,
   saveDebrief,
 } from '@/lib/questionStore';
+import { readDebriefMarkdown } from '@/lib/briefingStore';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -152,7 +153,16 @@ export async function GET(
     if (!record) {
       return NextResponse.json({ error: 'No debrief saved for this run' }, { status: 404 });
     }
-    return NextResponse.json(record);
+
+    /* The edited document lives in Storage now. Firestore still holds the
+       generated version and the metadata, and `edited` there is what earlier
+       saves wrote — kept as the fallback so a debrief filed before the move
+       still opens with the coach's edits rather than the raw generation. */
+    const document = await readDebriefMarkdown(runId);
+    return NextResponse.json({
+      ...record,
+      edited: document ?? record.edited ?? record.generated ?? '',
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     console.error('[sessions/debrief:GET]', msg);
