@@ -28,6 +28,43 @@ import { REGATTAS, getRegatResult, getDefaultRegat, getDefaultDay } from "@/data
 
 const SEASON = "6";
 
+/* Which day the coach was last on. Without this the console resets to the
+   calendar default on every visit — the active regatta, or the next upcoming
+   one if none is running — so a coach reviewing a finished regatta is thrown
+   back to a day with nothing filed and it reads as though nothing loaded. */
+const LAST_DAY_KEY = "ginga.console.lastDay";
+
+interface LastDay { regatId: string; dayIndex: number }
+
+function readLastDay(): LastDay | null {
+  /* Wrapped: storage throws outright in some privacy modes, and this is a
+     convenience, not something worth breaking the console over. */
+  try {
+    const raw = window.localStorage.getItem(LAST_DAY_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<LastDay>;
+    if (typeof parsed?.regatId !== "string" || typeof parsed?.dayIndex !== "number") return null;
+
+    // A regatta that has since been renamed or removed should not pin the console.
+    const regat = REGATTAS.find((r) => r.id === parsed.regatId);
+    if (!regat) return null;
+    return {
+      regatId: regat.id,
+      dayIndex: Math.max(0, Math.min(parsed.dayIndex, regat.days.length - 1)),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeLastDay(value: LastDay) {
+  try {
+    window.localStorage.setItem(LAST_DAY_KEY, JSON.stringify(value));
+  } catch {
+    /* Nothing to do — the console works without it. */
+  }
+}
+
 /** "Rio de Janeiro" + day 2 → "RiodeJaneiroRaceday2Season6", the shape parseRunId reads. */
 function buildRunId(city: string, dayNumber: number) {
   return `${city.replace(/\s+/g, "")}Raceday${dayNumber}Season${SEASON}`;
@@ -206,6 +243,20 @@ export default function ConsolePage() {
   const [phase, setPhase] = useState<PhaseId>("skeleton");
   const [regatId, setRegatId] = useState<string>(getDefaultRegat());
   const [dayIndex, setDayIndex] = useState<number>(() => getDefaultDay(getDefaultRegat()));
+
+  /* Restored after mount rather than in the initial state: localStorage does
+     not exist while this renders on the server, and reading it there would
+     mismatch the hydrated markup. */
+  useEffect(() => {
+    const last = readLastDay();
+    if (!last) return;
+    setRegatId(last.regatId);
+    setDayIndex(last.dayIndex);
+  }, []);
+
+  useEffect(() => {
+    writeLastDay({ regatId, dayIndex });
+  }, [regatId, dayIndex]);
 
   const regat = REGATTAS.find((r) => r.id === regatId) ?? REGATTAS[0];
   const dayNumber = Math.min(dayIndex, regat.days.length - 1) + 1;
