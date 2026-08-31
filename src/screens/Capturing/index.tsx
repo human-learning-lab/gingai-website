@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Capture, {
   type CaptureValue,
   type PrimingMetric,
@@ -8,6 +8,7 @@ import Capture, {
 } from "./Capturing";
 import { teamSailors } from '@/data/roles.hll';
 import { shareBaseUrl } from '@/lib/appUrl';
+import { fetchOwnGoals, fetchSquadGoals } from '@/lib/carriedContext';
 
 /* ============================================================
    Example wiring. Replace local state with your own fetch/save
@@ -30,16 +31,6 @@ const BASE_SAILORS: Sailor[] = [
 ];
 
 const SAILORS: Sailor[] = teamSailors(BASE_SAILORS);
-
-const DEFAULT_GOALS: string[] = [
-	
-]
-
-const PERSONAL_GOALS: Record<string, string> = Object.fromEntries(
-    SAILORS.map((s) => [s.name, ""]));
-
-
-
 
 const DEFAULT_QUESTIONS = [
   "What is the main thing on your mind?",
@@ -81,6 +72,20 @@ export default function CapturePage({
     personal: emptyPersonal,
   });
 
+  /* What the morning filed, read back: the goals as agreed in the briefing and
+     each sailor's own goal from priming. Both start empty and simply stay so
+     for a run with no morning record — the same rendering as before, but a run
+     that has one now writes its questions against it. */
+  const [squadGoals, setSquadGoals] = useState<string[]>([]);
+  const [ownGoals, setOwnGoals] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchSquadGoals(runId).then((g) => { if (!cancelled) setSquadGoals(g); });
+    fetchOwnGoals(runId).then((g) => { if (!cancelled) setOwnGoals(g); });
+    return () => { cancelled = true; };
+  }, [runId]);
+
   /* Not live yet. Wire this to Nico's feed once the per-role
      metrics are defined, then flip primingDataLive to true. */
   //const [primingData] = useState<Record<string, PrimingMetric[]>>({});
@@ -95,6 +100,18 @@ export default function CapturePage({
   const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const userId = 'user-1';
 
+  /* Everything the prompt says the agent is given, actually given. The old
+     call sent `text: prompt` — the global window.prompt function, which
+     JSON.stringify drops — so the agent received no instructions at all. */
+  const text = [
+    args.prompt,
+    args.squadGoals.length
+      ? `\nSquad goals agreed in the briefing:\n${args.squadGoals.map((g) => `- ${g}`).join('\n')}`
+      : '\nNo squad goals are on file for this run.',
+    args.sailor ? `\nSailor: ${args.sailor.name} (${args.sailor.role})` : '',
+    args.ownGoal ? `Their own goal from this morning: ${args.ownGoal}` : '',
+  ].filter(Boolean).join('\n');
+
   await fetch(`${AGENT_BASE}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -108,7 +125,7 @@ export default function CapturePage({
       appName: APP_NAME,
       userId,
       sessionId,
-      newMessage: { role: 'user', parts: [{ text: prompt }] },
+      newMessage: { role: 'user', parts: [{ text }] },
       streaming: false,
     }),
   });
@@ -194,8 +211,8 @@ export default function CapturePage({
     <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
       <Capture
         sailors={SAILORS}
-        squadGoals={DEFAULT_GOALS}
-        ownGoals={PERSONAL_GOALS}
+        squadGoals={squadGoals}
+        ownGoals={ownGoals}
         value={value}
         onChange={setValue}
         onGenerate={handleGenerate}
