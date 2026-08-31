@@ -6,6 +6,7 @@ import CapturesIn, {
   type Prompts,
   type Sailor,
   type TeamReading,
+  type GoalReading,
 } from "./CapturesIn";
 import { teamSailors } from '@/data/roles.hll';
 import { fetchOwnGoals, fetchSquadGoals } from '@/lib/carriedContext';
@@ -31,10 +32,14 @@ Use the sailor names exactly as given. Keep every sailor, even where their answe
 
 /* The shape is the screen's TeamReading — coverage, goals, themes, conflict,
    tomorrow — because that is what CapturesIn renders. */
+/* Goals are structured rather than one line each. Flattened, the goal, the
+   verdict and the evidence arrived concatenated — "Keep the platform flat…:
+   Addressed by 2. Daniel reported…" — with no way to render the reading apart
+   from the goal it is about. */
 const FALLBACK_READING_FORMAT = `Ignore your usual format. Return ONLY JSON in exactly this shape:
 {
   "coverage": "how many answered, e.g. 5 of 8",
-  "goals": ["one line per squad goal: what the captures say about it, with a count of who addressed it"],
+  "goals": [{"goal": "the squad goal, as agreed", "addressedBy": 2, "verdict": "short verdict in your own words", "detail": "the evidence, quoted rather than summarised away"}],
   "themes": [{"text": "...", "count": 2, "sailorNames": ["..."]}],
   "conflict": "where accounts of the same moment differ — omit the field if nowhere",
   "tomorrow": ["what the crew wants carried into tomorrow"]
@@ -163,7 +168,7 @@ export default function CapturesInPage({
       .then(async (res) => {
         if (!res.ok || cancelled) return;
         const data = await res.json().catch(() => null);
-        if (data?.teamReading && !cancelled) setTeamReading(data.teamReading as TeamReading);
+        if (data?.teamReading && !cancelled) setTeamReading(normaliseReading(data.teamReading));
       })
       .catch(() => undefined);
 
@@ -315,7 +320,7 @@ async function handleSynthesise(prompt: string) {
   const picture  = parseAgentJson<TeamReading>(fullText);
   /* Held in state so carry forward has something to commit — the old handler
      posted `teamReading`, which nothing ever set, so it always sent null. */
-  setTeamReading(picture);
+  setTeamReading(normaliseReading(picture));
   return picture;
 
   }
@@ -365,4 +370,32 @@ async function handleSynthesise(prompt: string) {
       />
     </div>
   );
+}
+
+/* A reading filed before goals were structured is one string per goal, with the
+   goal and the verdict run together. Split on the first colon so an existing
+   reading still renders in two parts rather than as a wall of text. */
+function normaliseReading(raw: unknown): TeamReading | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Omit<TeamReading, 'goals'> & { goals?: unknown[] };
+
+  const goals: GoalReading[] = (r.goals ?? []).map((g): GoalReading => {
+    if (typeof g === 'string') {
+      /* One string per goal, with the goal and the verdict run together.
+         Split on the first colon so it still renders in two parts. */
+      const at = g.indexOf(':');
+      return at > 0
+        ? { goal: g.slice(0, at).trim(), addressedBy: 0, verdict: '', detail: g.slice(at + 1).trim() }
+        : { goal: '', addressedBy: 0, verdict: '', detail: g };
+    }
+    const o = (g ?? {}) as Partial<GoalReading>;
+    return {
+      goal: o.goal ?? '',
+      addressedBy: o.addressedBy ?? 0,
+      verdict: o.verdict ?? '',
+      detail: o.detail ?? '',
+    };
+  });
+
+  return { ...r, goals };
 }

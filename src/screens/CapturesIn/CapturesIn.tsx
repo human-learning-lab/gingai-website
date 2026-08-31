@@ -53,7 +53,7 @@ export interface Theme {
 export interface TeamReading {
   /** e.g. "5 of 8" — always shown, never implied. */
   coverage: string;
-  goals: string[];
+  goals: GoalReading[];
   themes: Theme[];
   /**
    * Where accounts of the same moment differ. Left unresolved on
@@ -404,7 +404,7 @@ export default function CapturesIn({
                     title was growing to "Against the squad goals · coverage
                     5 of 8" and wrapping. Card already takes a note. */}
                 <Card title="Against the squad goals" note={teamReading.coverage}>
-                  {teamReading.goals.map((reading, i) => (
+                  {teamReading.goals.map((g, i) => (
                     <div
                       key={i}
                       style={{
@@ -420,12 +420,59 @@ export default function CapturesIn({
                         <span style={{ ...label, color: C.green, paddingTop: 3 }}>
                           {i + 1}
                         </span>
-                        {/* Sized here rather than inherited. These readings run
-                            to several lines, and unset type left them at the
-                            container's default with no leading. */}
-                        <span style={{ flex: 1, fontSize: 13.5, lineHeight: 1.55 }}>
-                          {reading}
-                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                              fontSize: 13.5,
+                              lineHeight: 1.55,
+                            }}
+                          >
+                            <span>{g.goal}</span>
+                            {g.addressedBy > 0 && (
+                              <span
+                                style={{
+                                  fontFamily: MONO,
+                                  fontSize: 11,
+                                  color: C.warmLt,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {g.addressedBy} of {answered.length}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Verdict and evidence in their own panel, the shape
+                              the briefing's change note uses — the verdict
+                              leading, the quoted detail under it. */}
+                          {(g.verdict || g.detail) && (
+                            <div
+                              style={{
+                                marginTop: 6,
+                                padding: "9px 11px",
+                                background: C.sand,
+                                borderRadius: 6,
+                                fontSize: 12,
+                                color: C.warm,
+                                lineHeight: 1.55,
+                              }}
+                            >
+                              {g.verdict && (
+                                <div style={{ fontWeight: 600, color: C.ink }}>
+                                  {g.verdict}
+                                </div>
+                              )}
+                              {g.detail && (
+                                <div style={{ marginTop: g.verdict ? 4 : 0 }}>
+                                  {g.detail}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
