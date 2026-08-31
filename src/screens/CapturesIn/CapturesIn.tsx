@@ -458,15 +458,11 @@ export default function CapturesIn({
                                 <div
                                   key={qi}
                                   style={{
-                                    marginTop: qi === 0 ? (g.verdict ? 7 : 0) : 7,
-                                    padding: "8px 10px",
-                                    /* Transparent rather than its own fill, so
-                                       each quote sits on the same ground as the
-                                       verdict above it — the border is enough
-                                       to separate one voice from the next. */
-                                    background: "transparent",
-                                    border: `1px solid ${C.line}`,
-                                    borderRadius: 5,
+                                    /* No fill and no border — spacing alone
+                                       separates one voice from the next, and
+                                       the name that leads each quote already
+                                       says where it changes. */
+                                    marginTop: qi === 0 ? (g.verdict ? 8 : 0) : 8,
                                   }}
                                 >
                                   {q.sailor && (
