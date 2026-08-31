@@ -327,12 +327,21 @@ export async function regenerateProfile(
   role: string,
   previous: string | null,
   limit = 0,
+  /** Extra material for this run — what they said in today's capture. Added to
+   *  the transcripts rather than replacing them, and enough on its own for a
+   *  sailor who has answered but has no voice notes on file. */
+  extra?: string,
 ): Promise<SailorProfile> {
   const found = await collectTranscribed(sailor, limit);
-  if (!found.rows) throw new Error(`No transcribed material found for "${sailor}"`);
+  if (!found.rows && !extra?.trim()) {
+    throw new Error(`No transcribed material found for "${sailor}"`);
+  }
+
+  const speech = [found.text, extra?.trim() ? `\n\nFROM TODAY'S CAPTURE:\n${extra.trim()}` : '']
+    .filter(Boolean).join('');
 
   const content = await runAgent(
-    buildProfilePrompt(sailor, role, found.text, previous),
+    buildProfilePrompt(sailor, role, speech, previous),
     PROFILE_APP,
   );
 
@@ -399,6 +408,9 @@ export interface TeamContext {
 export async function generateTeamContext(
   files: { sailor: string; content: string }[],
   previous: string | null,
+  /** The day's debrief, when there is one. The squad file is otherwise built
+   *  only from the individual files, which cannot say what the room concluded. */
+  debrief?: string,
 ): Promise<TeamContext> {
   if (!files.length) throw new Error('No sailor context files to read');
 
@@ -434,9 +446,12 @@ export async function generateTeamContext(
       ? 'CURRENT SQUAD CONTEXT FILE — revise this:\n\n' + previous
       : 'No squad context file exists yet. Write the first one.',
     '',
+    debrief?.trim()
+      ? `TODAY'S DEBRIEF — what the room concluded. Weigh it against the files:\n${debrief.trim()}\n`
+      : '',
     `SAILOR CONTEXT FILES (${files.length}):`,
     ...files.map(f => `\n===== ${f.sailor} =====\n${f.content}`),
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 
   const content = await runAgent(prompt, PROFILE_APP);
 

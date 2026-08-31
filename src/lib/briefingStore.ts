@@ -150,3 +150,57 @@ export async function readBriefing(runId: string): Promise<BriefingRecord | null
     updatedAt: f.briefingUpdatedAt?.stringValue,
   };
 }
+
+
+/* ── The debrief document, in Storage ──────────────────────────
+ * races/{race}/{day}/debrief.md — the record of what the room concluded,
+ * filed where the day it belongs to can be read off the path.
+ */
+
+export function debriefPath(runId: string) {
+  const { race, day } = parseRunId(runId);
+  const id = (v: string) => v.trim().replace(/[^\w.-]+/g, '_') || 'unknown';
+  return `races/${id(race)}/${id(day)}/debrief.md`;
+}
+
+export async function saveDebriefMarkdown(runId: string, text: string) {
+  if (!BUCKET) throw new Error('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is not configured');
+  if (!text.trim()) throw new Error('The debrief document is empty');
+
+  const path = debriefPath(runId);
+  const res = await fetch(
+    `${STORAGE}/${BUCKET}/o?uploadType=media&name=${encodeURIComponent(path)}`,
+    { method: 'POST', headers: { 'Content-Type': 'text/markdown; charset=utf-8' }, body: text },
+  );
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Storage upload ${res.status}: ${detail.slice(0, 200)}`);
+  }
+
+  /* Custom metadata is discarded on upload and has to follow as a PATCH.
+     Provenance is a nicety, so a failure here does not fail the save. */
+  await fetch(objectUrl(path), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ metadata: { runId, kind: 'debrief' } }),
+  }).catch(() => undefined);
+
+  const uploaded = await res.json().catch(() => null) as { downloadTokens?: string } | null;
+  const token = uploaded?.downloadTokens?.split(',')[0];
+  return {
+    path,
+    url: token ? `${objectUrl(path)}?alt=media&token=${token}` : undefined,
+  };
+}
+
+export async function readDebriefMarkdown(runId: string): Promise<string | null> {
+  if (!BUCKET) return null;
+  const path = debriefPath(runId);
+  const metaRes = await fetch(objectUrl(path), { cache: 'no-store' });
+  if (!metaRes.ok) return null;
+  const meta = await metaRes.json().catch(() => null) as { downloadTokens?: string } | null;
+  const token = meta?.downloadTokens?.split(',')[0];
+  if (!token) return null;
+  const res = await fetch(`${objectUrl(path)}?alt=media&token=${token}`, { cache: 'no-store' });
+  return res.ok ? res.text() : null;
+}

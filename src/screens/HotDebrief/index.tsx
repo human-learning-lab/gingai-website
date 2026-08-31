@@ -58,6 +58,57 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
 
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [draft, setDraft] = useState<DebriefDraft | null>(null);
+  const [publishState, setPublishState] = useState<{
+    busy: boolean;
+    message?: string | null;
+    error?: boolean;
+  }>({ busy: false });
+
+  /* Files the debrief and refreshes what it feeds: the squad context file, and
+     each sailor's, against what they said in today's capture. One call, because
+     the three belong together — a debrief on file whose context files still
+     describe yesterday is the state worth avoiding. */
+  async function handlePublish() {
+    const text = draft?.edited?.trim();
+    if (!text) {
+      setPublishState({ busy: false, message: "Nothing to file — run the prompt first.", error: true });
+      return;
+    }
+
+    setPublishState({ busy: true, message: null });
+    try {
+      const res = await fetch(`/api/sessions/${encodeURIComponent(runId)}/debrief/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? "Could not file the debrief");
+
+      /* Partial success is reported as such: the document is filed either way,
+         and a sailor whose profile failed should be named rather than folded
+         into a tick. */
+      const parts = [`Filed to ${data.document?.path ?? "storage"}`];
+      if (data.sailors?.length) parts.push(`${data.sailors.length} sailor files updated`);
+      if (data.team) parts.push("team file updated");
+      if (data.teamError) parts.push(`team file failed: ${data.teamError}`);
+      if (data.sailorsFailed?.length) {
+        parts.push(`failed: ${data.sailorsFailed.map((f: { sailor: string }) => f.sailor).join(", ")}`);
+      }
+
+      setPublishState({
+        busy: false,
+        message: parts.join(" · "),
+        error: Boolean(data.teamError || data.sailorsFailed?.length),
+      });
+    } catch (e) {
+      setPublishState({
+        busy: false,
+        message: e instanceof Error ? e.message : "Could not file the debrief",
+        error: true,
+      });
+    }
+  }
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -183,6 +234,8 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
         onDocumentChange={handleDocumentChange}
         onRun={handleRun}
         onResetPrompt={() => setPrompt(DEFAULT_PROMPT)}
+        onPublish={handlePublish}
+        publishState={publishState}
         onCopy={() => draft && navigator.clipboard.writeText(draft.edited)}
         onExport={() => {
           /* PDF, link, or Drive — decide when the format is settled. */
