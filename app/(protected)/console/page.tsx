@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ConsoleShell, { type Phase, type PhaseId } from "@/screens/Console";
 import SkeletonBriefPage from "@/screens/SkeletonBrief";
 import PrimingInPage from "@/screens/PrimingIn";
@@ -33,16 +33,174 @@ function buildRunId(city: string, dayNumber: number) {
   return `${city.replace(/\s+/g, "")}Raceday${dayNumber}Season${SEASON}`;
 }
 
-const select: React.CSSProperties = {
-  fontSize: 12.5,
-  fontWeight: 600,
-  padding: "7px 10px",
-  borderRadius: 6,
-  border: "1px solid #DDD5C4",
-  background: "#FFFDF8",
-  color: "#1A1A18",
-  cursor: "pointer",
-};
+/* Console header tokens, matching ConsoleShell's palette. */
+const T = {
+  sand: "#EDE7DA",
+  line: "#DDD5C4",
+  green: "#00A651",
+  ink: "#1A1A18",
+  warm: "#6B6459",
+  warmLt: "#8E877A",
+  field: "#FFFDF8",
+} as const;
+/* Same face as the backbone's strip — Barlow Condensed is loaded globally. */
+const STRIP_FONT = "'Barlow Condensed', sans-serif";
+
+/* The season carousel, matching the backbone's regatta strip: beige band,
+   Barlow Condensed, the active venue raised on a light card with a green
+   underline. Day pills on the right. */
+function RegattaStrip({
+  regatId,
+  dayIndex,
+  onRegatChange,
+  onDayChange,
+}: {
+  regatId: string;
+  dayIndex: number;
+  onRegatChange: (id: string) => void;
+  onDayChange: (i: number) => void;
+}) {
+  const stripRef = useRef<HTMLDivElement>(null);
+  const regat = REGATTAS.find((r) => r.id === regatId) ?? REGATTAS[0];
+
+  /* Keep the active venue centred, as the backbone does. */
+  useEffect(() => {
+    const strip = stripRef.current;
+    const active = strip?.querySelector<HTMLElement>('[data-active="true"]');
+    if (!strip || !active) return;
+    const stripRect = strip.getBoundingClientRect();
+    const btnRect = active.getBoundingClientRect();
+    strip.scrollTo({
+      left: strip.scrollLeft + btnRect.left - stripRect.left - stripRect.width / 2 + btnRect.width / 2,
+      behavior: "smooth",
+    });
+  }, [regatId]);
+
+  const result = getRegatResult(regat.start, regat.end);
+
+  return (
+    /* Full-bleed beige band: cancels the header's own padding so the strip
+       runs edge to edge, the way the backbone's does. */
+    <div
+      style={{
+        margin: "-15px -22px 13px",
+        background: T.sand,
+        borderBottom: `1px solid ${T.line}`,
+      }}
+    >
+      <div
+        style={{
+          padding: "8px 22px 0",
+          fontFamily: STRIP_FONT,
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          color: T.warmLt,
+        }}
+      >
+        SailGP 2026 — Season 6
+        {result === "Active" && (
+          <span style={{ marginLeft: 10, color: T.green }}>● Live</span>
+        )}
+        {result === "Upcoming" && (
+          <span style={{ marginLeft: 10, color: "#B8912F" }}>Next up</span>
+        )}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 14 }}>
+        <div
+          ref={stripRef}
+          style={{
+            display: "flex",
+            gap: 2,
+            overflowX: "auto",
+            flex: 1,
+            padding: "6px 16px 0",
+            scrollbarWidth: "none",
+          }}
+        >
+          {REGATTAS.map((r) => {
+            const active = r.id === regatId;
+            const past = getRegatResult(r.start, r.end) === "Past";
+            return (
+              <button
+                key={r.id}
+                data-active={active}
+                onClick={() => { onRegatChange(r.id); onDayChange(0); }}
+                style={{
+                  appearance: "none",
+                  flexShrink: 0,
+                  padding: "6px 12px 8px",
+                  borderRadius: "6px 6px 0 0",
+                  border: "none",
+                  borderBottom: `2px solid ${active ? T.green : "transparent"}`,
+                  background: active ? T.field : "transparent",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  opacity: past && !active ? 0.55 : 1,
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: STRIP_FONT,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    letterSpacing: "0.04em",
+                    color: active ? T.ink : T.warm,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {r.short}
+                </div>
+                <div
+                  style={{
+                    fontFamily: STRIP_FONT,
+                    fontSize: 10.5,
+                    fontWeight: 600,
+                    letterSpacing: "0.06em",
+                    color: active ? T.green : T.warmLt,
+                    marginTop: 1,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {r.dates}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ display: "flex", gap: 4, padding: "0 22px 8px 0", flexShrink: 0 }}>
+          {regat.days.map((label, i) => {
+            const active = Math.min(dayIndex, regat.days.length - 1) === i;
+            return (
+              <button
+                key={i}
+                onClick={() => onDayChange(i)}
+                style={{
+                  fontFamily: STRIP_FONT,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: "0.04em",
+                  padding: "5px 11px",
+                  borderRadius: 6,
+                  border: `1px solid ${active ? T.green : T.line}`,
+                  background: active ? T.green : T.field,
+                  color: active ? "#fff" : T.ink,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ConsolePage() {
   const [phase, setPhase] = useState<PhaseId>("skeleton");
@@ -65,30 +223,12 @@ export default function ConsolePage() {
   ];
 
   const picker = (
-    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-      <select
-        style={select}
-        value={regatId}
-        aria-label="Regatta"
-        onChange={(e) => { setRegatId(e.target.value); setDayIndex(0); }}
-      >
-        {REGATTAS.map((r) => (
-          <option key={r.id} value={r.id}>
-            {r.short} · {r.dates}
-          </option>
-        ))}
-      </select>
-      <select
-        style={select}
-        value={Math.min(dayIndex, regat.days.length - 1)}
-        aria-label="Race day"
-        onChange={(e) => setDayIndex(Number(e.target.value))}
-      >
-        {regat.days.map((label, i) => (
-          <option key={i} value={i}>{label}</option>
-        ))}
-      </select>
-    </div>
+    <RegattaStrip
+      regatId={regatId}
+      dayIndex={dayIndex}
+      onRegatChange={setRegatId}
+      onDayChange={setDayIndex}
+    />
   );
 
   return (

@@ -49,7 +49,7 @@ export interface ConsoleShellProps {
   phases: Phase[];
   activePhase: PhaseId;
   onPhaseChange: (id: PhaseId) => void;
-  /** Regatta/day selector, rendered in the header beside the live badge. */
+  /** Regatta/day selector, rendered full-width at the top of the header. */
   picker?: React.ReactNode;
   children: React.ReactNode;
 }
@@ -152,6 +152,7 @@ function EventHeader({
         zIndex: 10,
       }}
     >
+      {picker}
       <div
         style={{
           display: "flex",
@@ -175,31 +176,28 @@ function EventHeader({
           </h1>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {picker}
-          {event.live !== false && (
+        {event.live !== false && (
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              padding: "6px 12px",
+              background: C.greenLt,
+              borderRadius: 6,
+            }}
+          >
             <span
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "6px 12px",
-                background: C.greenLt,
+                width: 6,
+                height: 6,
                 borderRadius: 6,
+                background: C.green,
               }}
-            >
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 6,
-                  background: C.green,
-                }}
-              />
-              <span style={{ ...label, color: C.greenDk }}>Live mode</span>
-            </span>
-          )}
-        </div>
+            />
+            <span style={{ ...label, color: C.greenDk }}>Live mode</span>
+          </span>
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 2, overflowX: "auto" }}>
