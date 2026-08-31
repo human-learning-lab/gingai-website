@@ -400,15 +400,16 @@ export default function CapturesIn({
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {teamReading ? (
               <>
-                <Card
-                  title={`Against the squad goals · coverage ${teamReading.coverage}`}
-                >
+                {/* Coverage belongs beside the title, not inside it — the
+                    title was growing to "Against the squad goals · coverage
+                    5 of 8" and wrapping. Card already takes a note. */}
+                <Card title="Against the squad goals" note={teamReading.coverage}>
                   {teamReading.goals.map((reading, i) => (
                     <div
                       key={i}
                       style={{
-                        paddingBottom: 15,
-                        marginBottom: 15,
+                        paddingBottom: 12,
+                        marginBottom: 12,
                         borderBottom:
                           i < teamReading.goals.length - 1
                             ? `1px solid ${C.line}`
@@ -419,9 +420,12 @@ export default function CapturesIn({
                         <span style={{ ...label, color: C.green, paddingTop: 3 }}>
                           {i + 1}
                         </span>
-                        <div style={{ flex: 1 }}>
-                        	{reading}                          
-						</div>
+                        {/* Sized here rather than inherited. These readings run
+                            to several lines, and unset type left them at the
+                            container's default with no leading. */}
+                        <span style={{ flex: 1, fontSize: 13.5, lineHeight: 1.55 }}>
+                          {reading}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -802,22 +806,38 @@ function Card({
       >
         <h2 style={{ ...label, margin: 0 }}>{title}</h2>
         {note && (
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: "0.07em",
-              textTransform: "uppercase",
-              padding: "2px 7px",
-              borderRadius: 3,
-              color: note === "Personal set" ? C.green : C.warm,
-              border: `1px solid ${note === "Personal set" ? C.green : C.line}`,
-              background: note === "Personal set" ? C.greenLt : "transparent",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {note}
-          </span>
+          /* Two kinds of qualifier share this slot: the set marker, which reads
+             as a badge, and a coverage count, which reads as a figure — the
+             same mono treatment the theme counts use. */
+          note === "Personal set" || note === "Team set" ? (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.07em",
+                textTransform: "uppercase",
+                padding: "2px 7px",
+                borderRadius: 3,
+                color: note === "Personal set" ? C.green : C.warm,
+                border: `1px solid ${note === "Personal set" ? C.green : C.line}`,
+                background: note === "Personal set" ? C.greenLt : "transparent",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {note}
+            </span>
+          ) : (
+            <span
+              style={{
+                fontFamily: MONO,
+                fontSize: 11,
+                color: C.warmLt,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {note}
+            </span>
+          )
         )}
       </div>
       {children}

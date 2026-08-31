@@ -104,6 +104,7 @@ export default function CapturesInPage({
   /* The goals as agreed in the briefing and each sailor's own goal from the
      morning, read back from where those phases filed them. */
   const [squadGoals, setSquadGoals] = useState<string[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [ownGoals, setOwnGoals] = useState<Record<string, string>>({});
 
   /* Answers come from Viktor's API, but the questions come from Firestore.
@@ -127,6 +128,7 @@ export default function CapturesInPage({
 
       const rows: CaptureResponse[] = Array.isArray(resps) ? resps : [];
 
+      setLoaded(true);
       setResponses(rows.map((row) => {
         const filed = day?.sailors?.[row.recipient] as
           { questions?: string[]; fromTeamSet?: boolean } | undefined;
@@ -144,7 +146,7 @@ export default function CapturesInPage({
       }));
     }
 
-    load().catch(() => undefined);
+    load().catch(() => { if (!cancelled) setLoaded(true); });
     return () => { cancelled = true; };
   }, [runId]);
 
@@ -335,6 +337,16 @@ async function handleSynthesise(prompt: string) {
       const data = await res.json().catch(() => null);
       throw new Error(data?.error ?? 'Could not carry the reading forward');
     }
+  }
+
+  /* Held back until the answers and the day's filed sets resolve, so the screen
+     does not show "0 answers in" for a run that has them. */
+  if (!loaded) {
+    return (
+      <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22, color: "#8E877A", fontSize: 13 }}>
+        Loading the captures…
+      </div>
+    );
   }
 
   return (
