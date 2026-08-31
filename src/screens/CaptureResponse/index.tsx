@@ -169,7 +169,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 		   The mirror always holds the latest. Falls back for runs that
 		   predate it. */
 		const mirrored = await fetch(
-			`/api/question-set?runId=${encodeURIComponent(runId)}&sailor=${encodeURIComponent(sailor.firstName)}`,
+			`/api/question-set?runId=${encodeURIComponent(runId)}&sailor=${encodeURIComponent(sailor.firstName)}&kind=capture`,
 		);
 		if (mirrored.ok) {
 			const set = await mirrored.json();

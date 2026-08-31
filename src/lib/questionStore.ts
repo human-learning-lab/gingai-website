@@ -107,6 +107,27 @@ export interface MirrorInput {
   personal?: Record<string, QuestionSet>;
 }
 
+/**
+ * Field names for one kind of question set.
+ *
+ * Priming keeps the unprefixed names it has always used; capture is prefixed,
+ * matching how captureDistilled and captureReading already sit beside the
+ * morning's distilled and teamPicture. Without this the two kinds shared
+ * teamQuestions and questions, so sending the evening's set silently replaced
+ * the morning's — a different set of questions entirely.
+ */
+function questionFields(kind: string) {
+  const evening = kind === 'capture';
+  return {
+    teamQuestions: evening ? 'captureTeamQuestions' : 'teamQuestions',
+    teamPrompt: evening ? 'captureTeamPrompt' : 'teamPrompt',
+    questions: evening ? 'captureQuestions' : 'questions',
+    prompt: evening ? 'capturePrompt' : 'prompt',
+    fromTeamSet: evening ? 'captureFromTeamSet' : 'fromTeamSet',
+    updatedAt: evening ? 'captureQuestionsUpdatedAt' : 'updatedAt',
+  };
+}
+
 export async function mirrorQuestionSet(input: MirrorInput) {
   if (!PROJECT || !API_KEY) throw new Error('Firebase project id or API key is not configured');
 
@@ -118,16 +139,18 @@ export async function mirrorQuestionSet(input: MirrorInput) {
 
   await put(`races/${raceId}`, { venue: race, season: season ?? '' }, true);
 
+  const F = questionFields(input.kind);
+
   /* Merges, so a send does not clear the team picture or squad goals already
-     filed against this day. */
+     filed against this day — nor the other kind's question set. */
   await put(dayPath, {
     day,
     runId: input.runId,
     kind: input.kind,
     scope: input.scope,
-    teamQuestions: input.teamQuestions ?? [],
-    teamPrompt: input.teamPrompt ?? '',
-    updatedAt,
+    [F.teamQuestions]: input.teamQuestions ?? [],
+    [F.teamPrompt]: input.teamPrompt ?? '',
+    [F.updatedAt]: updatedAt,
   }, true);
 
   /* Only the recipients of this send. Writing every sailor in `personal`
@@ -140,10 +163,10 @@ export async function mirrorQuestionSet(input: MirrorInput) {
       if (!questions.length) return;
       await put(`${dayPath}/sailors/${docId(name)}`, {
         sailor: name,
-        questions,
-        prompt: set?.prompt ?? input.teamPrompt ?? '',
-        fromTeamSet: !set?.questions?.length,
-        updatedAt,
+        [F.questions]: questions,
+        [F.prompt]: set?.prompt ?? input.teamPrompt ?? '',
+        [F.fromTeamSet]: !set?.questions?.length,
+        [F.updatedAt]: updatedAt,
       }, true);
       written.push(name);
     }),
@@ -191,20 +214,24 @@ export interface StoredQuestions {
 export async function readQuestionSet(
   runId: string,
   sailor?: string,
+  kind: string = 'priming',
 ): Promise<StoredQuestions | null> {
   if (!PROJECT || !API_KEY) return null;
 
   const { race, day } = parseRunId(runId);
   const dayPath = `races/${docId(race)}/days/${docId(day)}`;
+  /* The kind decides which set is being answered. A capture link must not be
+     served the morning's priming questions, and vice versa. */
+  const F = questionFields(kind);
 
   if (sailor) {
     const own = await getDoc(`${dayPath}/sailors/${docId(sailor)}`);
-    const questions = fromValue(own?.questions) as string[] | undefined;
+    const questions = fromValue(own?.[F.questions]) as string[] | undefined;
     if (questions?.length) return { questions, source: 'sailor' };
   }
 
   const dayDoc = await getDoc(dayPath);
-  const team = fromValue(dayDoc?.teamQuestions) as string[] | undefined;
+  const team = fromValue(dayDoc?.[F.teamQuestions]) as string[] | undefined;
   return team?.length ? { questions: team, source: 'team' } : null;
 }
 
@@ -491,7 +518,10 @@ export interface DayQuestions {
   updatedAt?: string;
 }
 
-export async function readDayQuestions(runId: string): Promise<DayQuestions | null> {
+export async function readDayQuestions(
+  runId: string,
+  kind: string = 'priming',
+): Promise<DayQuestions | null> {
   if (!PROJECT || !API_KEY) return null;
 
   const { race, day } = parseRunId(runId);
@@ -499,8 +529,9 @@ export async function readDayQuestions(runId: string): Promise<DayQuestions | nu
   const dayDoc = await getDoc(path);
   if (!dayDoc) return null;
 
-  const teamQuestions = (fromValue(dayDoc.teamQuestions) as string[] | undefined) ?? [];
-  const teamPrompt = (fromValue(dayDoc.teamPrompt) as string | undefined) ?? '';
+  const F = questionFields(kind);
+  const teamQuestions = (fromValue(dayDoc[F.teamQuestions]) as string[] | undefined) ?? [];
+  const teamPrompt = (fromValue(dayDoc[F.teamPrompt]) as string | undefined) ?? '';
 
   const sailors: Record<string, DaySailorSet> = {};
   const res = await fetch(`${ROOT}/${path}/sailors?key=${API_KEY}`, { cache: 'no-store' });
@@ -510,14 +541,14 @@ export async function readDayQuestions(runId: string): Promise<DayQuestions | nu
 
     for (const d of data?.documents ?? []) {
       const f = d.fields;
-      const questions = (fromValue(f?.questions) as string[] | undefined) ?? [];
+      const questions = (fromValue(f?.[F.questions]) as string[] | undefined) ?? [];
       if (!questions.length) continue;
       const name = (fromValue(f?.sailor) as string | undefined)
         ?? decodeURIComponent(d.name.split('/').pop() ?? '');
       sailors[name] = {
         questions,
-        prompt: (fromValue(f?.prompt) as string | undefined) ?? '',
-        fromTeamSet: Boolean(fromValue(f?.fromTeamSet)),
+        prompt: (fromValue(f?.[F.prompt]) as string | undefined) ?? '',
+        fromTeamSet: Boolean(fromValue(f?.[F.fromTeamSet])),
       };
     }
   }
