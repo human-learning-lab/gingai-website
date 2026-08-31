@@ -460,7 +460,11 @@ export default function CapturesIn({
                                   style={{
                                     marginTop: qi === 0 ? (g.verdict ? 7 : 0) : 7,
                                     padding: "8px 10px",
-                                    background: C.field,
+                                    /* Transparent rather than its own fill, so
+                                       each quote sits on the same ground as the
+                                       verdict above it — the border is enough
+                                       to separate one voice from the next. */
+                                    background: "transparent",
                                     border: `1px solid ${C.line}`,
                                     borderRadius: 5,
                                   }}
