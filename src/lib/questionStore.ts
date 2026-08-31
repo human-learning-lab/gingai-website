@@ -282,6 +282,151 @@ export async function savePrimingArtifacts(input: PrimingArtifacts) {
   return { path: dayPath, written, sailors, updatedAt };
 }
 
+/* ── Phase 05 artefacts ────────────────────────────────────────
+ * What captures in produces, filed against the same race day. The mirror of
+ * the phase 02 section above: the team reading is the day's, the distilled
+ * lines are each sailor's, and every write merges so redoing one step leaves
+ * the rest — and everything phases 01–03 filed — intact.
+ */
+
+export interface CaptureArtifacts {
+  runId: string;
+  /** The synthesised reading the coach takes into the debrief. */
+  teamReading?: unknown;
+  /** One condensed line per capture question, keyed by sailor. */
+  distilled?: Record<string, string[]>;
+}
+
+export async function saveCaptureArtifacts(input: CaptureArtifacts) {
+  if (!PROJECT || !API_KEY) throw new Error('Firebase project id or API key is not configured');
+
+  const dayPath = await ensureDay(input.runId);
+  const updatedAt = new Date().toISOString();
+  const written: string[] = [];
+
+  if (input.teamReading !== undefined) {
+    // JSON for the same reason as the team picture: the shape is the agent's.
+    await put(dayPath, {
+      captureReading: JSON.stringify(input.teamReading),
+      capturesUpdatedAt: updatedAt,
+    }, true);
+    written.push('teamReading');
+  }
+
+  const sailors: string[] = [];
+  for (const [sailor, lines] of Object.entries(input.distilled ?? {})) {
+    if (!lines?.length) continue;
+    /* `captureDistilled`, not `distilled` — that field is the morning's
+       priming lines, and the evening must not overwrite them. */
+    await put(`${dayPath}/sailors/${docId(sailor)}`, {
+      sailor,
+      captureDistilled: lines,
+      captureDistilledAt: updatedAt,
+    }, true);
+    sailors.push(sailor);
+  }
+  if (sailors.length) written.push(`distilled(${sailors.length})`);
+
+  return { path: dayPath, written, sailors, updatedAt };
+}
+
+export interface StoredCaptureArtifacts {
+  teamReading: unknown | null;
+  distilled: Record<string, string[]>;
+}
+
+export async function readCaptureArtifacts(runId: string): Promise<StoredCaptureArtifacts | null> {
+  if (!PROJECT || !API_KEY) return null;
+
+  const { race, day } = parseRunId(runId);
+  const dayPath = `races/${docId(race)}/days/${docId(day)}`;
+  const dayDoc = await getDoc(dayPath);
+  if (!dayDoc) return null;
+
+  const parse = (raw: unknown) => {
+    if (typeof raw !== 'string' || !raw) return null;
+    try { return JSON.parse(raw); } catch { return null; }
+  };
+
+  const distilled: Record<string, string[]> = {};
+  const res = await fetch(`${ROOT}/${dayPath}/sailors?key=${API_KEY}`, { cache: 'no-store' });
+  if (res.ok) {
+    const data = await res.json().catch(() => null) as
+      { documents?: { name: string; fields?: Record<string, Record<string, unknown>> }[] } | null;
+    for (const d of data?.documents ?? []) {
+      const lines = fromValue(d.fields?.captureDistilled) as string[] | undefined;
+      if (lines?.length) distilled[d.name.split('/').pop() ?? ''] = lines;
+    }
+  }
+
+  return {
+    teamReading: parse(fromValue(dayDoc.captureReading)),
+    distilled,
+  };
+}
+
+/* ── Phase 06 debrief ──────────────────────────────────────────
+ * The hot debrief document, kept in both versions: what the model wrote and
+ * what the coach made of it. Running again replaces `generated` and bumps the
+ * version; the coach's edits only ever touch `edited`.
+ */
+
+export interface DebriefRecord {
+  generated: string;
+  edited: string;
+  generatedAt: string;
+  promptVersion: number;
+  prompt?: string;
+  sourceIds?: string[];
+}
+
+export async function saveDebrief(runId: string, record: DebriefRecord) {
+  if (!PROJECT || !API_KEY) throw new Error('Firebase project id or API key is not configured');
+
+  const dayPath = await ensureDay(runId);
+  const fields: Record<string, unknown> = {
+    debriefGenerated: record.generated,
+    debriefEdited: record.edited,
+    debriefGeneratedAt: record.generatedAt,
+    debriefPromptVersion: record.promptVersion,
+  };
+  if (record.prompt !== undefined) fields.debriefPrompt = record.prompt;
+  if (record.sourceIds !== undefined) fields.debriefSourceIds = record.sourceIds;
+
+  await put(dayPath, fields, true);
+  return { path: dayPath };
+}
+
+/** The coach's version only. The generated text stays as it was. */
+export async function saveDebriefDocument(runId: string, text: string) {
+  if (!PROJECT || !API_KEY) throw new Error('Firebase project id or API key is not configured');
+
+  const dayPath = await ensureDay(runId);
+  await put(dayPath, {
+    debriefEdited: text,
+    debriefEditedAt: new Date().toISOString(),
+  }, true);
+  return { path: dayPath };
+}
+
+export async function readDebrief(runId: string): Promise<DebriefRecord | null> {
+  if (!PROJECT || !API_KEY) return null;
+
+  const { race, day } = parseRunId(runId);
+  const dayDoc = await getDoc(`races/${docId(race)}/days/${docId(day)}`);
+  const generatedAt = fromValue(dayDoc?.debriefGeneratedAt) as string | undefined;
+  if (!dayDoc || !generatedAt) return null;
+
+  return {
+    generated: (fromValue(dayDoc.debriefGenerated) as string) ?? '',
+    edited: (fromValue(dayDoc.debriefEdited) as string) ?? '',
+    generatedAt,
+    promptVersion: (fromValue(dayDoc.debriefPromptVersion) as number) ?? 1,
+    prompt: fromValue(dayDoc.debriefPrompt) as string | undefined,
+    sourceIds: fromValue(dayDoc.debriefSourceIds) as string[] | undefined,
+  };
+}
+
 export interface StoredPrimingArtifacts {
   teamPicture: unknown | null;
   /** The goals carried into the briefing — its input, not its outcome. */

@@ -85,8 +85,8 @@ export interface CapturesInProps {
   onDistil: (prompt: string) => Promise<Record<string, string[]>>;
   /** Build the team reading. Safe to run before everyone has answered. */
   onSynthesise: (prompt: string) => Promise<TeamReading>;
-  /** Hand the reading to the debrief. */
-  onCarryForward: () => void;
+  /** Files the reading for the debrief to read back. Rejects if the write fails. */
+  onCarryForward: () => Promise<void> | void;
 
   /** When the debrief starts, e.g. "19:30". Shown as context for the hurry. */
   debriefAt?: string;
@@ -154,7 +154,25 @@ export default function CapturesIn({
   const [view, setView] = useState<View>("individuals");
   const [depth, setDepth] = useState<Depth>("full");
   const [selected, setSelected] = useState<SailorId>(answered[0]?.name ?? "");
-  const [busy, setBusy] = useState<"distil" | "synthesis" | null>(null);
+  const [busy, setBusy] = useState<"distil" | "synthesis" | "carry" | null>(null);
+  const [carryState, setCarryState] = useState<"idle" | "done" | "error">("idle");
+  const [carryError, setCarryError] = useState<string | null>(null);
+
+  /* Same fix as priming in: the button used to be a bare void handler, so a
+     failed write looked identical to a success. */
+  const carryForward = async () => {
+    setBusy("carry");
+    setCarryError(null);
+    try {
+      await onCarryForward();
+      setCarryState("done");
+    } catch (e) {
+      setCarryState("error");
+      setCarryError(e instanceof Error ? e.message : "Could not carry the reading forward");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const response = byId.get(selected);
   const sailor = sailors.find((s) => s.name === selected);
@@ -538,9 +556,27 @@ export default function CapturesIn({
                   Nothing here names a person in a way that belongs to the room.
                   Anything about someone else is held back for you.
                 </div>
-                <Button onClick={onCarryForward} dark>
-                  Carry into the debrief →
+                <Button onClick={carryForward} disabled={busy === "carry"} dark>
+                  {busy === "carry"
+                    ? "Filing the reading…"
+                    : carryState === "done"
+                    ? "Carried — carry again"
+                    : "Carry into the debrief →"}
                 </Button>
+                {carryError && (
+                  <div
+                    style={{
+                      padding: "9px 12px",
+                      background: "#FBEFE7",
+                      borderRadius: 8,
+                      fontSize: 11.5,
+                      color: "#C4622D",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {carryError}
+                  </div>
+                )}
               </>
             )}
           </div>

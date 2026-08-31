@@ -8,6 +8,7 @@ import CapturesIn, {
   type TeamReading,
 } from "./CapturesIn";
 import { teamSailors } from '@/data/roles.hll';
+import { fetchOwnGoals, fetchSquadGoals } from '@/lib/carriedContext';
 
 /* ============================================================
    Example wiring. Replace local state with your own fetch/save
@@ -15,8 +16,28 @@ import { teamSailors } from '@/data/roles.hll';
    ============================================================ */
 
 const AGENT_BASE = '/api/agent';
-const SYNTH_APP_NAME = 'synthesize';
-const DIST_APP_NAME = 'distill'
+
+/* Same situation as priming in: the deployed `distill` agent returns an empty
+   object whatever the prompt, and no capture-reading agent exists at all, so
+   both run through `report` under a directive prompt. Set the env vars once
+   real agents are deployed and the FALLBACK_* blocks can go. */
+const DIST_APP_NAME = process.env.NEXT_PUBLIC_DISTIL_AGENT ?? 'report';
+const READING_APP_NAME = process.env.NEXT_PUBLIC_CAPTURE_READING_AGENT ?? 'report';
+
+const FALLBACK_DISTIL_FORMAT = `Ignore your usual format. Condense each sailor answer to one line.
+Return ONLY JSON: {"distilled": {"SailorName": ["one line per question", ...]}}
+Use the sailor names exactly as given. Keep every sailor, even where their answers are empty.`;
+
+/* The shape is the screen's TeamReading — coverage, goals, themes, conflict,
+   tomorrow — because that is what CapturesIn renders. */
+const FALLBACK_READING_FORMAT = `Ignore your usual format. Return ONLY JSON in exactly this shape:
+{
+  "coverage": "how many answered, e.g. 5 of 8",
+  "goals": ["one line per squad goal: what the captures say about it, with a count of who addressed it"],
+  "themes": [{"text": "...", "count": 2, "sailorNames": ["..."]}],
+  "conflict": "where accounts of the same moment differ — omit the field if nowhere",
+  "tomorrow": ["what the crew wants carried into tomorrow"]
+}`;
 
 const BASE_SAILORS: Sailor[] = [
   { id: "mar", name: "Martine", role: "Strategist" },
@@ -34,14 +55,6 @@ const BASE_SAILORS: Sailor[] = [
 ];
 
 const SAILORS: Sailor[] = teamSailors(BASE_SAILORS);
-
-const PERSONAL_GOALS: Record<string, string> = Object.fromEntries(
-    SAILORS.map((s) => [s.name, ""])
-  );
-
-const DEFAULT_GOALS: string[] = [];
-
-
 
 const QUESTIONS = [
   "What is the main thing on your mind?",
@@ -87,15 +100,49 @@ export default function CapturesInPage({
   const [prompts, setPrompts] = useState<Prompts>(DEFAULT_PROMPTS);
   const [teamReading, setTeamReading] = useState<TeamReading | null>(null);
 
+  /* The goals as agreed in the briefing and each sailor's own goal from the
+     morning, read back from where those phases filed them. */
+  const [squadGoals, setSquadGoals] = useState<string[]>([]);
+  const [ownGoals, setOwnGoals] = useState<Record<string, string>>({});
+
   useEffect(() => {
 	  async function getResp(){
 	  	const res = await fetch(`/api/responses/${runId}?kind=capture`);
 	  	const resps = await res.json();
-	  	setResponses(resps);
+	  	setResponses(Array.isArray(resps) ? resps : []);
 	  }
-	  
+
 	  getResp();
   }, [runId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchSquadGoals(runId).then((g) => { if (!cancelled) setSquadGoals(g); });
+    fetchOwnGoals(runId).then((g) => { if (!cancelled) setOwnGoals(g); });
+
+    /* A reading already carried forward comes back, so reopening the phase
+       shows what the debrief will read rather than an empty panel. */
+    fetch(`/api/capture-artifacts?runId=${encodeURIComponent(runId)}`)
+      .then(async (res) => {
+        if (!res.ok || cancelled) return;
+        const data = await res.json().catch(() => null);
+        if (data?.teamReading && !cancelled) setTeamReading(data.teamReading as TeamReading);
+      })
+      .catch(() => undefined);
+
+    return () => { cancelled = true; };
+  }, [runId]);
+
+  /* Distilled lines are filed as they are made; the reading is filed on carry
+     forward, the point the coach commits it to the debrief. A filing failure
+     here is logged, not fatal. */
+  function fileArtifacts(body: Record<string, unknown>) {
+    void fetch('/api/capture-artifacts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ runId, ...body }),
+    }).catch(() => undefined);
+  }
 
   /* Re-condense every response. Server route keeps the model key off the client. */
   async function handleDistil(prompt: string): Promise<Record<string, string[]>> {
@@ -118,7 +165,13 @@ export default function CapturesInPage({
       appName: DIST_APP_NAME,
       userId,
       sessionId,
-      newMessage: { role: 'user', parts: [{ text: prompt + "Responses:\n" + JSON.stringify(responses_body) }] },
+      newMessage: {
+        role: 'user',
+        parts: [{
+          text: (DIST_APP_NAME === 'report' ? FALLBACK_DISTIL_FORMAT + '\n\n' : '')
+            + prompt + "\n\nResponses:\n" + JSON.stringify(responses_body),
+        }],
+      },
       streaming: false,
     }),
   });
@@ -148,8 +201,17 @@ export default function CapturesInPage({
       } catch { /* skip non-JSON lines */ }
     }
   }
-  console.log(fullText);
-  const distilled = JSON.parse(fullText).distilled as Record<string, string[]>;
+  let distilled: Record<string, string[]>;
+  try {
+    distilled = JSON.parse(fullText).distilled as Record<string, string[]>;
+  } catch {
+    throw new Error('The distiller did not return readable JSON.');
+  }
+  /* An empty object is the distiller failing, not a result. */
+  if (!distilled || !Object.keys(distilled).length) {
+    throw new Error('The distiller returned nothing to show.');
+  }
+  fileArtifacts({ distilled });
   return distilled;
   }
 
@@ -159,7 +221,18 @@ async function handleSynthesise(prompt: string) {
   const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const userId = 'user-1';
 
-  await fetch(`${AGENT_BASE}/apps/${SYNTH_APP_NAME}/users/${userId}/sessions/${sessionId}`, {
+  /* The prompt alone told the agent to read captures it was never given. The
+     reading is written from the actual responses and the squad goals they are
+     read against. */
+  const responses_body = Object.fromEntries(
+    responses.map((r) => [r.recipient, { questions: r.questions, responses: r.responses }]));
+  const text =
+    (READING_APP_NAME === 'report' ? FALLBACK_READING_FORMAT + '\n\n' : '')
+    + prompt
+    + (squadGoals.length ? '\n\nSquad goals from the briefing:\n' + squadGoals.map((g) => `- ${g}`).join('\n') : '')
+    + '\n\nResponses:\n' + JSON.stringify(responses_body);
+
+  await fetch(`${AGENT_BASE}/apps/${READING_APP_NAME}/users/${userId}/sessions/${sessionId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({}),
@@ -169,10 +242,10 @@ async function handleSynthesise(prompt: string) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify({
-      appName: SYNTH_APP_NAME,
+      appName: READING_APP_NAME,
       userId,
       sessionId,
-      newMessage: { role: 'user', parts: [{ text: prompt }] },
+      newMessage: { role: 'user', parts: [{ text }] },
       streaming: false,
     }),
   });
@@ -203,17 +276,30 @@ async function handleSynthesise(prompt: string) {
     }
   }
   const picture  = JSON.parse(fullText) as TeamReading;
+  /* Held in state so carry forward has something to commit — the old handler
+     posted `teamReading`, which nothing ever set, so it always sent null. */
+  setTeamReading(picture);
   return picture;
 
   }
 
+  /* The commit point: the reading is filed as the coach carries it into the
+     debrief, which reads it back from here — so this write has to land. The
+     old call went to /api/captures/{runId}/carry-forward, which never
+     existed, and its result was not checked, so every carry 404'd silently. */
   async function handleCarryForward() {
-    await fetch(`/api/captures/${runId}/carry-forward`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teamReading }),
+    if (!teamReading) {
+      throw new Error('Build the team reading first.');
+    }
+    const res = await fetch('/api/capture-artifacts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ runId, teamReading }),
     });
-    // router.push(`/debrief/${runId}`)
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.error ?? 'Could not carry the reading forward');
+    }
   }
 
   return (
@@ -221,8 +307,8 @@ async function handleSynthesise(prompt: string) {
       <CapturesIn
         sailors={SAILORS}
         responses={responses}
-        squadGoals={DEFAULT_GOALS}
-        ownGoals={PERSONAL_GOALS}
+        squadGoals={squadGoals}
+        ownGoals={ownGoals}
         prompts={prompts}
         onPromptsChange={setPrompts}
         teamReading={teamReading}
