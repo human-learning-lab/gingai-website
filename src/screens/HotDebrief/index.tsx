@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import HotDebrief, {
   type DebriefDraft,
   type DebriefSource,
@@ -58,6 +58,7 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
 
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [draft, setDraft] = useState<DebriefDraft | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,12 +159,16 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
 
   function handleDocumentChange(text: string) {
     setDraft((d) => (d ? { ...d, edited: text } : d));
-    // Debounce this in production.
-    void fetch(`/api/sessions/${runId}/debrief/document`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
+    /* Debounced: onChange fires per keystroke, and a PATCH per keystroke is a
+       Firestore write per letter the coach types. Only the last state matters. */
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      void fetch(`/api/sessions/${runId}/debrief/document`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      }).catch(() => undefined);
+    }, 800);
   }
 
   return (
