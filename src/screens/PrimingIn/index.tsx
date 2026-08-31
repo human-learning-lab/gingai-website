@@ -144,15 +144,43 @@ export default function PrimingInPage({
     return () => { cancelled = true; };
   }, [runId]);
 
+  /* Answers come from Viktor's API, but the questions come from Firestore.
+     That API is insert-only, so its stored questions are whichever set reached
+     a sailor first rather than what they were actually asked — and two sailors
+     can hold different sets for the same run, which makes an answer read
+     against the wrong questions misleading.
+
+     Each sailor's own filed set first, then the day's team set, then whatever
+     the API had. The last is a fallback for runs that predate the mirror, not
+     a preference. */
   useEffect(() => {
-	  async function getResp(){
-	  	const res = await fetch(`/api/responses/${runId}?kind=priming`);
-	  	const resps = await res.json();
-		console.log(resps);
-	  	setResponses(resps);
-	  }
-	  getResp();
-  }, [runId]);  
+    let cancelled = false;
+
+    async function getResp() {
+      const [respRes, dayRes] = await Promise.all([
+        fetch(`/api/responses/${runId}?kind=priming`),
+        fetch(`/api/day-questions?runId=${encodeURIComponent(runId)}&kind=priming`),
+      ]);
+
+      const resps = await respRes.json().catch(() => null);
+      const day = dayRes.ok ? await dayRes.json().catch(() => null) : null;
+      if (cancelled) return;
+
+      const rows: PrimingResponse[] = Array.isArray(resps) ? resps : [];
+      setResponses(rows.map((row) => {
+        const own = day?.sailors?.[row.recipient]?.questions as string[] | undefined;
+        const questions = own?.length
+          ? own
+          : (day?.teamQuestions as string[] | undefined)?.length
+          ? day.teamQuestions
+          : row.questions;
+        return { ...row, questions };
+      }));
+    }
+
+    getResp().catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [runId]);
 
   /* Re-condense every response. Server route keeps the model key off the client. */
 
