@@ -2,6 +2,7 @@
 
 import React, { useMemo, useCallback, useState } from "react";
 import ContextFilePreview from "@/components/ContextFilePreview";
+import type { SquadGoal } from '@/lib/carriedContext';
 
 /* ============================================================
    Ginga — Capture
@@ -54,7 +55,7 @@ export interface CaptureProps {
   sailors: Sailor[];
 
   /** Squad goals as agreed in the briefing — the yardstick for tonight. */
-  squadGoals: string[];
+  squadGoals: SquadGoal[];
   /** Each sailor's own goal from this morning's priming. */
   ownGoals: Record<SailorId, string>;
   /**
@@ -73,7 +74,7 @@ export interface CaptureProps {
     prompt: string;
     scope: Scope;
     sailor?: Sailor;
-    squadGoals: string[];
+    squadGoals: SquadGoal[];
     ownGoal?: string;
   }) => Promise<string[]>;
 
@@ -273,19 +274,37 @@ export default function Capture({
               <div
                 key={i}
                 style={{
-                  display: "flex",
-                  gap: 9,
                   padding: "8px 0",
-                  fontSize: 13,
-                  lineHeight: 1.5,
                   borderBottom:
                     i < squadGoals.length - 1 ? `1px solid ${C.line}` : "none",
                 }}
               >
-                <span style={{ ...label, color: C.green, paddingTop: 2 }}>
-                  {i + 1}
-                </span>
-                {goal}
+                <div style={{ display: "flex", gap: 9, fontSize: 13, lineHeight: 1.5 }}>
+                  <span style={{ ...label, color: C.green, paddingTop: 2 }}>
+                    {i + 1}
+                  </span>
+                  {goal.text}
+                </div>
+
+                {/* What the room did with the goal it was given — reworded,
+                    added, or left unaddressed. Absent means carried through
+                    unchanged, so there is nothing to note. */}
+                {goal.change && (
+                  <div
+                    style={{
+                      marginLeft: 30,
+                      marginTop: 6,
+                      padding: "8px 10px",
+                      background: C.sand,
+                      borderRadius: 6,
+                      fontSize: 11.5,
+                      color: C.warm,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {goal.change}
+                  </div>
+                )}
               </div>
             ))}
             <Footnote>

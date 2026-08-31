@@ -8,7 +8,14 @@
 
 /* The briefing files goals as {text, change}; priming carries {goal, evidence}
    or plain strings. Either way the screens want the goal as one line. */
-interface GoalLike { text?: string; goal?: string }
+interface GoalLike { text?: string; goal?: string; change?: string }
+
+export interface SquadGoal {
+  text: string;
+  /** What the room did with it — reworded, narrowed, added, left unaddressed.
+   *  Absent when the goal was carried through unchanged. */
+  change?: string;
+}
 
 function goalText(g: GoalLike | string): string {
   if (typeof g === 'string') return g;
@@ -21,13 +28,22 @@ function goalText(g: GoalLike | string): string {
  * to the goals carried in from priming, so the capture questions are never
  * written against nothing when a morning record exists.
  */
-export async function fetchSquadGoals(runId: string): Promise<string[]> {
+function toSquadGoal(g: GoalLike | string): SquadGoal {
+  const text = goalText(g);
+  /* Only the briefing's goals carry a change note — it records what the room
+     did with the goal it was given. Goals still sitting in priming have not
+     been through a room yet, so there is nothing to say about them. */
+  const change = typeof g === 'string' ? undefined : g?.change;
+  return change ? { text, change } : { text };
+}
+
+export async function fetchSquadGoals(runId: string): Promise<SquadGoal[]> {
   try {
     const res = await fetch(`/api/sessions/${encodeURIComponent(runId)}/briefing`);
     if (res.ok) {
       const data = await res.json().catch(() => null);
       const goals = (data?.goals as (GoalLike | string)[] | undefined)
-        ?.map(goalText).filter(Boolean);
+        ?.map(toSquadGoal).filter((g) => g.text);
       if (goals?.length) return goals;
     }
   } catch { /* fall through to priming */ }
@@ -38,7 +54,7 @@ export async function fetchSquadGoals(runId: string): Promise<string[]> {
     const data = await res.json().catch(() => null);
     const goals = data?.briefingGoals;
     if (!Array.isArray(goals)) return [];
-    return goals.map(goalText).filter(Boolean);
+    return goals.map(toSquadGoal).filter((g) => g.text);
   } catch {
     return [];
   }

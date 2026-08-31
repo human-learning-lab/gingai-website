@@ -150,7 +150,9 @@ export default function CapturesInPage({
 
   useEffect(() => {
     let cancelled = false;
-    fetchSquadGoals(runId).then((g) => { if (!cancelled) setSquadGoals(g); });
+    /* The reading is written against the goals themselves; the change notes
+       belong to the briefing that produced them. */
+    fetchSquadGoals(runId).then((g) => { if (!cancelled) setSquadGoals(g.map((x) => x.text)); });
     fetchOwnGoals(runId).then((g) => { if (!cancelled) setOwnGoals(g); });
 
     /* A reading already carried forward comes back, so reopening the phase

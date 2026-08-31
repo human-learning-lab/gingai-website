@@ -17,6 +17,7 @@ import {
   fetchTeamContext,
   fetchTeamPicture,
   type BriefingContext,
+  type SquadGoal,
 } from '@/lib/carriedContext';
 import { parseAgentJson } from '@/lib/agentJson';
 
@@ -86,7 +87,7 @@ export default function CapturePage({
      each sailor's own goal from priming. Both start empty and simply stay so
      for a run with no morning record — the same rendering as before, but a run
      that has one now writes its questions against it. */
-  const [squadGoals, setSquadGoals] = useState<string[]>([]);
+  const [squadGoals, setSquadGoals] = useState<SquadGoal[]>([]);
   const [ownGoals, setOwnGoals] = useState<Record<string, string>>({});
   const [teamContext, setTeamContext] = useState<string | null>(null);
   const [teamPicture, setTeamPicture] = useState<unknown | null>(null);
@@ -176,7 +177,7 @@ export default function CapturePage({
     prompt: string;
     scope: "team" | "personal";
     sailor?: Sailor;
-    squadGoals: string[];
+    squadGoals: SquadGoal[];
     ownGoal?: string;
   }): Promise<string[]> {
   const sessionId = `summarize-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -218,8 +219,13 @@ export default function CapturePage({
 
   const text = [
     args.prompt,
+    /* The change note travels with each goal. A goal the room reworded, added
+       or never addressed is different context from one carried through
+       untouched, and the evening's questions should know which it is. */
     args.squadGoals.length
-      ? `\nSquad goals agreed in the briefing:\n${args.squadGoals.map((g) => `- ${g}`).join('\n')}`
+      ? `\nSquad goals agreed in the briefing:\n${args.squadGoals
+          .map((g) => `- ${g.text}${g.change ? `\n    (${g.change})` : ''}`)
+          .join('\n')}`
       : '\nNo squad goals are on file for this run.',
     briefingBlock,
 
