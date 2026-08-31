@@ -318,7 +318,9 @@ export default function ConsolePage() {
       )}
       {phase === "briefing" && <BriefingPage runId={runId} />}
       {phase === "capture" && <CapturePage runId={runId} />}
-      {phase === "captures" && <CapturesInPage runId={runId} />}
+      {phase === "captures" && (
+        <CapturesInPage runId={runId} onCarried={() => setPhase("debrief")} />
+      )}
       {phase === "debrief" && <HotDebriefPage runId={runId} />}
     </ConsoleShell>
   );

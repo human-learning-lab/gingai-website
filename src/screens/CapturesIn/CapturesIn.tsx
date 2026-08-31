@@ -87,6 +87,14 @@ export interface CapturesInProps {
 
   /** Re-condense every response. Returns distilled lines keyed by sailor. */
   onDistil: (prompt: string) => Promise<Record<string, string[]>>;
+  /** One condensed line per question, keyed by sailor. Owned by the parent. */
+  distilled: Record<string, string[]>;
+  onDistilledChange: (next: Record<string, string[]>) => void;
+  /** Whether anything is unsaved. Drives the save button's enabled state. */
+  dirty?: boolean;
+  onSave: () => Promise<void> | void;
+  /** Move on to the debrief once the reading is carried forward. */
+  onCarried?: () => void;
   /** Build the team reading. Safe to run before everyone has answered. */
   onSynthesise: (prompt: string) => Promise<TeamReading>;
   /** Files the reading for the debrief to read back. Rejects if the write fails. */
@@ -143,12 +151,23 @@ export default function CapturesIn({
   onPromptsChange,
   teamReading = null,
   onDistil,
+  distilled,
+  onDistilledChange,
+  dirty = false,
+  onSave,
+  onCarried,
   onSynthesise,
   onCarryForward,
 }: CapturesInProps) {
+  /* Distilled lines live in the parent so a run already on file can hydrate
+     them; they are merged in here rather than written into `responses`, which
+     is a prop. */
   const byId = useMemo(
-    () => new Map(responses.map((r) => [r.recipient, r])),
-    [responses]
+    () => new Map(responses.map((r) => [
+      r.recipient,
+      { ...r, distilled: distilled[r.recipient] ?? r.distilled },
+    ])),
+    [responses, distilled]
   );
   const answered = useMemo(
 	() => sailors.filter((s) => (byId.get(s.name)?.responses.length ?? 0) > 0),
@@ -161,6 +180,20 @@ export default function CapturesIn({
   const [busy, setBusy] = useState<"distil" | "synthesis" | "carry" | null>(null);
   const [carryState, setCarryState] = useState<"idle" | "done" | "error">("idle");
   const [carryError, setCarryError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!dirty || saving) return;
+    setSaving(true);
+    setCarryError(null);
+    try {
+      await onSave();
+    } catch (e) {
+      setCarryError(e instanceof Error ? e.message : "Could not save");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   /* Same fix as priming in: the button used to be a bare void handler, so a
      failed write looked identical to a success. */
@@ -170,6 +203,8 @@ export default function CapturesIn({
     try {
       await onCarryForward();
       setCarryState("done");
+      /* Only once the write has landed. */
+      onCarried?.();
     } catch (e) {
       setCarryState("error");
       setCarryError(e instanceof Error ? e.message : "Could not carry the reading forward");
@@ -187,9 +222,18 @@ export default function CapturesIn({
   const distil = async () => {
     setBusy("distil");
     try {
-	  const distilled_resps = await onDistil(prompts.distil)
-	  for(const [sailor, dist] of Object.entries(distilled_resps))
-		  byId.get(sailor)!.distilled = dist;
+      const next = await onDistil(prompts.distil);
+      /* Only sailors this run knows about. A name the distiller invents used to
+         throw on a non-null assertion, which surfaced as the button doing
+         nothing. And the lines are handed up rather than written into the memo,
+         which told React nothing had changed. */
+      const known = Object.fromEntries(
+        Object.entries(next).filter(([name]) => byId.has(name)),
+      );
+      if (!Object.keys(known).length) {
+        throw new Error("The distiller returned no sailors this run recognises.");
+      }
+      onDistilledChange(known);
       setDepth("distilled");
     } finally {
       setBusy(null);
@@ -225,7 +269,37 @@ export default function CapturesIn({
         </p>
       </header>
 
-      <ViewToggle view={view} onChange={setView} />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <ViewToggle view={view} onChange={setView} />
+
+        {/* Disabled until something is outstanding, so the button says whether
+            there is anything to do rather than always inviting a write. */}
+        <button
+          onClick={save}
+          disabled={!dirty || saving}
+          style={{
+            border: "none",
+            borderRadius: 7,
+            padding: "8px 16px",
+            fontSize: 13,
+            fontWeight: 600,
+            background: dirty ? C.ink : C.sand2,
+            color: dirty ? "#fff" : C.warmLt,
+            cursor: dirty && !saving ? "pointer" : "not-allowed",
+            opacity: saving ? 0.55 : 1,
+          }}
+        >
+          {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
+        </button>
+      </div>
 
       {view === "individuals" ? (
         <div

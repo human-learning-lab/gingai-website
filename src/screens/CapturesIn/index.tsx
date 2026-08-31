@@ -99,8 +99,11 @@ Rules:
 
 export default function CapturesInPage({
   runId,
-  }: {
+  onCarried,
+}: {
   runId: string;
+  /** Move on to the debrief once the reading is carried forward. */
+  onCarried?: () => void;
 }) {
   const [responses, setResponses] = useState<CaptureResponse[]>([]);
   const [prompts, setPrompts] = useState<Prompts>(DEFAULT_PROMPTS);
@@ -110,6 +113,10 @@ export default function CapturesInPage({
      morning, read back from where those phases filed them. */
   const [squadGoals, setSquadGoals] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [distilled, setDistilled] = useState<Record<string, string[]>>({});
+  /* Unsaved work. Set by anything that changes what would be written, cleared
+     by a successful save, by carrying forward, and by loading what is on file. */
+  const [dirty, setDirty] = useState(false);
   const [ownGoals, setOwnGoals] = useState<Record<string, string>>({});
 
   /* Answers come from Viktor's API, but the questions come from Firestore.
@@ -168,23 +175,18 @@ export default function CapturesInPage({
       .then(async (res) => {
         if (!res.ok || cancelled) return;
         const data = await res.json().catch(() => null);
-        if (data?.teamReading && !cancelled) setTeamReading(normaliseReading(data.teamReading));
+        if (cancelled) return;
+        if (data?.teamReading) setTeamReading(normaliseReading(data.teamReading));
+        if (data?.distilled && typeof data.distilled === 'object') {
+          setDistilled(data.distilled as Record<string, string[]>);
+        }
+        setDirty(false);
       })
       .catch(() => undefined);
 
     return () => { cancelled = true; };
   }, [runId]);
 
-  /* Distilled lines are filed as they are made; the reading is filed on carry
-     forward, the point the coach commits it to the debrief. A filing failure
-     here is logged, not fatal. */
-  function fileArtifacts(body: Record<string, unknown>) {
-    void fetch('/api/capture-artifacts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ runId, ...body }),
-    }).catch(() => undefined);
-  }
 
   /* Re-condense every response. Server route keeps the model key off the client. */
   async function handleDistil(prompt: string): Promise<Record<string, string[]>> {
@@ -253,7 +255,8 @@ export default function CapturesInPage({
   if (!distilled || !Object.keys(distilled).length) {
     throw new Error('The distiller returned nothing to show.');
   }
-  fileArtifacts({ distilled });
+  /* Not filed here. Save changes owns the write, so the button reflects
+     whether anything is actually outstanding. */
   return distilled;
   }
 
@@ -321,6 +324,7 @@ async function handleSynthesise(prompt: string) {
   /* Held in state so carry forward has something to commit — the old handler
      posted `teamReading`, which nothing ever set, so it always sent null. */
   setTeamReading(normaliseReading(picture));
+  setDirty(true);
   return picture;
 
   }
@@ -329,19 +333,35 @@ async function handleSynthesise(prompt: string) {
      debrief, which reads it back from here — so this write has to land. The
      old call went to /api/captures/{runId}/carry-forward, which never
      existed, and its result was not checked, so every carry 404'd silently. */
+  /* Writes whatever is current. The same call carry forward makes, so the two
+     cannot file different things. */
+  async function persist() {
+    const res = await fetch('/api/capture-artifacts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ runId, teamReading, distilled }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.error ?? 'Could not save the captures');
+    }
+    setDirty(false);
+  }
+
+  async function handleSave() {
+    if (!teamReading && !Object.keys(distilled).length) {
+      throw new Error('Nothing to save yet.');
+    }
+    await persist();
+  }
+
   async function handleCarryForward() {
     if (!teamReading) {
       throw new Error('Build the team reading first.');
     }
-    const res = await fetch('/api/capture-artifacts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ runId, teamReading }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      throw new Error(data?.error ?? 'Could not carry the reading forward');
-    }
+    /* The distilled lines go with it, so carrying forward leaves nothing
+       outstanding either. */
+    await persist();
   }
 
   /* Held back until the answers and the day's filed sets resolve, so the screen
@@ -365,6 +385,11 @@ async function handleSynthesise(prompt: string) {
         onPromptsChange={setPrompts}
         teamReading={teamReading}
         onDistil={handleDistil}
+        distilled={distilled}
+        onDistilledChange={(next) => { setDistilled(next); setDirty(true); }}
+        dirty={dirty}
+        onSave={handleSave}
+        onCarried={onCarried}
         onSynthesise={handleSynthesise}
         onCarryForward={handleCarryForward}
       />
