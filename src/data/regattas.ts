@@ -100,16 +100,24 @@ export const REGATTAS: Regatta[] = [
 	{ id: 'dubai',       city: 'Dubai',          short: 'Dubai',        dates: 'Nov 21–22',     start: '2026-11-21', end: '2026-11-22', lat:  25.08,  lon:  55.13,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 	{ id: 'abudhabi',    city: 'Abu Dhabi',      short: 'Grand Final',  dates: 'Nov 28–29',     start: '2026-11-28', end: '2026-11-29', lat:  24.47,  lon:  54.37,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 
-	/* Not a real regatta. A place for developers to exercise a race day end to
+	/* Not real regattas. Somewhere for developers to exercise a race day end to
 	   end without writing into one the team is using — every artefact is keyed
 	   by runId, so a fake venue keeps test records in their own corner of
-	   Firestore and Storage. Only present when NEXT_PUBLIC_TEAM=hll, so it
-	   cannot appear in the squad's picker. */
-	...(IS_ALPHA ? [{
-		id: 'sandvika', city: 'Sandvika', short: 'Sandvika (test)', dates: 'Dec 1–2 · TEST',
-		start: '2026-12-01', end: '2026-12-02', lat: 59.89, lon: 10.53,
-		photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
-	}] : []),
+	   Firestore and Storage. Two of them, so a test that spans regattas has a
+	   second to move to. Only present when NEXT_PUBLIC_TEAM=hll, so they cannot
+	   appear in the squad's picker. */
+	...(IS_ALPHA ? [
+		{
+			id: 'sandvika', city: 'Sandvika', short: 'Sandvika', dates: 'Dec 1–2 · TEST',
+			start: '2026-12-01', end: '2026-12-02', lat: 59.89, lon: 10.53,
+			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
+		},
+		{
+			id: 'oslo', city: 'Oslo', short: 'Oslo', dates: 'Dec 5–6 · TEST',
+			start: '2026-12-05', end: '2026-12-06', lat: 59.91, lon: 10.75,
+			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
+		},
+	] : []),
 ];
 
 export function getRegatResult(start: string, end: string): 'Past' | 'Active' | 'Upcoming' {
