@@ -42,6 +42,8 @@ export interface GoalReading {
   verdict: string;
   /** The evidence, quoted rather than summarised away. */
   detail: string;
+  /** The same evidence, already attributed. Preferred over parsing `detail`. */
+  quotes?: { sailor: string; quote: string }[];
 }
 
 export interface Theme {
@@ -454,7 +456,11 @@ export default function CapturesIn({
                                   {g.verdict}
                                 </div>
                               )}
-                              {splitQuotes(g.detail).map((q, qi) => (
+                              {/* Attributed quotes when the reading returns
+                                  them, parsed out of `detail` when it does not
+                                  — a reading filed before the field existed
+                                  still renders one voice per line. */}
+                              {(g.quotes?.length ? g.quotes : splitQuotes(g.detail)).map((q, qi) => (
                                 <div
                                   key={qi}
                                   style={{

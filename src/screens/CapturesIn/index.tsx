@@ -39,7 +39,7 @@ Use the sailor names exactly as given. Keep every sailor, even where their answe
 const FALLBACK_READING_FORMAT = `Ignore your usual format. Return ONLY JSON in exactly this shape:
 {
   "coverage": "how many answered, e.g. 5 of 8",
-  "goals": [{"goal": "the squad goal, as agreed", "addressedBy": 2, "verdict": "short verdict in your own words", "detail": "the evidence, quoted rather than summarised away"}],
+  "goals": [{"goal": "the squad goal, as agreed", "addressedBy": 2, "verdict": "short verdict in your own words", "quotes": [{"sailor": "who said it", "quote": "their words, quoted rather than summarised away"}]}],
   "themes": [{"text": "...", "count": 2, "sailorNames": ["..."]}],
   "conflict": "where accounts of the same moment differ — omit the field if nowhere",
   "tomorrow": ["what the crew wants carried into tomorrow"]
@@ -394,6 +394,11 @@ function normaliseReading(raw: unknown): TeamReading | null {
       addressedBy: o.addressedBy ?? 0,
       verdict: o.verdict ?? '',
       detail: o.detail ?? '',
+      quotes: Array.isArray(o.quotes)
+        ? o.quotes
+            .map((q) => ({ sailor: q?.sailor ?? '', quote: q?.quote ?? '' }))
+            .filter((q) => q.quote)
+        : undefined,
     };
   });
 
