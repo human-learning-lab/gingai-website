@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 /* ============================================================
    Ginga — Hot debrief
@@ -107,6 +107,12 @@ export default function HotDebrief({
   onExport,
 }: HotDebriefProps) {
   const [state, setState] = useState<RunState>(draft ? "done" : "idle");
+
+  /* A saved draft arrives after mount, so the initial state alone would leave
+     the screen on "Nothing written yet" with the document loaded behind it. */
+  useEffect(() => {
+    if (draft) setState((s) => (s === "running" ? s : "done"));
+  }, [draft]);
 
   const selectedCount = selectedSourceIds.length;
 

@@ -1,15 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import HotDebrief, {
   type DebriefDraft,
   type DebriefSource,
 } from "./HotDebrief";
-
-/* ============================================================
-   Example wiring. Replace local state with your own fetch/save
-   and the handler with a real API call.
-   ============================================================ */
 
 const DEFAULT_PROMPT = `Write the hot debrief document.
 
@@ -50,25 +45,79 @@ Rules:
   that names are handled separately.
 - Where the crew and the data disagree, say both. Do not reconcile them.`;
 
-export default function HotDebriefPage({ runId }: { runId: string }) {
-  /* Detail strings come from the API so the coach sees the real
-     coverage — how many captures are in, which races are covered. */
-  const [sources] = useState<DebriefSource[]>([
-    { id: "captures", label: "Crew captures", detail: "10 of 10", enabled: true },
-    { id: "booth", label: "Rich · per race", detail: "races 1–3", enabled: true },
-    { id: "data", label: "Nico · per race", detail: "races 1–3", enabled: true },
-    { id: "report", label: "Performance report", detail: "18 pages", enabled: true },
-    { id: "goals", label: "Squad goals", detail: "from the briefing", enabled: true },
-    { id: "open", label: "Left open in the brief", detail: "1 item", enabled: true },
-    { id: "priming", label: "This morning's priming", detail: "10 answers", enabled: false },
-  ]);
+interface Section { tone?: string }
 
-  const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>(
-    sources.filter((s) => s.enabled).map((s) => s.id)
-  );
+export default function HotDebriefPage({ runId }: { runId: string }) {
+  /* The details are the real coverage, read from where each phase filed its
+     material. Until the fetches land the list is empty rather than showing
+     invented numbers — the old hardcoded "10 of 10" and "18 pages" described
+     data that did not exist. Rich's and Nico's per-race feeds return as
+     sources once they have somewhere to come from. */
+  const [sources, setSources] = useState<DebriefSource[]>([]);
+  const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
 
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [draft, setDraft] = useState<DebriefDraft | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      const [captures, briefing, captureArts, priming] = await Promise.all([
+        fetch(`/api/responses/${encodeURIComponent(runId)}?kind=capture`)
+          .then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`/api/sessions/${encodeURIComponent(runId)}/briefing`)
+          .then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`/api/capture-artifacts?runId=${encodeURIComponent(runId)}`)
+          .then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`/api/priming-artifacts?runId=${encodeURIComponent(runId)}`)
+          .then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      ]);
+      if (cancelled) return;
+
+      const capturesIn = Array.isArray(captures) ? captures.length : 0;
+      const goals = Array.isArray(briefing?.goals) ? briefing.goals.length : 0;
+      const decisions = Array.isArray(briefing?.decisions) ? briefing.decisions.length : 0;
+      const open = Array.isArray(briefing?.sections)
+        ? (briefing.sections as Section[]).filter((s) => s?.tone === "open").length
+        : 0;
+      const hasReading = Boolean(captureArts?.teamReading);
+      const primingIn = priming?.distilled ? Object.keys(priming.distilled).length : 0;
+
+      const next: DebriefSource[] = [
+        { id: "captures", label: "Crew captures", detail: capturesIn ? `${capturesIn} in` : "none in yet", enabled: capturesIn > 0 },
+        { id: "reading", label: "Captures synthesis", detail: hasReading ? "carried from captures in" : "not built yet", enabled: hasReading },
+        { id: "goals", label: "Squad goals", detail: goals ? `${goals} from the briefing` : "no briefing saved", enabled: goals > 0 },
+        { id: "decisions", label: "Briefing decisions", detail: decisions ? `${decisions} on file` : "none on file", enabled: decisions > 0 },
+        { id: "open", label: "Left open in the brief", detail: open ? `${open} item${open === 1 ? "" : "s"}` : "nothing left open", enabled: open > 0 },
+        { id: "priming", label: "This morning's priming", detail: primingIn ? `${primingIn} sailors distilled` : "nothing filed", enabled: false },
+      ];
+      setSources(next);
+      setSelectedSourceIds(next.filter((s) => s.enabled).map((s) => s.id));
+    }
+
+    load();
+
+    /* A debrief already written for this run fills the screen, edits included,
+       so reopening the phase does not look like nothing ever happened. */
+    fetch(`/api/sessions/${encodeURIComponent(runId)}/debrief`)
+      .then(async (res) => {
+        if (!res.ok || cancelled) return;
+        const data = await res.json().catch(() => null);
+        if (!data?.generatedAt || cancelled) return;
+        if (data.prompt) setPrompt(data.prompt);
+        setDraft({
+          generated: data.generated ?? "",
+          edited: data.edited ?? data.generated ?? "",
+          generatedAt: data.generatedAt,
+          sourceIds: data.sourceIds ?? [],
+          promptVersion: data.promptVersion ?? 1,
+        });
+      })
+      .catch(() => undefined);
+
+    return () => { cancelled = true; };
+  }, [runId]);
 
   /* Keep both versions. `generated` is what the model wrote;
      `edited` is the coach's. Running again replaces `generated`
@@ -85,7 +134,10 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, sourceIds }),
     });
-    if (!res.ok) throw new Error("Could not write the debrief");
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.error ?? "Could not write the debrief");
+    }
 
     const { text, generatedAt, promptVersion } = (await res.json()) as {
       text: string;
