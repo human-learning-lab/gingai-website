@@ -247,16 +247,25 @@ export default function ConsolePage() {
   /* Restored after mount rather than in the initial state: localStorage does
      not exist while this renders on the server, and reading it there would
      mismatch the hydrated markup. */
-  useEffect(() => {
-    const last = readLastDay();
-    if (!last) return;
-    setRegatId(last.regatId);
-    setDayIndex(last.dayIndex);
-  }, []);
+  const [restored, setRestored] = useState(false);
 
   useEffect(() => {
+    const last = readLastDay();
+    if (last) {
+      setRegatId(last.regatId);
+      setDayIndex(last.dayIndex);
+    }
+    setRestored(true);
+  }, []);
+
+  /* Held until the restore has run. Writing on mount would save the calendar
+     default over the stored selection before it had been read — and because
+     React invokes effects twice in development, the second pass then read back
+     the default it had just written, so the selection never survived. */
+  useEffect(() => {
+    if (!restored) return;
     writeLastDay({ regatId, dayIndex });
-  }, [regatId, dayIndex]);
+  }, [restored, regatId, dayIndex]);
 
   const regat = REGATTAS.find((r) => r.id === regatId) ?? REGATTAS[0];
   const dayNumber = Math.min(dayIndex, regat.days.length - 1) + 1;

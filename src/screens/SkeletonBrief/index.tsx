@@ -67,6 +67,10 @@ export default function SkeletonBriefPage({
     personal: emptyPersonal,
   });
   const [loaded, setLoaded] = useState(false);
+  /* Whether this race day has anything on file. Nothing is a normal state — a
+     day not yet briefed — but the screen otherwise shows the built-in defaults,
+     which is indistinguishable from a set that failed to load. */
+  const [hasSent, setHasSent] = useState(false);
 
   /* What was actually sent for this run. Only sent sets are filed — the mirror
      runs on the send path, never on generate — so reopening shows what the
@@ -85,6 +89,7 @@ export default function SkeletonBriefPage({
         if (!res.ok) { setLoaded(true); return; }
         const day = await res.json().catch(() => null);
         if (!day || cancelled) { setLoaded(true); return; }
+        setHasSent(true);
 
         const personal: SkeletonBriefValue["personal"] = {};
         for (const [name, set] of Object.entries(day.sailors ?? {})) {
@@ -254,6 +259,24 @@ export default function SkeletonBriefPage({
 
   return (
     <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
+      {!hasSent && (
+        <p
+          style={{
+            margin: "0 0 14px",
+            padding: "9px 12px",
+            borderRadius: 6,
+            border: "1px solid #DDD5C4",
+            background: "#FFFDF8",
+            color: "#6B6459",
+            fontSize: 12.5,
+            lineHeight: 1.45,
+          }}
+        >
+          Nothing sent for this day yet — these are the default questions. Anything
+          you send is filed against this race day and comes back when you return.
+        </p>
+      )}
+
       <SkeletonBrief
 	    runId={runId}
         sailors={SAILORS}
