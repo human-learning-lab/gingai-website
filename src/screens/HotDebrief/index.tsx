@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import HotDebrief, {
   type DebriefDraft,
   type DebriefSource,
@@ -58,6 +58,11 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
 
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [draft, setDraft] = useState<DebriefDraft | null>(null);
+  /* Unsaved edits to the document. Cleared by a save, by a fresh run, and by
+     loading what is already on file. */
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [publishState, setPublishState] = useState<{
     busy: boolean;
     message?: string | null;
@@ -109,7 +114,6 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
       });
     }
   }
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,6 +169,7 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
           sourceIds: data.sourceIds ?? [],
           promptVersion: data.promptVersion ?? 1,
         });
+        setDirty(false);
       })
       .catch(() => undefined);
 
@@ -204,22 +209,41 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
       sourceIds,
       promptVersion,
     });
+    setDirty(true);
 
     return text;
   }
 
   function handleDocumentChange(text: string) {
     setDraft((d) => (d ? { ...d, edited: text } : d));
-    /* Debounced: onChange fires per keystroke, and a PATCH per keystroke is a
-       Firestore write per letter the coach types. Only the last state matters. */
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      void fetch(`/api/sessions/${runId}/debrief/document`, {
+    setDirty(true);
+  }
+
+  /* Explicit rather than debounced. The write used to fire 800ms after the last
+     keystroke as void fetch().catch(() => undefined), so a failed save was
+     silent — the coach had no way to know the document had not persisted. */
+  async function handleSave() {
+    const text = draft?.edited;
+    if (typeof text !== "string") return;
+
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch(`/api/sessions/${runId}/debrief/document`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
-      }).catch(() => undefined);
-    }, 800);
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Could not save the document");
+      }
+      setDirty(false);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Could not save the document");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -234,6 +258,8 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
         onDocumentChange={handleDocumentChange}
         onRun={handleRun}
         onResetPrompt={() => setPrompt(DEFAULT_PROMPT)}
+        onSave={handleSave}
+        saveState={{ dirty, saving, error: saveError }}
         onPublish={handlePublish}
         publishState={publishState}
         onCopy={() => draft && navigator.clipboard.writeText(draft.edited)}

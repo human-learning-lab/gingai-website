@@ -60,6 +60,9 @@ export interface HotDebriefProps {
   onSaveTemplate?: () => void;
   /** File the debrief and refresh the context files it feeds. */
   onPublish?: () => Promise<void> | void;
+  /** Persist the edited document. */
+  onSave?: () => Promise<void> | void;
+  saveState?: { dirty: boolean; saving: boolean; error?: string | null };
   /** What the last publish did, or why it could not. */
   publishState?: { busy: boolean; message?: string | null; error?: boolean };
   onResetPrompt?: () => void;
@@ -108,6 +111,8 @@ export default function HotDebrief({
   onRun,
   onSaveTemplate,
   onPublish,
+  onSave,
+  saveState,
   publishState,
   onResetPrompt,
   onCopy,
@@ -223,6 +228,22 @@ export default function HotDebrief({
                   <button onClick={() => setEditing((v) => !v)} style={quietButton}>
                     {editing ? "Done" : "Edit"}
                   </button>
+                  {onSave && (
+                    /* Disabled until there is something outstanding, matching
+                       the other phases. */
+                    <button
+                      onClick={() => void onSave()}
+                      disabled={!saveState?.dirty || saveState?.saving}
+                      style={{
+                        ...quietButton,
+                        cursor: saveState?.dirty && !saveState?.saving ? "pointer" : "not-allowed",
+                        color: saveState?.dirty ? C.ink : C.warmLt,
+                        fontWeight: saveState?.dirty ? 600 : 400,
+                      }}
+                    >
+                      {saveState?.saving ? "Saving…" : saveState?.dirty ? "Save changes" : "Saved ✓"}
+                    </button>
+                  )}
                   {onPublish && (
                     <button
                       onClick={() => void onPublish()}
@@ -250,6 +271,24 @@ export default function HotDebrief({
                   )}
                 </div>
               </div>
+
+              {saveState?.error && (
+                <p
+                  role="alert"
+                  style={{
+                    margin: "0 0 11px",
+                    padding: "9px 12px",
+                    borderRadius: 6,
+                    border: "1px solid #C4392C",
+                    background: "rgba(196,57,44,0.07)",
+                    color: "#C4392C",
+                    fontSize: 12.5,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {saveState.error}
+                </p>
+              )}
 
               {publishState?.message && (
                 <p
