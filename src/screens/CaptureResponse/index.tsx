@@ -130,6 +130,14 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
   const [times, setTimes] = useState<number[]>([]);
   const [kinds, setKinds] = useState<string[]>([]);
   const [micDenied, setMicDenied] = useState(false);
+
+  /* The submission can be refused upstream: the backend checks the answer count
+     against its own copy of the question set, so a sailor served a set that
+     differs from the one filed for them gets a 400 and saves nothing. This
+     screen used to post and never read the result, so it said "All in" over a
+     rejection and the answers were simply gone. */
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const { recording, secs, start, stop, error } = useRecorder();
   const [questions, setQuestions] = useState<string[]>([]);
   const [phase, setPhase]       = useState<Phase>('idle');
@@ -201,20 +209,35 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 	setInputMode("voice");
   }
 
+  /** Files the whole set. Success upstream is `200 null`, so only the status
+      tells us anything; the body carries FastAPI's `detail` on a refusal. */
+  async function submitAll(answers: string[]) {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch(`/api/responses/${runId}?kind=capture`, {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ respondee: sailor.firstName, responses: answers }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.detail ?? `The server refused the answers (${res.status}).`);
+      }
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'The answers could not be sent.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function push(answer: string) {
     setSent(s => [...s, answer]);
     setKinds(s => [...s, inputMode]);
     setTimes(s => [...s, recTime]);
     setDraft("");
     setStep(s => s + 1);
-	if (step >= questions.length - 1)
-	  	fetch(`/api/responses/${runId}?kind=capture`, {
-			method: 'POST',
-			headers: {
-          	  "Content-Type": "application/json",
-        	},
-       		body: JSON.stringify({ respondee: sailor.firstName, responses: [...sent, answer] }),
-		});
+	if (step >= questions.length - 1) void submitAll([...sent, answer]);
   }
 
 
@@ -342,7 +365,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
       </header>
 
       {finished ? (
-        <Done sent={sent} questions={questions} sailor={sailor} kinds={kinds} times={times} />
+        <Done sent={sent} questions={questions} sailor={sailor} kinds={kinds} times={times} saveError={saveError} saving={saving} onRetry={() => void submitAll(sent)} />
       ) : (
         <>
           { 
@@ -398,25 +421,44 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
   );
 }
 
-function Done({questions, sent, kinds, times, sailor}: {questions: string[], sent: string[]; kinds: string[]; times: number[]; sailor: Sailor}) {
+function Done({questions, sent, kinds, times, sailor, saveError, saving, onRetry}: {questions: string[], sent: string[]; kinds: string[]; times: number[]; sailor: Sailor; saveError: string | null; saving: boolean; onRetry: () => void}) {
   return (
     <div style={{ padding: "32px 22px", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-      <div style={{ width: 38, height: 38, borderRadius: 38, background: C.greenLt, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 15 }}>
-        <span style={{ color: C.green, fontSize: 18, fontWeight: 700 }}>✓</span>
+      <div style={{ width: 38, height: 38, borderRadius: 38, background: saveError ? "#F7E4D8" : C.greenLt, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 15 }}>
+        <span style={{ color: saveError ? C.clay : C.green, fontSize: 18, fontWeight: 700 }}>{saveError ? "!" : "✓"}</span>
       </div>
 
       {(
         <>
           <h2 style={{ fontFamily: DISPLAY, fontSize: 25, fontWeight: 700, color: C.ink, margin: 0, lineHeight: 1.15 }}>
-            All in.<br />Thanks, {sailor.firstName}.
+            {saveError
+              ? <>Not sent.<br />Sorry, {sailor.firstName}.</>
+              : <>All in.<br />Thanks, {sailor.firstName}.</>}
           </h2>
-          <p style={{ fontSize: 13, color: C.warm, lineHeight: 1.6, marginTop: 11 }}>
-            Your answers go straight into tonight's debrief picture. You'll get your own summary
-            afterwards — what you set out to do, and what happened.
-          </p>
+          {saveError ? (
+            <>
+              <p style={{ fontSize: 13, color: C.warm, lineHeight: 1.6, marginTop: 11 }}>
+                Your answers are still here, but they did not reach the team — nothing was saved.
+                Try again, and tell the coach if it keeps failing.
+              </p>
+              <p style={{ fontSize: 12, color: C.clay, lineHeight: 1.5, marginTop: 9 }}>{saveError}</p>
+              <button
+                onClick={onRetry}
+                disabled={saving}
+                style={{ marginTop: 12, padding: "9px 16px", borderRadius: 8, border: "none", background: saving ? C.warmLt : C.ink, color: C.paper, fontFamily: UI, fontSize: 13, fontWeight: 600, cursor: saving ? "default" : "pointer" }}
+              >
+                {saving ? "Sending…" : "Try again"}
+              </button>
+            </>
+          ) : (
+            <p style={{ fontSize: 13, color: C.warm, lineHeight: 1.6, marginTop: 11 }}>
+              Your answers go straight into tonight's debrief picture. You'll get your own summary
+              afterwards — what you set out to do, and what happened.
+            </p>
+          )}
           <div style={{ marginTop: 20, paddingTop: 15, borderTop: `1px solid ${C.line}` }}>
-            <div style={{ ...lbl, marginBottom: 8 }}>What you sent</div>
+            <div style={{ ...lbl, marginBottom: 8 }}>{saveError ? "What you answered" : "What you sent"}</div>
             {sent.map((a: string, i: number) => (
               <div key={i} style={{ display: "flex", gap: 9, padding: "6px 0", fontSize: 12, color: C.warm, alignItems: "baseline" }}>
                 <span style={{ color: C.green, fontWeight: 600 }}>{i + 1}</span>
