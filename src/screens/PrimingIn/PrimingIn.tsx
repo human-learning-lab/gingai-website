@@ -688,6 +688,23 @@ export default function PrimingIn({
               )}
             </Card>
 
+            {/* Directly above Carry into the briefing. Saving is the step before
+                handing the day on, so the two read as a pair. At rest it is
+                muted — only while something is outstanding do both go dark. */}
+            <button
+              onClick={save}
+              disabled={!dirty || saving}
+              style={{
+                ...primaryButton,
+                background: dirty ? C.ink : C.sand2,
+                color: dirty ? "#fff" : C.warmLt,
+                cursor: dirty && !saving ? "pointer" : "not-allowed",
+                opacity: saving ? 0.55 : 1,
+              }}
+            >
+              {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
+            </button>
+
             {squadGoals.length > 0 && (
               <button
                 onClick={carryForward}
@@ -706,11 +723,11 @@ export default function PrimingIn({
         </div>
       )}
 
-      {/* Below the work, not above it. The button belongs at the end of what it
-          saves — where the eye lands after an edit — rather than in a header the
-          editing has already scrolled past. Disabled until something is
-          outstanding, so it says whether there is anything to do rather than
-          always inviting a write. */}
+      {/* The individuals view has no carry button to sit above, but its distilled
+          answers are editable, so it keeps a save of its own at the end of the
+          work. In the team view the save lives beside Carry into the briefing
+          instead. */}
+      {view === "individuals" && (
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
         <button
           onClick={save}
@@ -730,6 +747,7 @@ export default function PrimingIn({
           {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
         </button>
       </div>
+      )}
     </div>
   );
 }
