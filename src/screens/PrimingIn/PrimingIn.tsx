@@ -315,26 +315,6 @@ export default function PrimingIn({
         }}
       >
         <ViewToggle view={view} onChange={setView} />
-
-        {/* Disabled until something is outstanding, so the button says whether
-            there is anything to do rather than always inviting a write. */}
-        <button
-          onClick={save}
-          disabled={!dirty || saving}
-          style={{
-            border: "none",
-            borderRadius: 7,
-            padding: "8px 16px",
-            fontSize: 13,
-            fontWeight: 600,
-            background: dirty ? C.ink : C.sand2,
-            color: dirty ? "#fff" : C.warmLt,
-            cursor: dirty && !saving ? "pointer" : "not-allowed",
-            opacity: saving ? 0.55 : 1,
-          }}
-        >
-          {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
-        </button>
       </div>
 
       {view === "individuals" ? (
@@ -725,6 +705,31 @@ export default function PrimingIn({
           </div>
         </div>
       )}
+
+      {/* Below the work, not above it. The button belongs at the end of what it
+          saves — where the eye lands after an edit — rather than in a header the
+          editing has already scrolled past. Disabled until something is
+          outstanding, so it says whether there is anything to do rather than
+          always inviting a write. */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
+        <button
+          onClick={save}
+          disabled={!dirty || saving}
+          style={{
+            border: "none",
+            borderRadius: 7,
+            padding: "8px 16px",
+            fontSize: 13,
+            fontWeight: 600,
+            background: dirty ? C.ink : C.sand2,
+            color: dirty ? "#fff" : C.warmLt,
+            cursor: dirty && !saving ? "pointer" : "not-allowed",
+            opacity: saving ? 0.55 : 1,
+          }}
+        >
+          {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
+        </button>
+      </div>
     </div>
   );
 }
