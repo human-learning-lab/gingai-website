@@ -673,6 +673,15 @@ export default function CapturesIn({
                   Nothing here names a person in a way that belongs to the room.
                   Anything about someone else is held back for you.
                 </div>
+                {/* Directly above Carry into the debrief. Saving is the step
+                    before handing the day on, so the two read as a pair. */}
+                <Button
+                  onClick={save}
+                  disabled={!dirty || saving}
+                  dark={dirty}
+                >
+                  {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
+                </Button>
                 <Button onClick={carryForward} disabled={busy === "carry"} dark>
                   {busy === "carry"
                     ? "Filing the reading…"
@@ -700,11 +709,10 @@ export default function CapturesIn({
         </div>
       )}
 
-      {/* Below the work, not above it. The button belongs at the end of what it
-          saves — where the eye lands after an edit — rather than in a header the
-          editing has already scrolled past. Disabled until something is
-          outstanding, so it says whether there is anything to do rather than
-          always inviting a write. */}
+      {/* The save sits beside Carry into the debrief once there is a reading to
+          carry. Until then — and on the individuals view, whose distilled
+          answers are editable — it falls back to the end of the work. */}
+      {(view === "individuals" || !teamReading) && (
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
         <button
           onClick={save}
@@ -724,6 +732,7 @@ export default function CapturesIn({
           {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
         </button>
       </div>
+      )}
     </div>
   );
 }
