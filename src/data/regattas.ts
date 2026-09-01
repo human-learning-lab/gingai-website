@@ -109,6 +109,11 @@ export const REGATTAS: Regatta[] = [
 	   so they cannot appear in the squad's picker. */
 	...(IS_ALPHA ? [
 		{
+			id: 'kristiansand', city: 'Kristiansand', short: 'Kristiansand', dates: 'Dec 1–2 · TEST',
+			start: '2026-12-01', end: '2026-12-02', lat: 58.15, lon: 7.99,
+			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
+		},
+		{
 			id: 'oslo', city: 'Oslo', short: 'Oslo', dates: 'Dec 5–6 · TEST',
 			start: '2026-12-05', end: '2026-12-06', lat: 59.91, lon: 10.75,
 			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],

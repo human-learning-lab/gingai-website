@@ -25,9 +25,11 @@ export const HLL_ROLES: Role[] = [
  * `christian` is Christian Løkem — reusing his existing role keeps the roleId
  * stored on his Clerk profile valid in both environments, so it never flips.
  * The two developer roles are kept so Emilie and Viktor can still reach alpha;
- * without them they would land on /pending there.
+ * without them they would land on /pending there. `rasmus` is carried for the
+ * same reason as Christian, and because DEFAULT_ROLE resolves to him — leaving
+ * him out left the fallback pointing at a role absent from the alpha roster.
  */
-export const HLL_CARRIED_ROLE_IDS = ['christian', 'emilie', 'viktor'];
+export const HLL_CARRIED_ROLE_IDS = ['christian', 'emilie', 'viktor', 'rasmus'];
 
 /**
  * Replaces the production email map in alpha.
@@ -39,6 +41,7 @@ export const HLL_EMAIL_ROLE_MAP: Record<string, string> = {
   'christian@hulelab.com':  'christian',
   'emilie@sailgpbra.com':   'emilie',
   'viktor@sailgpbra.com':   'viktor',
+  'rkostner@sailgpbra.com': 'rasmus',
 };
 
 /** Replaces the production domain map in alpha. sailgpbra.com is deliberately absent. */
@@ -61,6 +64,7 @@ const HLL_SAILORS: SailorLike[] = [
   { id: 'hll-dan', name: 'Daniel',    role: 'Helm' },
   { id: 'hll-ben', name: 'Benjamin',  role: 'Helm' },
   { id: 'hll-chr', name: 'Christian', role: 'Head Coach' },
+  { id: 'hll-ras', name: 'Rasmus',    role: 'Flight Controller' },
 ];
 
 /** Returns `base` untouched unless NEXT_PUBLIC_TEAM=hll, which swaps in the HLL team. */
