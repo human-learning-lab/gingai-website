@@ -103,9 +103,10 @@ export const REGATTAS: Regatta[] = [
 	/* Not real regattas. Somewhere for developers to exercise a race day end to
 	   end without writing into one the team is using — every artefact is keyed
 	   by runId, so a fake venue keeps test records in their own corner of
-	   Firestore and Storage. Two of them, so a test that spans regattas has a
-	   second to move to. Only present when NEXT_PUBLIC_TEAM=hll, so they cannot
-	   appear in the squad's picker. */
+	   Firestore and Storage. Several of them, so a test that spans regattas has
+	   somewhere to move to, and a venue whose records get into a state worth
+	   abandoning can simply be replaced. Only present when NEXT_PUBLIC_TEAM=hll,
+	   so they cannot appear in the squad's picker. */
 	...(IS_ALPHA ? [
 		{
 			id: 'sandvika', city: 'Sandvika', short: 'Sandvika', dates: 'Dec 1–2 · TEST',
@@ -115,6 +116,15 @@ export const REGATTAS: Regatta[] = [
 		{
 			id: 'oslo', city: 'Oslo', short: 'Oslo', dates: 'Dec 5–6 · TEST',
 			start: '2026-12-05', end: '2026-12-06', lat: 59.91, lon: 10.75,
+			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
+		},
+		/* A clean replacement for Sandvika, whose response rows were locked by
+		   probe writes that the backend offers no way to remove. The space in
+		   the city name is stripped when the run id is built, giving
+		   "Sandvikav2Raceday1Season6" — a different venue to every store. */
+		{
+			id: 'sandvika-v2', city: 'Sandvika v2', short: 'Sandvika v2', dates: 'Dec 8–9 · TEST',
+			start: '2026-12-08', end: '2026-12-09', lat: 59.89, lon: 10.53,
 			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
 		},
 	] : []),
