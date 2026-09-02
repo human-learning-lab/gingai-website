@@ -320,6 +320,18 @@ export default function CapturePage({
     });
     if (!res.ok) {
       const data = await res.json().catch(() => null);
+      /* A 500 here is the backend refusing the write, and in practice it has
+         been the placeholder set every time — so say the thing the coach can
+         act on rather than "Upstream 500". The real error still goes to the
+         console, because the cause is not actually proven and a bare friendly
+         message would hide the next one that is something else. */
+      if (res.status === 500) {
+        console.error("[send] upstream 500:", data?.error ?? "(no detail)");
+        throw new Error(
+          "The questions being sent look like the placeholder set. Generate new " +
+          "questions and try again.",
+        );
+      }
       throw new Error(data?.error ?? "Could not create the capture run");
     }
 
