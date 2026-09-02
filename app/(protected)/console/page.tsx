@@ -160,11 +160,16 @@ function RegattaStrip({
           {REGATTAS.map((r) => {
             const active = r.id === regatId;
             const past = getRegatResult(r.start, r.end) === "Past";
+            /* Still listed, so the calendar reads correctly, but not a place
+               the console can be taken to. */
+            const off = Boolean(r.disabled);
             return (
               <button
                 key={r.id}
                 data-active={active}
-                onClick={() => { onRegatChange(r.id); onDayChange(0); }}
+                disabled={off}
+                title={off ? "Temporarily disabled" : undefined}
+                onClick={() => { if (off) return; onRegatChange(r.id); onDayChange(0); }}
                 style={{
                   appearance: "none",
                   flexShrink: 0,
@@ -173,9 +178,9 @@ function RegattaStrip({
                   border: "none",
                   borderBottom: `2px solid ${active ? T.green : "transparent"}`,
                   background: active ? T.field : "transparent",
-                  cursor: "pointer",
+                  cursor: off ? "not-allowed" : "pointer",
                   textAlign: "left",
-                  opacity: past && !active ? 0.55 : 1,
+                  opacity: off ? 0.4 : past && !active ? 0.55 : 1,
                 }}
               >
                 <div
@@ -201,7 +206,7 @@ function RegattaStrip({
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {r.dates}
+                  {off ? "Temporarily disabled" : r.dates}
                 </div>
               </button>
             );

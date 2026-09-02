@@ -17,6 +17,8 @@ export interface Regatta {
 	raceDayIndices?: number[];
 	raceSchedule?: Record<number, { broadcast: string; races: RaceEntry[] }>;
 	weekAgenda?:  Record<number, { time: string; title: string; tag?: string; tagColor?: string }[]>;
+	/** Shown in the picker but not selectable. Temporary, and meant to be removed. */
+	disabled?: boolean;
 }
 
 /* The test venue below is alpha-only, gated on the same flag as the Human
@@ -95,7 +97,7 @@ export const REGATTAS: Regatta[] = [
 	},
 	{ id: 'portsmouth',  city: 'Portsmouth',     short: 'Portsmouth',   dates: 'Jul 25–26',     start: '2026-07-25', end: '2026-07-26', lat:  50.80,  lon:  -1.08,  photo: '/images/boat-portsmouth.jpg',   photoPos: 'center 50%',    days: ['Day 1', 'Day 2'] },
 	{ id: 'sassnitz',    city: 'Sassnitz',       short: 'Sassnitz',     dates: 'Aug 22–23',     start: '2026-08-22', end: '2026-08-23', lat:  54.52,  lon:  13.64,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
-	{ id: 'valencia',    city: 'Valencia',       short: 'Valencia',     dates: 'Sep 5–6',       start: '2026-09-05', end: '2026-09-06', lat:  39.47,  lon:  -0.38,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+	{ id: 'valencia',    city: 'Valencia',       short: 'Valencia',     dates: 'Sep 5–6',       start: '2026-09-05', end: '2026-09-06', lat:  39.47,  lon:  -0.38,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'], disabled: true },
 	{ id: 'geneva',      city: 'Geneva',         short: 'Geneva',       dates: 'Sep 19–20',     start: '2026-09-19', end: '2026-09-20', lat:  46.20,  lon:   6.14,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 	{ id: 'dubai',       city: 'Dubai',          short: 'Dubai',        dates: 'Nov 21–22',     start: '2026-11-21', end: '2026-11-22', lat:  25.08,  lon:  55.13,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 	{ id: 'abudhabi',    city: 'Abu Dhabi',      short: 'Grand Final',  dates: 'Nov 28–29',     start: '2026-11-28', end: '2026-11-29', lat:  24.47,  lon:  54.37,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
@@ -145,10 +147,13 @@ export function getRegatResult(start: string, end: string): 'Past' | 'Active' | 
 }
 
 export function getDefaultRegat(): string {
-	const active = REGATTAS.find(r => getRegatResult(r.start, r.end) === 'Active');
+	/* A disabled venue is skipped: the console would otherwise open on one the
+	   picker will not let you leave by clicking. */
+	const open = REGATTAS.filter(r => !r.disabled);
+	const active = open.find(r => getRegatResult(r.start, r.end) === 'Active');
 	if (active) return active.id;
-	const next = REGATTAS.find(r => getRegatResult(r.start, r.end) === 'Upcoming');
-	return next?.id ?? REGATTAS[REGATTAS.length - 1].id;
+	const next = open.find(r => getRegatResult(r.start, r.end) === 'Upcoming');
+	return next?.id ?? open[open.length - 1]?.id ?? REGATTAS[REGATTAS.length - 1].id;
 }
 
 export function getDefaultDay(regatId: string): number {
