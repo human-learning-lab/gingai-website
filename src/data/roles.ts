@@ -77,16 +77,22 @@ export const ROLES: Role[] = IS_HLL
   ? [...BASE_ROLES, ...HLL_ROLES]
   : BASE_ROLES;
 
+/* Alpha extends production rather than replacing it: anyone who can reach
+   production can reach alpha, and a new crew member mapped once is mapped in
+   both. It used to replace, so the two drifted — the crew were mapped in
+   production and absent from alpha, and every alpha grant had to be made by
+   hand against Clerk. The HLL entries come last so they win where they overlap. */
 export const EMAIL_ROLE_MAP: Record<string, string> = IS_HLL
-  ? HLL_EMAIL_ROLE_MAP
+  ? { ...BASE_EMAIL_ROLE_MAP, ...HLL_EMAIL_ROLE_MAP }
   : BASE_EMAIL_ROLE_MAP;
 
-// sailgpbra.com is absent from the alpha domain map on purpose: a SailGP
-// crew member opening the alpha URL lands on /pending instead of being
-// silently reassigned, which would rewrite their roleId in the shared Clerk
-// instance and follow them back into production.
+/* Same for domains. sailgpbra.com was withheld from alpha so a crew member
+   would not be silently reassigned in the shared Clerk instance — but with the
+   email map now shared, everyone it covers resolves to the same role in both
+   environments, so a write from alpha sets what production would have set. The
+   domain is only reached by someone the email map does not name. */
 export const ALLOWED_DOMAINS: Record<string, string> = IS_HLL
-  ? HLL_ALLOWED_DOMAINS
+  ? { ...BASE_ALLOWED_DOMAINS, ...HLL_ALLOWED_DOMAINS }
   : BASE_ALLOWED_DOMAINS;
 
 export const DEFAULT_ROLE = BASE_ROLES.find(r => r.id === 'rasmus')!;
