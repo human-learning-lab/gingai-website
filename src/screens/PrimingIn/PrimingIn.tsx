@@ -493,6 +493,30 @@ export default function PrimingIn({
                 Applies to everyone. The full answers are never touched.
               </Footnote>
             </Card>
+
+            {/* Directly under the prompt box, the way the team view puts it
+                above Carry into the briefing: the save belongs with the work
+                rather than in a footer the editing has scrolled past. */}
+            <button
+              onClick={save}
+              disabled={!dirty || saving}
+              style={{
+                width: "100%",
+                marginTop: 14,
+                border: "none",
+                borderRadius: 8,
+                padding: "11px 0",
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: UI,
+                background: dirty ? C.ink : C.sand2,
+                color: dirty ? "#fff" : C.warmLt,
+                cursor: dirty && !saving ? "pointer" : "not-allowed",
+                opacity: saving ? 0.55 : 1,
+              }}
+            >
+              {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
+            </button>
           </div>
         </div>
       ) : (
@@ -751,31 +775,6 @@ export default function PrimingIn({
         </div>
       )}
 
-      {/* The individuals view has no carry button to sit above, but its distilled
-          answers are editable, so it keeps a save of its own at the end of the
-          work. In the team view the save lives beside Carry into the briefing
-          instead. */}
-      {view === "individuals" && (
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
-        <button
-          onClick={save}
-          disabled={!dirty || saving}
-          style={{
-            border: "none",
-            borderRadius: 7,
-            padding: "8px 16px",
-            fontSize: 13,
-            fontWeight: 600,
-            background: dirty ? C.ink : C.sand2,
-            color: dirty ? "#fff" : C.warmLt,
-            cursor: dirty && !saving ? "pointer" : "not-allowed",
-            opacity: saving ? 0.55 : 1,
-          }}
-        >
-          {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
-        </button>
-      </div>
-      )}
     </div>
   );
 }

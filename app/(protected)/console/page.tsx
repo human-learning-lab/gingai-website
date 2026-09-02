@@ -160,16 +160,12 @@ function RegattaStrip({
           {REGATTAS.map((r) => {
             const active = r.id === regatId;
             const past = getRegatResult(r.start, r.end) === "Past";
-            /* Still listed, so the calendar reads correctly, but not a place
-               the console can be taken to. */
-            const off = Boolean(r.disabled);
             return (
               <button
                 key={r.id}
                 data-active={active}
-                disabled={off}
-                title={off ? "Temporarily disabled" : undefined}
-                onClick={() => { if (off) return; onRegatChange(r.id); onDayChange(0); }}
+                title={r.warning ?? undefined}
+                onClick={() => { onRegatChange(r.id); onDayChange(0); }}
                 style={{
                   appearance: "none",
                   flexShrink: 0,
@@ -178,9 +174,9 @@ function RegattaStrip({
                   border: "none",
                   borderBottom: `2px solid ${active ? T.green : "transparent"}`,
                   background: active ? T.field : "transparent",
-                  cursor: off ? "not-allowed" : "pointer",
+                  cursor: "pointer",
                   textAlign: "left",
-                  opacity: off ? 0.4 : past && !active ? 0.55 : 1,
+                  opacity: past && !active ? 0.55 : 1,
                 }}
               >
                 <div
@@ -206,7 +202,7 @@ function RegattaStrip({
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {off ? "Temporarily disabled" : r.dates}
+                  {r.dates}
                 </div>
               </button>
             );
@@ -316,6 +312,30 @@ export default function ConsolePage() {
           main. Renders only when NEXT_PUBLIC_TEAM=hll. */}
       <RegenerateSailorDoc />
       <GenerateTeamDoc />
+
+      {/* A venue that is reachable but should be left alone until its day.
+          Unlike the TEST venues this is not alpha-gated — the warning matters
+          most in production, where Valencia is the next real race day and the
+          one most easily opened by mistake. */}
+      {regat.warning && (
+        <div
+          role="status"
+          style={{
+            margin: "0 0 16px",
+            padding: "11px 14px",
+            borderRadius: 7,
+            border: "1px solid #E3CE94",
+            background: "#FDF6E6",
+            color: "#7A5E14",
+            fontFamily: STRIP_FONT,
+            fontSize: 12.5,
+            fontWeight: 600,
+            lineHeight: 1.5,
+          }}
+        >
+          {regat.warning}
+        </div>
+      )}
 
       {phase === "skeleton" && <SkeletonBriefPage runId={runId} />}
       {phase === "priming" && (
