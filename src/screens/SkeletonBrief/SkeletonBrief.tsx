@@ -257,31 +257,38 @@ export default function SkeletonBrief({
           alignItems: "start",
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <ScopeToggle scope={scope} onChange={setScope} />
+        <div className="sb-col" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div className="sb-scope">
+            <ScopeToggle scope={scope} onChange={setScope} />
+          </div>
 
           {!isTeam && (
-            <SailorPicker
-              sailors={sailors}
-              active={activeSailor}
-              onSelect={setActiveSailor}
-            />
+            <div className="sb-picker">
+              <SailorPicker
+                sailors={sailors}
+                active={activeSailor}
+                onSelect={setActiveSailor}
+              />
+            </div>
           )}
 
           {/* What the questions will be written against — the squad's file in
               team scope, the selected sailor's in personal. */}
-          {isTeam ? (
-            <ContextFilePreview label="Team context" endpoint="/api/team-profile" />
-          ) : (
-            activeSailor && (
-              <ContextFilePreview
-                label={`Profile · ${activeSailor}`}
-                endpoint={`/api/sailor-profile?sailor=${encodeURIComponent(activeSailor)}`}
-              />
-            )
-          )}
+          <div className="sb-context">
+            {isTeam ? (
+              <ContextFilePreview label="Team context" endpoint="/api/team-profile" />
+            ) : (
+              activeSailor && (
+                <ContextFilePreview
+                  label={`Profile · ${activeSailor}`}
+                  endpoint={`/api/sailor-profile?sailor=${encodeURIComponent(activeSailor)}`}
+                />
+              )
+            )}
+          </div>
 
           <Card
+            className="sb-questions"
             title={
               isTeam ? "Questions — everyone" : `Questions — ${sailor?.name}`
             }
@@ -316,6 +323,7 @@ export default function SkeletonBrief({
           </Card>
 
           <Card
+            className="sb-prompt"
             title={isTeam ? "Prompt — everyone" : `Prompt — ${sailor?.name}`}
           >
             <p
@@ -400,7 +408,7 @@ export default function SkeletonBrief({
           </Card>
         </div>
 
-        <aside className="phase-sticky"
+        <aside className="phase-sticky sb-send"
           style={{
             display: "flex",
             flexDirection: "column",
@@ -687,12 +695,16 @@ function RecipientRow({
 function Card({
   title,
   children,
+  className,
 }: {
   title: string;
   children: React.ReactNode;
+  /** Lets the mobile running order address this block. */
+  className?: string;
 }) {
   return (
     <section
+      className={className}
       style={{
         background: C.field,
         border: `1px solid ${C.line}`,

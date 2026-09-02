@@ -1916,3 +1916,30 @@ body {
     max-height: none !important;
   }
 }
+
+/* ── Step 1 running order on a phone ───────────────────────────
+ * Desktop reads across two columns: the work on the left, Send to pinned on
+ * the right. Stacked, the DOM order would put the context file between the
+ * scope toggle and the questions, and the send button below everything.
+ *
+ * The wanted order is title, scope, questions, prompt, send. `display: contents`
+ * dissolves the left column so its blocks become grid items alongside the
+ * aside, which is what makes a single `order` sequence across both possible.
+ *
+ * The two blocks not in that list keep their sense: the sailor picker follows
+ * the scope toggle it belongs to, and the context file — reference rather than
+ * an action — goes last instead of pushing the questions off the screen.
+ *
+ * Everything here is inside the media query, so the desktop layout is
+ * untouched.
+ */
+@media (max-width: 900px) {
+  .sb-col { display: contents; }
+
+  .sb-scope     { order: 1; }
+  .sb-picker    { order: 2; }
+  .sb-questions { order: 3; }
+  .sb-prompt    { order: 4; }
+  .sb-send      { order: 5; }
+  .sb-context   { order: 6; }
+}
