@@ -11,6 +11,11 @@ export interface Role {
   view: RoleView;
   avatar?: string;
   screens: ScreenId[];
+  /** Keeps the account working — access, and a roleId already stored on a
+   *  Clerk profile stays valid — while leaving the person out of every
+   *  on-screen picker. For someone who should still be able to sign in but is
+   *  no longer part of the crew. */
+  hidden?: boolean;
 }
 
 export interface Block {
