@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { parseRunId } from "@/lib/questionStore";
 import HotDebrief, {
   type DebriefDraft,
   type DebriefSource,
@@ -280,7 +281,28 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
         publishState={publishState}
         onCopy={() => draft && navigator.clipboard.writeText(draft.edited)}
         onExport={() => {
-          /* PDF, link, or Drive — decide when the format is settled. */
+          /* Markdown, because that is what the debrief actually is: it is
+             written as markdown, rendered as markdown, and filed to Storage as
+             debrief.md. Anything else would be a conversion, and a lossy one.
+
+             The same text the publish button files, so an exported copy and a
+             filed copy can never disagree. */
+          const text = draft?.edited?.trim();
+          if (!text) return;
+
+          const { race, day } = parseRunId(runId);
+          const url = URL.createObjectURL(
+            new Blob([text], { type: "text/markdown;charset=utf-8" }),
+          );
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `${race}-day${day}-debrief.md`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          /* Revoked on a turn of the loop: revoking straight after click()
+             cancels the download in some browsers. */
+          setTimeout(() => URL.revokeObjectURL(url), 0);
         }}
       />
     </div>
