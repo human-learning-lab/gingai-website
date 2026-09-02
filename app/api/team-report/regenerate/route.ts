@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { generateTeamContext } from '@/lib/sailorReport';
 import { listSailors, readSailorDoc, readTeamDoc, saveTeamDoc } from '@/lib/sailorStore';
+import { isHuleLabMember } from '@/data/crew';
 
 /**
  * TEMPORARY — DELETE BEFORE MERGING TO MAIN.
@@ -17,7 +18,10 @@ import { listSailors, readSailorDoc, readTeamDoc, saveTeamDoc } from '@/lib/sail
  */
 export async function POST() {
   try {
-    const sailors = await listSailors();
+    /* HuleLab people are staff. Their context file is a line naming what they
+       do, not a sailor profile, and folding it in would have the squad picture
+       reasoning about a CEO's foiling technique. */
+    const sailors = (await listSailors()).filter(s => !isHuleLabMember(s));
     if (!sailors.length) {
       return NextResponse.json(
         { error: 'No sailor context files found. Generate at least one first.' },

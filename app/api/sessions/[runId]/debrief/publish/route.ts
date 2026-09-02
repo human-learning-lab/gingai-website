@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { saveDebriefMarkdown } from '@/lib/briefingStore';
 import { generateTeamContext, regenerateProfile } from '@/lib/sailorReport';
 import { listSailors, readSailorDoc, readTeamDoc, saveSailorDoc, saveTeamDoc } from '@/lib/sailorStore';
+import { isHuleLabMember } from '@/data/crew';
 
 export const runtime = 'nodejs';
 /* One model call per sailor plus one for the squad. Ten sailors runs to a
@@ -73,6 +74,10 @@ export async function POST(
     await Promise.all(captures.map(async (row) => {
       const sailor = row.recipient?.trim();
       if (!sailor) return;
+      /* Staff answer, and their answers are read — but their context file is a
+         standing line about their job, not a profile to be rewritten nightly
+         from what they said today. */
+      if (isHuleLabMember(sailor)) return;
       const material = captureMaterial(row);
       if (!material) return;
 
@@ -90,7 +95,7 @@ export async function POST(
     let team: { path: string; url?: string } | null = null;
     let teamError: string | null = null;
     try {
-      const names = await listSailors();
+      const names = (await listSailors()).filter(n => !isHuleLabMember(n));
       const files = (await Promise.all(names.map(async (sailor) => {
         const content = await readSailorDoc(sailor, 'current.md');
         return content ? { sailor, content } : null;

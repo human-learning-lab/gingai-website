@@ -1,4 +1,5 @@
 import type { Role, ScreenId } from '@/types';
+import { HULELAB_ROLE } from './crew';
 
 /**
  * Human Learning Lab — alpha test team.
@@ -16,10 +17,7 @@ const SAILOR_SCREENS: ScreenId[] = ['backbone', 'sim', 'capture', 'transcripts',
    "Daniel Martin" would never match the stored recipient "Daniel". */
 export const HLL_ROLES: Role[] = [
   { id: 'hll-daniel',   name: 'Daniel', initial: 'DM', label: 'Helm', view: 'sailor', screens: SAILOR_SCREENS },
-  /* No longer part of the crew, so he is off the console roster and out of
-     every picker — but the account still signs in as himself. Deleting the
-     role instead would strand the roleId already on his Clerk profile. */
-  { id: 'hll-benjamin', name: 'Benjamin', initial: 'BN', label: 'Hulelab', view: 'sailor', screens: SAILOR_SCREENS, hidden: true },
+  { id: 'hll-benjamin', name: 'Benjamin', initial: 'BN', label: 'HuleLab', view: 'sailor', screens: SAILOR_SCREENS },
 ];
 
 /**
@@ -67,9 +65,11 @@ export const HLL_ALLOWED_DOMAINS: Record<string, string> = {
 
 interface SailorLike { id: string; name: string; role: string; }
 
-/** Testers who are not on the squad list. Benjamin is deliberately absent. */
+/** Testers who are not on the squad list. Benjamin is HuleLab, not crew — see
+ *  data/crew.ts for what that excludes him from. */
 const HLL_EXTRA_SAILORS: SailorLike[] = [
-  { id: 'hll-dan', name: 'Daniel', role: 'Helm' },
+  { id: 'hll-dan', name: 'Daniel',   role: 'Helm' },
+  { id: 'hll-ben', name: 'Benjamin', role: HULELAB_ROLE },
 ];
 
 /** Returns `base` untouched unless NEXT_PUBLIC_TEAM=hll, which appends the testers. */
