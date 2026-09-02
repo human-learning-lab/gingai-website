@@ -1943,3 +1943,32 @@ body {
   .sb-send      { order: 5; }
   .sb-context   { order: 6; }
 }
+
+/* ── Step 4 running order on a phone ───────────────────────────
+ * Wanted: title, scope, questions, prompt, send. Desktop reads across two
+ * columns, with the prompt and Send to sitting side by side inside the right
+ * one — so three levels have to be dissolved before a single `order` sequence
+ * can address them: the left column, the aside, and the row inside it.
+ *
+ * Dissolving that row also drops its side-by-side flex and its own scrollbar,
+ * which is what a phone wants anyway.
+ *
+ * The blocks not in the list keep their sense: the sailor picker follows the
+ * scope toggle it belongs to, and the yardstick and context file go last —
+ * reference rather than actions, and either one third would push the questions
+ * off the screen.
+ */
+@media (max-width: 900px) {
+  .cap-col,
+  .cap-aside,
+  .cap-asiderow { display: contents; }
+
+  .cap-scope     { order: 1; }
+  .cap-picker    { order: 2; }
+  .cap-questions { order: 3; }
+  .cap-prompt    { order: 4; }
+  .cap-send      { order: 5; }
+  .cap-sendbtn   { order: 6; }
+  .cap-yardstick { order: 7; }
+  .cap-context   { order: 8; }
+}

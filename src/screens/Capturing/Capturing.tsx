@@ -268,7 +268,8 @@ export default function Capture({
           alignItems: "start",
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div className="cap-col" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div className="cap-yardstick">
           <Card title="The yardstick — squad goals from the briefing">
             {squadGoals.map((goal, i) => (
               <div
@@ -312,11 +313,16 @@ export default function Capture({
               carry into the debrief.
             </Footnote>
           </Card>
+          </div>
 
-          <ScopeToggle scope={scope} onChange={setScope} />
+          <div className="cap-scope">
+            <ScopeToggle scope={scope} onChange={setScope} />
+          </div>
 
           {!isTeam && (
-            <>
+            /* Keeps the column's own spacing: wrapping two siblings in a plain
+               div would drop the flex gap that was between them. */
+            <div className="cap-picker" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <SailorPicker
                 sailors={sailors}
                 active={activeSailor}
@@ -340,23 +346,26 @@ export default function Capture({
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
 
           {/* What the questions will be written against — the squad's file in
               team scope, the selected sailor's in personal. Same panel as the
               skeleton brief, so both screens show context the same way. */}
-          {isTeam ? (
-            <ContextFilePreview label="Team context" endpoint="/api/team-profile" />
-          ) : (
-            activeSailor && (
-              <ContextFilePreview
-                label={`Context · ${activeSailor}`}
-                endpoint={`/api/sailor-profile?sailor=${encodeURIComponent(activeSailor)}`}
-              />
-            )
-          )}
+          <div className="cap-context">
+            {isTeam ? (
+              <ContextFilePreview label="Team context" endpoint="/api/team-profile" />
+            ) : (
+              activeSailor && (
+                <ContextFilePreview
+                  label={`Context · ${activeSailor}`}
+                  endpoint={`/api/sailor-profile?sailor=${encodeURIComponent(activeSailor)}`}
+                />
+              )
+            )}
+          </div>
 
+          <div className="cap-questions">
           <Card
             title={
               isTeam ? "Questions — everyone" : `Questions — ${sailor?.name}`
@@ -389,11 +398,11 @@ export default function Capture({
               </button>
             </div>
           </Card>
-
+          </div>
 
         </div>
 
-        <aside className="phase-sticky"
+        <aside className="phase-sticky cap-aside"
           style={{
             display: "flex",
             flexDirection: "column",
@@ -408,6 +417,7 @@ export default function Capture({
         >
           {/* Cards scroll; the send block below stays pinned. */}
           <div
+            className="cap-asiderow"
             style={{
               display: "flex",
               gap: 14,
@@ -417,7 +427,7 @@ export default function Capture({
               alignItems: "flex-start",
             }}
           >
-            <div style={{ flex: "1 1 0", minWidth: 0 }}>
+            <div className="cap-prompt" style={{ flex: "1 1 0", minWidth: 0 }}>
             <Card title="Capture prompt">
             <p
               style={{
@@ -472,7 +482,7 @@ export default function Capture({
 
             </div>
 
-            <div style={{ flex: "1 1 0", minWidth: 0 }}>
+            <div className="cap-send" style={{ flex: "1 1 0", minWidth: 0 }}>
           <Card title={isTeam ? "Send to" : "What each sailor gets"}>
             {!isTeam && (
               <p
@@ -521,7 +531,7 @@ export default function Capture({
             </div>
           </div>
 
-          <div style={{ flexShrink: 0 }}>
+          <div className="cap-sendbtn" style={{ flexShrink: 0 }}>
             <button
               onClick={send}
               disabled={!recipients.length || sending}
