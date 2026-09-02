@@ -1963,12 +1963,24 @@ body {
   .cap-aside,
   .cap-asiderow { display: contents; }
 
+  /* Scope leads because it decides what everything under it shows; the rest
+     follows the asked-for order: goals, questions, context, prompt, send. */
   .cap-scope     { order: 1; }
   .cap-picker    { order: 2; }
-  .cap-questions { order: 3; }
-  .cap-prompt    { order: 4; }
-  .cap-send      { order: 5; }
-  .cap-sendbtn   { order: 6; }
-  .cap-yardstick { order: 7; }
-  .cap-context   { order: 8; }
+  .cap-yardstick { order: 3; }
+  .cap-questions { order: 4; }
+  .cap-context   { order: 5; }
+  .cap-prompt    { order: 6; }
+  .cap-send      { order: 7; }
+  .cap-sendbtn   { order: 8; }
+}
+
+/* ── Step 6 on a phone ─────────────────────────────────────────
+ * Desktop reads document-left, panel-right. Stacked, the DOM order buries the
+ * sources under the whole document, so you scroll past the output to reach the
+ * thing that decides it. The panel comes first instead — prompt, sources, then
+ * the document they produce, which is also the order the screen is used in.
+ */
+@media (max-width: 900px) {
+  .hd-panel { order: -1; }
 }

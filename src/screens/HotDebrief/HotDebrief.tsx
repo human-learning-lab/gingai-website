@@ -352,7 +352,7 @@ export default function HotDebrief({
           )}
         </div>
 
-        <aside className="phase-sticky"
+        <aside className="phase-sticky hd-panel"
           style={{
             display: "flex",
             flexDirection: "column",
