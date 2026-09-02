@@ -1,0 +1,22 @@
+rules_version = '2';
+
+/*
+ * TEMPORARY — wide open while pipelining test data in.
+ *
+ * The app authenticates with Clerk, so `request.auth` is never populated and
+ * no rule here can tell a sailor from anyone on the internet. That makes this
+ * database world-readable and world-writable to anyone who has the project id,
+ * which is shipped in the client bundle.
+ *
+ * Acceptable only while the data is disposable. Before any real athlete
+ * reflection lands here, either move access behind Clerk-gated /api routes
+ * using the Admin SDK (which bypasses these rules) or bridge Clerk into
+ * Firebase custom tokens and gate on request.auth.
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

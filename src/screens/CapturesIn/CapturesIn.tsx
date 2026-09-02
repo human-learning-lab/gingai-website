@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { listClips } from "@/lib/audioClips";
 
 /* ============================================================
    Ginga — Captures in
@@ -29,6 +30,8 @@ export interface CaptureResponse {
   updated_at: string;
   /** One condensed line per question, in question order. Absent until distilled. */
   distilled?: string[];
+  /** True when this sailor answered the team set rather than one of their own. */
+  fromTeamSet?: boolean;
 }
 
 /** How the captures read against one squad goal. */
@@ -40,6 +43,8 @@ export interface GoalReading {
   verdict: string;
   /** The evidence, quoted rather than summarised away. */
   detail: string;
+  /** The same evidence, already attributed. Preferred over parsing `detail`. */
+  quotes?: { sailor: string; quote: string }[];
 }
 
 export interface Theme {
@@ -51,7 +56,7 @@ export interface Theme {
 export interface TeamReading {
   /** e.g. "5 of 8" — always shown, never implied. */
   coverage: string;
-  goals: string[];
+  goals: GoalReading[];
   themes: Theme[];
   /**
    * Where accounts of the same moment differ. Left unresolved on
@@ -83,13 +88,22 @@ export interface CapturesInProps {
 
   /** Re-condense every response. Returns distilled lines keyed by sailor. */
   onDistil: (prompt: string) => Promise<Record<string, string[]>>;
+  /** One condensed line per question, keyed by sailor. Owned by the parent. */
+  distilled: Record<string, string[]>;
+  onDistilledChange: (next: Record<string, string[]>) => void;
+  /** Whether anything is unsaved. Drives the save button's enabled state. */
+  dirty?: boolean;
+  onSave: () => Promise<void> | void;
+  /** Move on to the debrief once the reading is carried forward. */
+  onCarried?: () => void;
   /** Build the team reading. Safe to run before everyone has answered. */
   onSynthesise: (prompt: string) => Promise<TeamReading>;
-  /** Hand the reading to the debrief. */
-  onCarryForward: () => void;
+  /** Files the reading for the debrief to read back. Rejects if the write fails. */
+  onCarryForward: () => Promise<void> | void;
 
   /** When the debrief starts, e.g. "19:30". Shown as context for the hurry. */
   debriefAt?: string;
+  runId: string;
 }
 
 type View = "individuals" | "team";
@@ -139,12 +153,24 @@ export default function CapturesIn({
   onPromptsChange,
   teamReading = null,
   onDistil,
+  distilled,
+  onDistilledChange,
+  dirty = false,
+  onSave,
+  onCarried,
   onSynthesise,
   onCarryForward,
+  runId,
 }: CapturesInProps) {
+  /* Distilled lines live in the parent so a run already on file can hydrate
+     them; they are merged in here rather than written into `responses`, which
+     is a prop. */
   const byId = useMemo(
-    () => new Map(responses.map((r) => [r.recipient, r])),
-    [responses]
+    () => new Map(responses.map((r) => [
+      r.recipient,
+      { ...r, distilled: distilled[r.recipient] ?? r.distilled },
+    ])),
+    [responses, distilled]
   );
   const answered = useMemo(
 	() => sailors.filter((s) => (byId.get(s.name)?.responses.length ?? 0) > 0),
@@ -154,7 +180,58 @@ export default function CapturesIn({
   const [view, setView] = useState<View>("individuals");
   const [depth, setDepth] = useState<Depth>("full");
   const [selected, setSelected] = useState<SailorId>(answered[0]?.name ?? "");
-  const [busy, setBusy] = useState<"distil" | "synthesis" | null>(null);
+
+  /* The recordings behind the answers, for the sailor being read. Listed per
+     selection rather than for the whole crew — a coach reads one person at a
+     time. Mirrors what step 2 does with the priming answers. */
+  const [clips, setClips] = useState<Record<number, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    setClips({});
+    if (!selected) return;
+    listClips(runId, "capture", selected)
+      .then((refs) => {
+        if (cancelled) return;
+        setClips(Object.fromEntries(refs.map((r) => [r.index, r.url])));
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [runId, selected]);
+  const [busy, setBusy] = useState<"distil" | "synthesis" | "carry" | null>(null);
+  const [carryState, setCarryState] = useState<"idle" | "done" | "error">("idle");
+  const [carryError, setCarryError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!dirty || saving) return;
+    setSaving(true);
+    setCarryError(null);
+    try {
+      await onSave();
+    } catch (e) {
+      setCarryError(e instanceof Error ? e.message : "Could not save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* Same fix as priming in: the button used to be a bare void handler, so a
+     failed write looked identical to a success. */
+  const carryForward = async () => {
+    setBusy("carry");
+    setCarryError(null);
+    try {
+      await onCarryForward();
+      setCarryState("done");
+      /* Only once the write has landed. */
+      onCarried?.();
+    } catch (e) {
+      setCarryState("error");
+      setCarryError(e instanceof Error ? e.message : "Could not carry the reading forward");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const response = byId.get(selected);
   const sailor = sailors.find((s) => s.name === selected);
@@ -165,9 +242,18 @@ export default function CapturesIn({
   const distil = async () => {
     setBusy("distil");
     try {
-	  const distilled_resps = await onDistil(prompts.distil)
-	  for(const [sailor, dist] of Object.entries(distilled_resps))
-		  byId.get(sailor)!.distilled = dist;
+      const next = await onDistil(prompts.distil);
+      /* Only sailors this run knows about. A name the distiller invents used to
+         throw on a non-null assertion, which surfaced as the button doing
+         nothing. And the lines are handed up rather than written into the memo,
+         which told React nothing had changed. */
+      const known = Object.fromEntries(
+        Object.entries(next).filter(([name]) => byId.has(name)),
+      );
+      if (!Object.keys(known).length) {
+        throw new Error("The distiller returned no sailors this run recognises.");
+      }
+      onDistilledChange(known);
       setDepth("distilled");
     } finally {
       setBusy(null);
@@ -203,7 +289,17 @@ export default function CapturesIn({
         </p>
       </header>
 
-      <ViewToggle view={view} onChange={setView} />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <ViewToggle view={view} onChange={setView} />
+      </div>
 
       {view === "individuals" ? (
         <div
@@ -284,6 +380,16 @@ export default function CapturesIn({
                     ? `In their own words`
                     : "Distilled"
                 }
+                /* Which set they were actually asked. Two sailors can hold
+                   different questions for the same run, and reading an answer
+                   without knowing which is misleading. */
+                note={
+                  response.fromTeamSet === undefined
+                    ? undefined
+                    : response.fromTeamSet
+                    ? "Team set"
+                    : "Personal set"
+                }
               >
                 {
                   <>
@@ -316,6 +422,16 @@ export default function CapturesIn({
 						  { depth === 'distilled' && (response?.distilled ? response.distilled[i] : "—" )} 
 						  { depth === 'full' && (response.responses[i] ?? "—")}
                         </div>
+                        {clips[i] && (
+                          /* preload="none": a coach opens one recording, not
+                             every recording on the screen. */
+                          <audio
+                            controls
+                            preload="none"
+                            src={clips[i]}
+                            style={{ width: "100%", height: 32, marginTop: 9 }}
+                          />
+                        )}
                       </div>
                     ))}
 					{ depth === 'distilled' && (
@@ -370,15 +486,16 @@ export default function CapturesIn({
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {teamReading ? (
               <>
-                <Card
-                  title={`Against the squad goals · coverage ${teamReading.coverage}`}
-                >
-                  {teamReading.goals.map((reading, i) => (
+                {/* Coverage belongs beside the title, not inside it — the
+                    title was growing to "Against the squad goals · coverage
+                    5 of 8" and wrapping. Card already takes a note. */}
+                <Card title="Against the squad goals">
+                  {teamReading.goals.map((g, i) => (
                     <div
                       key={i}
                       style={{
-                        paddingBottom: 15,
-                        marginBottom: 15,
+                        paddingBottom: 12,
+                        marginBottom: 12,
                         borderBottom:
                           i < teamReading.goals.length - 1
                             ? `1px solid ${C.line}`
@@ -389,9 +506,66 @@ export default function CapturesIn({
                         <span style={{ ...label, color: C.green, paddingTop: 3 }}>
                           {i + 1}
                         </span>
-                        <div style={{ flex: 1 }}>
-                        	{reading}                          
-						</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                              fontSize: 13.5,
+                              lineHeight: 1.55,
+                            }}
+                          >
+                            <span>{g.goal}</span>
+
+                          </div>
+
+                          {/* Verdict and evidence in their own panel, the shape
+                              the briefing's change note uses — the verdict
+                              leading, the quoted detail under it. */}
+                          {(g.verdict || g.detail) && (
+                            <div
+                              style={{
+                                marginTop: 6,
+                                padding: "9px 11px",
+                                background: C.sand,
+                                borderRadius: 6,
+                                fontSize: 12,
+                                color: C.warm,
+                                lineHeight: 1.55,
+                              }}
+                            >
+                              {g.verdict && (
+                                <div style={{ fontWeight: 600, color: C.ink }}>
+                                  {g.verdict}
+                                </div>
+                              )}
+                              {/* Attributed quotes when the reading returns
+                                  them, parsed out of `detail` when it does not
+                                  — a reading filed before the field existed
+                                  still renders one voice per line. */}
+                              {(g.quotes?.length ? g.quotes : splitQuotes(g.detail)).map((q, qi) => (
+                                <div
+                                  key={qi}
+                                  style={{
+                                    /* No fill and no border — spacing alone
+                                       separates one voice from the next, and
+                                       the name that leads each quote already
+                                       says where it changes. */
+                                    marginTop: qi === 0 ? (g.verdict ? 8 : 0) : 8,
+                                  }}
+                                >
+                                  {q.sailor && (
+                                    <span style={{ fontWeight: 600, color: C.ink }}>
+                                      {q.sailor}:{" "}
+                                    </span>
+                                  )}
+                                  {q.quote}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -412,16 +586,7 @@ export default function CapturesIn({
                           }}
                         >
                           <span style={{ fontSize: 13.5 }}>{theme.text}</span>
-                          <span
-                            style={{
-                              fontFamily: MONO,
-                              fontSize: 11,
-                              color: C.warmLt,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {theme.count} of {answered.length}
-                          </span>
+
                         </div>
                         <div
                           style={{ fontSize: 11.5, color: C.warmLt, marginTop: 4 }}
@@ -538,13 +703,65 @@ export default function CapturesIn({
                   Nothing here names a person in a way that belongs to the room.
                   Anything about someone else is held back for you.
                 </div>
-                <Button onClick={onCarryForward} dark>
-                  Carry into the debrief →
+                {/* Directly above Carry into the debrief. Saving is the step
+                    before handing the day on, so the two read as a pair. */}
+                <Button
+                  onClick={save}
+                  disabled={!dirty || saving}
+                  dark={dirty}
+                >
+                  {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
                 </Button>
+                <Button onClick={carryForward} disabled={busy === "carry"} dark>
+                  {busy === "carry"
+                    ? "Filing the reading…"
+                    : carryState === "done"
+                    ? "Carried — carry again"
+                    : "Carry into the debrief →"}
+                </Button>
+                {carryError && (
+                  <div
+                    style={{
+                      padding: "9px 12px",
+                      background: "#FBEFE7",
+                      borderRadius: 8,
+                      fontSize: 11.5,
+                      color: "#C4622D",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {carryError}
+                  </div>
+                )}
               </>
             )}
           </div>
         </div>
+      )}
+
+      {/* The save sits beside Carry into the debrief once there is a reading to
+          carry. Until then — and on the individuals view, whose distilled
+          answers are editable — it falls back to the end of the work. */}
+      {(view === "individuals" || !teamReading) && (
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
+        <button
+          onClick={save}
+          disabled={!dirty || saving}
+          style={{
+            border: "none",
+            borderRadius: 7,
+            padding: "8px 16px",
+            fontSize: 13,
+            fontWeight: 600,
+            background: dirty ? C.ink : C.sand2,
+            color: dirty ? "#fff" : C.warmLt,
+            cursor: dirty && !saving ? "pointer" : "not-allowed",
+            opacity: saving ? 0.55 : 1,
+          }}
+        >
+          {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
+        </button>
+      </div>
       )}
     </div>
   );
@@ -726,9 +943,12 @@ function PromptBox({
 
 function Card({
   title,
+  note,
   children,
 }: {
   title: string;
+  /** Small right-aligned qualifier on the title row. */
+  note?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -740,7 +960,51 @@ function Card({
         padding: 15,
       }}
     >
-      <h2 style={{ ...label, margin: "0 0 11px" }}>{title}</h2>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 10,
+          margin: "0 0 11px",
+        }}
+      >
+        <h2 style={{ ...label, margin: 0 }}>{title}</h2>
+        {note && (
+          /* Two kinds of qualifier share this slot: the set marker, which reads
+             as a badge, and a coverage count, which reads as a figure — the
+             same mono treatment the theme counts use. */
+          note === "Personal set" || note === "Team set" ? (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.07em",
+                textTransform: "uppercase",
+                padding: "2px 7px",
+                borderRadius: 3,
+                color: note === "Personal set" ? C.green : C.warm,
+                border: `1px solid ${note === "Personal set" ? C.green : C.line}`,
+                background: note === "Personal set" ? C.greenLt : "transparent",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {note}
+            </span>
+          ) : (
+            <span
+              style={{
+                fontFamily: MONO,
+                fontSize: 11,
+                color: C.warmLt,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {note}
+            </span>
+          )
+        )}
+      </div>
       {children}
     </section>
   );
@@ -826,4 +1090,35 @@ function Empty({ children }: { children: React.ReactNode }) {
       {children}
     </div>
   );
+}
+
+/**
+ * One box per voice.
+ *
+ * The evidence arrives as a single run of `Daniel: "…" Benjamin: "…"`, which
+ * reads as one account when it is two people saying the same thing
+ * independently — the very thing the reading is pointing at. Split on a name
+ * followed by an opening quote; anything that does not match that shape is left
+ * whole rather than chopped on a guess.
+ */
+function splitQuotes(detail: string): { sailor?: string; quote: string }[] {
+  if (!detail?.trim()) return [];
+
+  const pattern = /([A-Z][\w'’-]*)\s*:\s*(?=[""«"])/g;
+  const marks = [...detail.matchAll(pattern)];
+  if (!marks.length) return [{ quote: detail.trim() }];
+
+  const out: { sailor?: string; quote: string }[] = [];
+  // Anything before the first name is preamble, kept as its own line.
+  const lead = detail.slice(0, marks[0].index).trim();
+  if (lead) out.push({ quote: lead });
+
+  marks.forEach((m, i) => {
+    const from = (m.index ?? 0) + m[0].length;
+    const to = i + 1 < marks.length ? marks[i + 1].index : detail.length;
+    const quote = detail.slice(from, to).trim();
+    if (quote) out.push({ sailor: m[1], quote });
+  });
+
+  return out;
 }

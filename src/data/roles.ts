@@ -1,8 +1,9 @@
 import type { Role } from '@/types';
+import { HLL_ROLES, HLL_CARRIED_ROLE_IDS, HLL_EMAIL_ROLE_MAP, HLL_ALLOWED_DOMAINS } from './roles.hll';
 
 const ALL_SCREENS = ['backbone', 'sim', 'capture', 'debrief', 'transcripts', 'library', 'alarms', 'race-summary'] as const;
 
-export const ROLES: Role[] = [
+const BASE_ROLES: Role[] = [
   // ── Sailing Crew ──────────────────────────────────────────────
   { id: 'martine', name: 'Martine', initial: 'MG', label: 'Helm / Driver',     view: 'sailor', avatar: '/images/team/martine.png',  screens: ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms'] },
   { id: 'rasmus',  name: 'Rasmus',  initial: 'RK', label: 'Flight Controller', view: 'sailor', avatar: '/images/team/rasmus.png',   screens: ['backbone', 'sim', 'capture', 'transcripts', 'library', 'alarms'] },
@@ -23,11 +24,11 @@ export const ROLES: Role[] = [
   { id: 'christian', name: 'Christian', initial: 'CH', label: 'Team Member',   view: 'analyst',   screens: [...ALL_SCREENS] },
 ];
 
-export const DEFAULT_ROLE = ROLES.find(r => r.id === 'rasmus')!;
+
 
 // Maps known email addresses to a roleId.
 // Anyone from @sailgpbra.com who is NOT listed here gets 'christian' (analyst, all screens).
-export const EMAIL_ROLE_MAP: Record<string, string> = {
+const BASE_EMAIL_ROLE_MAP: Record<string, string> = {
   // Sailing crew
   'mgrael@sailgpbra.com':       'martine',
   'rkostner@sailgpbra.com':     'rasmus',
@@ -47,7 +48,35 @@ export const EMAIL_ROLE_MAP: Record<string, string> = {
   'christian@hulelab.com':      'christian',
 };
 
-export const ALLOWED_DOMAINS: Record<string, string> = {
+const BASE_ALLOWED_DOMAINS: Record<string, string> = {
   'sailgpbra.com': 'christian',  // analyst, all screens
   'hulelab.com':   'christian',  // developer fallback — specific devs mapped by email above
 };
+
+// ── Team selection ────────────────────────────────────────────
+// Unset (production) resolves to exactly the SailGP Brazil roster above.
+// NEXT_PUBLIC_TEAM=hll swaps in the Human Learning Lab test team for the
+// alpha branch: the app then shows only HLL members. The flag is never set
+// on Vercel Production, so merging this code to main reverts the behaviour
+// on its own — nothing here needs to be undone before a merge.
+const IS_HLL = process.env.NEXT_PUBLIC_TEAM === 'hll';
+
+// A few production roles are carried across by id so the accounts that need
+// alpha keep working; see HLL_CARRIED_ROLE_IDS for why each one is there.
+export const ROLES: Role[] = IS_HLL
+  ? [...BASE_ROLES.filter(r => HLL_CARRIED_ROLE_IDS.includes(r.id)), ...HLL_ROLES]
+  : BASE_ROLES;
+
+export const EMAIL_ROLE_MAP: Record<string, string> = IS_HLL
+  ? HLL_EMAIL_ROLE_MAP
+  : BASE_EMAIL_ROLE_MAP;
+
+// sailgpbra.com is absent from the alpha domain map on purpose: a SailGP
+// crew member opening the alpha URL lands on /pending instead of being
+// silently reassigned, which would rewrite their roleId in the shared Clerk
+// instance and follow them back into production.
+export const ALLOWED_DOMAINS: Record<string, string> = IS_HLL
+  ? HLL_ALLOWED_DOMAINS
+  : BASE_ALLOWED_DOMAINS;
+
+export const DEFAULT_ROLE = BASE_ROLES.find(r => r.id === 'rasmus')!;

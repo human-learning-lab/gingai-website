@@ -1,0 +1,168 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import ContextMarkdown, { parseBlocks } from "@/components/ContextMarkdown";
+
+/* ============================================================
+   A context file, shown above the questions so you can see what
+   they will be written against before generating them.
+
+   Used for both scopes: the selected sailor's file in personal,
+   the squad's in team. It reads the same routes the generate
+   step uses, so what is on screen is what the agent gets — if
+   this panel says the file is missing, generation will fail for
+   the same reason.
+
+   Collapsed until two blocks carry text; "See more" reveals the
+   rest. The blocks themselves render through ContextMarkdown,
+   shared with the debrief so every file the system writes reads
+   the same way.
+   ============================================================ */
+
+const C = {
+  sand: "#EDE7DA",
+  sand2: "#E3DCCB",
+  line: "#DDD5C4",
+  green: "#00A651",
+  ink: "#1A1A18",
+  warm: "#6B6459",
+  warmLt: "#8E877A",
+  red: "#C4392C",
+} as const;
+
+const PREVIEW_LINES = 2;
+
+type State =
+  | { status: "loading" }
+  | { status: "missing"; message: string }
+  | { status: "error"; message: string }
+  | { status: "ready"; content: string };
+
+export default function ContextFilePreview({
+  label,
+  endpoint,
+}: {
+  /** Shown as the panel's eyebrow — e.g. "Profile · Martine" or "Team context". */
+  label: string;
+  /** Route returning { content }, 404 when no file exists yet. */
+  endpoint: string;
+}) {
+  const [state, setState] = useState<State>({ status: "loading" });
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setState({ status: "loading" });
+    setExpanded(false);
+
+    fetch(endpoint)
+      .then(async (res) => {
+        const data = await res.json().catch(() => null);
+        if (cancelled) return;
+        if (res.status === 404) {
+          setState({ status: "missing", message: data?.error ?? "No context file yet." });
+        } else if (!res.ok) {
+          setState({ status: "error", message: data?.error ?? "Could not load the context file." });
+        } else {
+          setState({ status: "ready", content: data.content as string });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setState({ status: "error", message: "Could not load the context file." });
+      });
+
+    // The endpoint can change before the request lands; ignore the stale reply.
+    return () => { cancelled = true; };
+  }, [endpoint]);
+
+  /* Longhand rather than the `border` shorthand: the error state overrides
+     borderColor alone, and React warns when a shorthand and its longhand mix
+     across rerenders. */
+  const wrap: React.CSSProperties = {
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: C.line,
+    borderRadius: 6,
+    background: C.sand,
+    padding: "10px 12px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+  };
+
+  const eyebrow = (
+    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.warmLt }}>
+      {label}
+    </div>
+  );
+
+  if (state.status === "loading") {
+    return <div style={wrap}>{eyebrow}<p style={{ margin: 0, fontSize: 12.5, color: C.warmLt }}>Loading…</p></div>;
+  }
+
+  if (state.status === "missing" || state.status === "error") {
+    return (
+      <div style={{ ...wrap, borderColor: state.status === "missing" ? C.line : C.red }}>
+        {eyebrow}
+        <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.45, color: state.status === "missing" ? C.warm : C.red }}>
+          {state.message}
+        </p>
+      </div>
+    );
+  }
+
+  const blocks = parseBlocks(state.content);
+  /* Take blocks until two carry actual text. The file opens with a layer
+     heading and a section heading, so a flat slice of two would preview
+     nothing but headings. */
+  const cut = (() => {
+    let content = 0;
+    for (let i = 0; i < blocks.length; i++) {
+      if (blocks[i].kind !== "heading") content++;
+      if (content === PREVIEW_LINES) return i + 1;
+    }
+    return blocks.length;
+  })();
+  const shown = expanded ? blocks : blocks.slice(0, cut);
+  const hasMore = blocks.length > cut;
+
+  return (
+    <div style={wrap}>
+      {eyebrow}
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          maxHeight: expanded ? 300 : undefined,
+          overflowY: expanded ? "auto" : undefined,
+        }}
+      >
+        <ContextMarkdown blocks={shown} />
+      </div>
+
+      {hasMore && (
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          style={{
+            alignSelf: "flex-start",
+            marginTop: 2,
+            padding: 0,
+            border: "none",
+            background: "none",
+            color: C.green,
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: "pointer",
+            textDecoration: "underline",
+          }}
+        >
+          {expanded ? "See less" : "See more"}
+        </button>
+      )}
+    </div>
+  );
+}

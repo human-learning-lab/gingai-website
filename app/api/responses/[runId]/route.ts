@@ -28,7 +28,9 @@ export async function GET(
   try {
     const res= await upstream(path);
     const data = await res.json();
-    return NextResponse.json(data);
+    /* Forward the upstream status. Flattening a 400 into a 200 is what let a
+       rejected submission read as a successful one on the response screens. */
+    return NextResponse.json(data, { status: res.status });
   } catch (error) {
     console.error('Error fetching from upstream:', error);
     return NextResponse.json(
@@ -63,7 +65,7 @@ export async function POST(
 	  body: JSON.stringify(body),
   	});
     const data = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, { status: res.status });
   } catch (error) {
     console.error('Error fetching from upstream:', error);
     return NextResponse.json(

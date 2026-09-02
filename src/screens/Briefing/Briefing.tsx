@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { listBriefingAudio, type BriefingClip } from "@/lib/briefingAudio";
 
 /* ============================================================
    Ginga — Briefing
@@ -73,11 +74,18 @@ export interface BriefingProps {
 
   /** Upload, transcribe, structure. Report progress through onStageChange. */
   onUpload: (file: File) => Promise<void>;
+  /** Why the last attempt failed, if it did. */
+  uploadError?: string | null;
+  runId: string;
+  /** A briefing is already on file, so uploading replaces it rather than starting one. */
+  hasRecording?: boolean;
   /** Re-run the prompt against the saved transcript. Never re-processes audio. */
   onRestructure: (prompt: string) => Promise<void>;
   /** Persist an edited transcript. */
   onTranscriptChange?: (transcript: string) => void;
   onSave: () => Promise<void> | void;
+  /** Whether anything is unsaved. Drives the save button's enabled state. */
+  dirty?: boolean;
 
   stage: Stage;
 }
@@ -125,15 +133,30 @@ export default function Briefing({
   prompt,
   onPromptChange,
   onUpload,
+  uploadError = null,
+  runId,
+  hasRecording = false,
   onRestructure,
   onTranscriptChange,
   onSave,
+  dirty = false,
   stage,
 }: BriefingProps) {
   const [depth, setDepth] = useState<"structured" | "transcript">("structured");
-  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [restructuring, setRestructuring] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  /* The recording this transcript came from. Re-listed when the stage settles,
+     so a freshly uploaded file appears without a reload. */
+  const [audio, setAudio] = useState<BriefingClip[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    listBriefingAudio(runId)
+      .then((found) => { if (!cancelled) setAudio(found); })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [runId, stage]);
 
   const busy = STAGE_ORDER.includes(stage);
 
@@ -160,8 +183,13 @@ export default function Briefing({
   };
 
   const save = async () => {
-    await onSave();
-    setSaved(true);
+    if (!dirty || saving) return;
+    setSaving(true);
+    try {
+      await onSave();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -259,7 +287,9 @@ export default function Briefing({
                     marginBottom: 6,
                   }}
                 >
-                  Drop the briefing recording
+                  {hasRecording
+                    ? "Replace briefing recording"
+                    : "Drop the briefing recording"}
                 </div>
                 <div
                   style={{
@@ -290,6 +320,24 @@ export default function Briefing({
             </>
           )}
 
+          {uploadError && (
+            <p
+              role="alert"
+              style={{
+                margin: "0 0 12px",
+                padding: "9px 12px",
+                borderRadius: 5,
+                border: "1px solid #C4392C",
+                background: "rgba(196,57,44,0.07)",
+                color: "#C4392C",
+                fontSize: 12.5,
+                lineHeight: 1.45,
+              }}
+            >
+              {uploadError}
+            </p>
+          )}
+
           {busy && <Progress stage={stage} />}
 
           {stage === "done" && recording && structured && (
@@ -314,11 +362,45 @@ export default function Briefing({
                   </h2>
                   <span style={label}>{recording.duration}</span>
                 </div>
-                <DepthToggle depth={depth} onChange={setDepth} />
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {/* The drop zone only exists in the empty state, so without
+                      this a briefing already on file could never be replaced. */}
+                  <button
+                    onClick={pickFile}
+                    style={{
+                      border: `1px solid ${C.line}`,
+                      borderRadius: 6,
+                      background: C.field,
+                      color: C.warm,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: "6px 12px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Replace briefing recording
+                  </button>
+                  <DepthToggle depth={depth} onChange={setDepth} />
+                </div>
               </div>
 
               {depth === "transcript" ? (
                 <Card title="The room, as recorded">
+                  {audio.map((clip) => (
+                    <div key={clip.path} style={{ marginBottom: 13 }}>
+                      {/* preload="metadata" so the duration shows without
+                          pulling a long recording down on every visit. */}
+                      <audio
+                        controls
+                        preload="metadata"
+                        src={clip.url}
+                        style={{ width: "100%", height: 34 }}
+                      />
+                      <div style={{ fontSize: 10.5, color: C.warmLt, marginTop: 4 }}>
+                        {clip.name}
+                      </div>
+                    </div>
+                  ))}
                   <textarea
                     value={recording.transcript}
                     onChange={(e) => onTranscriptChange?.(e.target.value)}
@@ -516,16 +598,23 @@ export default function Briefing({
 
           {stage === "done" && (
             <>
+              {/* Disabled until something is actually unsaved, so the button
+                  says whether there is anything to do rather than always
+                  inviting a write. */}
               <button
                 onClick={save}
+                disabled={!dirty || saving}
                 style={{
                   ...primaryButton,
-                  background: saved ? C.greenDk : C.ink,
+                  background: dirty ? C.ink : C.sand2,
+                  color: dirty ? "#fff" : C.warmLt,
+                  cursor: dirty && !saving ? "pointer" : "not-allowed",
+                  opacity: saving ? 0.55 : 1,
                 }}
               >
-                {saved ? "Saved ✓" : "Save to the event record"}
+                {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
               </button>
-              {saved && (
+              {!dirty && (
                 <div
                   style={{
                     padding: "11px 12px",

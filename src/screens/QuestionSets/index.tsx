@@ -347,7 +347,7 @@ export default function QuestionSets() {
               <div style={{ marginTop: 12 }}>
                 <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 8 }}>Assign to</div>
                 <div className="qs-assign-grid">
-                  {ROLES.map(r => (
+                  {ROLES.filter(r => !r.hidden).map(r => (
                     <button key={r.id} className={`qs-assignee-btn ${newAssignees.includes(r.id) ? 'active' : ''}`} onClick={() => toggleAssignee(r.id)}>
                       {r.avatar ? <img src={r.avatar} alt={r.name} className="qs-avatar" /> : <div className="qs-avatar-placeholder">{r.initial}</div>}
                       <div className="qs-assignee-name">{r.name}</div>

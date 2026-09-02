@@ -5,20 +5,26 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "dev:safari": "(until curl -so /dev/null http://localhost:3000; do sleep 1; done; open -a Safari http://localhost:3000/console) & next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "rules:deploy": "firebase deploy --only firestore:rules,storage",
+    "rules:check": "firebase deploy --only firestore:rules --dry-run"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.3.7",
     "@ricky0123/vad-web": "^0.0.30",
     "@types/react-plotly.js": "^2.6.4",
+    "firebase": "^12.18.0",
+    "firebase-admin": "^14.3.0",
     "googleapis": "^173.0.0",
     "next": "16.1.6",
     "plotly.js-basic-dist-min": "^3.6.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
-    "react-plotly.js": "^3.0.0"
+    "react-plotly.js": "^3.0.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -28,6 +34,7 @@
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
+    "firebase-tools": "^15.28.1",
     "globals": "^16.5.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0"

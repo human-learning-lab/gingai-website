@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import MarkdownDocument from "@/components/MarkdownDocument";
 
 /* ============================================================
    Ginga — Hot debrief
@@ -57,6 +58,13 @@ export interface HotDebriefProps {
   onRun: (args: { prompt: string; sourceIds: string[] }) => Promise<string>;
 
   onSaveTemplate?: () => void;
+  /** File the debrief and refresh the context files it feeds. */
+  onPublish?: () => Promise<void> | void;
+  /** Persist the edited document. */
+  onSave?: () => Promise<void> | void;
+  saveState?: { dirty: boolean; saving: boolean; error?: string | null };
+  /** What the last publish did, or why it could not. */
+  publishState?: { busy: boolean; message?: string | null; error?: boolean };
   onResetPrompt?: () => void;
   onCopy?: () => void;
   onExport?: () => void;
@@ -102,11 +110,22 @@ export default function HotDebrief({
   onDocumentChange,
   onRun,
   onSaveTemplate,
+  onPublish,
+  onSave,
+  saveState,
+  publishState,
   onResetPrompt,
   onCopy,
   onExport,
 }: HotDebriefProps) {
   const [state, setState] = useState<RunState>(draft ? "done" : "idle");
+  const [editing, setEditing] = useState(false);
+
+  /* A saved draft arrives after mount, so the initial state alone would leave
+     the screen on "Nothing written yet" with the document loaded behind it. */
+  useEffect(() => {
+    if (draft) setState((s) => (s === "running" ? s : "done"));
+  }, [draft]);
 
   const selectedCount = selectedSourceIds.length;
 
@@ -199,10 +218,47 @@ export default function HotDebrief({
                       marginLeft: 9,
                     }}
                   >
-                    draft · editable
+                    markdown · {editing ? "editing" : "rendered"}
                   </span>
                 </h2>
                 <div style={{ display: "flex", gap: 7 }}>
+                  {/* The document is markdown, so it reads as markdown by
+                      default. Editing is the raw text, since that is what the
+                      coach is actually changing. */}
+                  <button onClick={() => setEditing((v) => !v)} style={quietButton}>
+                    {editing ? "Done" : "Edit"}
+                  </button>
+                  {onSave && (
+                    /* Disabled until there is something outstanding, matching
+                       the other phases. */
+                    <button
+                      onClick={() => void onSave()}
+                      disabled={!saveState?.dirty || saveState?.saving}
+                      style={{
+                        ...quietButton,
+                        cursor: saveState?.dirty && !saveState?.saving ? "pointer" : "not-allowed",
+                        color: saveState?.dirty ? C.ink : C.warmLt,
+                        fontWeight: saveState?.dirty ? 600 : 400,
+                      }}
+                    >
+                      {saveState?.saving ? "Saving…" : saveState?.dirty ? "Save changes" : "Saved ✓"}
+                    </button>
+                  )}
+                  {onPublish && (
+                    <button
+                      onClick={() => void onPublish()}
+                      disabled={publishState?.busy}
+                      style={{
+                        ...quietButton,
+                        border: "none",
+                        background: publishState?.busy ? C.sand2 : C.ink,
+                        color: publishState?.busy ? C.warmLt : "#fff",
+                        cursor: publishState?.busy ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {publishState?.busy ? "Filing…" : "File debrief & update files"}
+                    </button>
+                  )}
                   {onCopy && (
                     <button onClick={onCopy} style={quietButton}>
                       Copy
@@ -216,25 +272,82 @@ export default function HotDebrief({
                 </div>
               </div>
 
-              <textarea
-                value={draft.edited}
-                onChange={(e) => onDocumentChange(e.target.value)}
-                aria-label="Debrief document"
-                style={{
-                  width: "100%",
-                  minHeight: 620,
-                  padding: "20px 22px",
-                  border: `1px solid ${C.line}`,
-                  borderRadius: 9,
-                  background: "#fff",
-                  fontSize: 13.5,
-                  lineHeight: 1.75,
-                  color: C.ink,
-                  resize: "vertical",
-                  fontFamily: UI,
-                  outline: "none",
-                }}
-              />
+              {saveState?.error && (
+                <p
+                  role="alert"
+                  style={{
+                    margin: "0 0 11px",
+                    padding: "9px 12px",
+                    borderRadius: 6,
+                    border: "1px solid #C4392C",
+                    background: "rgba(196,57,44,0.07)",
+                    color: "#C4392C",
+                    fontSize: 12.5,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {saveState.error}
+                </p>
+              )}
+
+              {publishState?.message && (
+                <p
+                  role="alert"
+                  style={{
+                    margin: "0 0 11px",
+                    padding: "9px 12px",
+                    borderRadius: 6,
+                    border: `1px solid ${publishState.error ? "#C4392C" : C.line}`,
+                    background: publishState.error ? "rgba(196,57,44,0.07)" : C.sand,
+                    color: publishState.error ? "#C4392C" : C.warm,
+                    fontSize: 12.5,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {publishState.message}
+                </p>
+              )}
+
+              {editing ? (
+                <textarea
+                  value={draft.edited}
+                  onChange={(e) => onDocumentChange(e.target.value)}
+                  aria-label="Debrief document"
+                  style={{
+                    width: "100%",
+                    minHeight: 620,
+                    padding: "20px 22px",
+                    border: `1px solid ${C.line}`,
+                    borderRadius: 9,
+                    background: "#fff",
+                    fontSize: 13,
+                    lineHeight: 1.7,
+                    color: C.ink,
+                    resize: "vertical",
+                    fontFamily: MONO,
+                    outline: "none",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "100%",
+                    minHeight: 620,
+                    padding: "20px 22px",
+                    border: `1px solid ${C.line}`,
+                    borderRadius: 9,
+                    background: "#fff",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                  }}
+                >
+                  {/* The context panels' visual language, but rendered by a
+                      real markdown parser: a debrief carries nested lists,
+                      tables and numbered steps that the block parser flattens. */}
+                  <MarkdownDocument>{draft.edited}</MarkdownDocument>
+                </div>
+              )}
             </>
           )}
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { listClips } from "@/lib/audioClips";
 
 /* ============================================================
    Ginga — Priming in
@@ -74,17 +75,26 @@ export interface PrimingInProps {
 
   /** Re-condense every response. Returns distilled lines keyed by sailor. */
   onDistil: (prompt: string) => Promise<Record<SailorId, string[]>>;
+  /** One condensed line per question, keyed by sailor. Owned by the parent. */
+  distilled: Record<SailorId, string[]>;
+  onDistilledChange: (next: Record<SailorId, string[]>) => void;
+  /** Whether anything is unsaved. Drives the save button's enabled state. */
+  dirty?: boolean;
+  onSave: () => Promise<void> | void;
   onSynthesise: (prompt: string) => Promise<TeamPicture>;
   onProposeGoals: (prompt: string) => Promise<SquadGoal[]>;
 
   onGoalsChange: (goals: SquadGoal[]) => void;
   /** Hand the picture and goals to the briefing. */
-  onCarryForward: () => void;
+  /** Files the picture and goals, then hands off. Rejects if the write fails. */
+  onCarryForward: () => Promise<void> | void;
+  /** Move on to the briefing once the priming is carried forward. */
+  onCarried?: () => void;
 }
 
 type View = "individuals" | "team";
 type Depth = "full" | "distilled";
-type Busy = "distil" | "synthesis" | "goals" | null;
+type Busy = "distil" | "synthesis" | "goals" | "carry" | null;
 
 /* ---------- tokens ---------- */
 
@@ -129,14 +139,23 @@ export default function PrimingIn({
   teamPicture = null,
   squadGoals = [],
   onDistil,
+  distilled,
+  onDistilledChange,
+  dirty = false,
+  onSave,
   onSynthesise,
   onProposeGoals,
   onGoalsChange,
   onCarryForward,
+  onCarried,
 }: PrimingInProps) {
+  /* Distilled lines live in the parent so a run already on file can hydrate
+     them. They are not written into `responses`, which is a prop — an earlier
+     version mutated the objects inside the memo, so nothing told React they
+     had changed. */
   const byId = useMemo(
-    () => new Map(responses.map((r) => [r.recipient, r])),
-    [responses]
+    () => new Map(responses.map((r) => [r.recipient, { ...r, distilled: distilled[r.recipient] }])),
+    [responses, distilled]
   );
   const answered = useMemo(
 	() => sailors.filter((s) => (byId.get(s.name)?.responses.length ?? 0) > 0),
@@ -146,21 +165,82 @@ export default function PrimingIn({
   const [view, setView] = useState<View>("individuals");
   const [depth, setDepth] = useState<Depth>("full");
   const [selected, setSelected] = useState<SailorId>(answered[0]?.name ?? "");
+
+  /* The recordings behind the answers, for the sailor being read. Listed per
+     selection rather than for the whole crew: a coach reads one person at a
+     time, and there is no reason to enumerate everyone's audio to show one. */
+  const [clips, setClips] = useState<Record<number, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    setClips({});
+    if (!selected) return;
+    listClips(runId, "priming", selected)
+      .then((refs) => {
+        if (cancelled) return;
+        setClips(Object.fromEntries(refs.map((r) => [r.index, r.url])));
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [runId, selected]);
   const [busy, setBusy] = useState<Busy>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!dirty || saving) return;
+    setSaving(true);
+    setActionError(null);
+    try {
+      await onSave();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Could not save");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const response = byId.get(selected);
   const sailor = sailors.find((s) => s.name === selected);
+
+  const errorBanner = actionError ? (
+    <p
+      role="alert"
+      style={{
+        margin: "0 0 12px",
+        padding: "9px 12px",
+        borderRadius: 5,
+        border: "1px solid #C4392C",
+        background: "rgba(196,57,44,0.07)",
+        color: "#C4392C",
+        fontSize: 12.5,
+        lineHeight: 1.45,
+      }}
+    >
+      {actionError}
+    </p>
+  ) : null;
 
   const setPrompt = (key: keyof Prompts, text: string) =>
     onPromptsChange({ ...prompts, [key]: text });
 
   const distil = async () => {
     setBusy("distil");
+    setActionError(null);
     try {
-      const distilled_resps = await onDistil(prompts.distil)
-	  for(const [sailor, dist] of Object.entries(distilled_resps))
-		  byId.get(sailor)!.distilled = dist;
+      const next = await onDistil(prompts.distil);
+      /* Only sailors we actually know about. The distiller returning a name
+         that is not in the roster used to throw on a non-null assertion, which
+         surfaced as the button doing nothing at all. */
+      const known = Object.fromEntries(
+        Object.entries(next).filter(([name]) => byId.has(name)),
+      );
+      if (!Object.keys(known).length) {
+        throw new Error("The distiller returned no sailors this run recognises.");
+      }
+      onDistilledChange(known);
       setDepth("distilled");
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Could not distil the answers");
     } finally {
       setBusy(null);
     }
@@ -168,8 +248,11 @@ export default function PrimingIn({
 
   const synthesise = async () => {
     setBusy("synthesis");
+    setActionError(null);
     try {
       await onSynthesise(prompts.synthesis);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Could not build the team picture");
     } finally {
       setBusy(null);
     }
@@ -177,9 +260,29 @@ export default function PrimingIn({
 
   const proposeGoals = async () => {
     setBusy("goals");
+    setActionError(null);
     try {
-      const goals = await onProposeGoals(prompts.squadGoals);
-      onGoalsChange(goals);
+      onGoalsChange(await onProposeGoals(prompts.squadGoals));
+    } catch (e) {
+      /* These three had try/finally and no catch, so a failure was an unhandled
+         rejection: the spinner stopped and nothing said why. */
+      setActionError(e instanceof Error ? e.message : "Could not propose goals");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const carryForward = async () => {
+    setBusy("carry");
+    setActionError(null);
+    try {
+      await onCarryForward();
+      /* Only move on once the write has landed. The button used to be a bare
+         void handler with no await and no feedback, so a failure looked
+         identical to a success — and to nothing happening at all. */
+      onCarried?.();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Could not carry the priming forward");
     } finally {
       setBusy(null);
     }
@@ -218,7 +321,19 @@ export default function PrimingIn({
         </p>
       </header>
 
-      <ViewToggle view={view} onChange={setView} />
+      {errorBanner}
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <ViewToggle view={view} onChange={setView} />
+      </div>
 
       {view === "individuals" ? (
         <div
@@ -317,6 +432,16 @@ export default function PrimingIn({
 						  { depth === 'distilled' && (response?.distilled ? response.distilled[i] : "—" )} 
 						  { depth === 'full' && (response.responses[i] ?? "—")}
                         </div>
+                        {clips[i] && (
+                          /* preload="none": a coach opens one recording, not
+                             every recording on the screen. */
+                          <audio
+                            controls
+                            preload="none"
+                            src={clips[i]}
+                            style={{ width: "100%", height: 32, marginTop: 9 }}
+                          />
+                        )}
                       </div>
                     ))}
 					{ depth === 'distilled' && (
@@ -368,6 +493,30 @@ export default function PrimingIn({
                 Applies to everyone. The full answers are never touched.
               </Footnote>
             </Card>
+
+            {/* Directly under the prompt box, the way the team view puts it
+                above Carry into the briefing: the save belongs with the work
+                rather than in a footer the editing has scrolled past. */}
+            <button
+              onClick={save}
+              disabled={!dirty || saving}
+              style={{
+                width: "100%",
+                marginTop: 14,
+                border: "none",
+                borderRadius: 8,
+                padding: "11px 0",
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: UI,
+                background: dirty ? C.ink : C.sand2,
+                color: dirty ? "#fff" : C.warmLt,
+                cursor: dirty && !saving ? "pointer" : "not-allowed",
+                opacity: saving ? 0.55 : 1,
+              }}
+            >
+              {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
+            </button>
           </div>
         </div>
       ) : (
@@ -591,17 +740,41 @@ export default function PrimingIn({
               )}
             </Card>
 
+            {/* Directly above Carry into the briefing. Saving is the step before
+                handing the day on, so the two read as a pair. At rest it is
+                muted — only while something is outstanding do both go dark. */}
+            <button
+              onClick={save}
+              disabled={!dirty || saving}
+              style={{
+                ...primaryButton,
+                background: dirty ? C.ink : C.sand2,
+                color: dirty ? "#fff" : C.warmLt,
+                cursor: dirty && !saving ? "pointer" : "not-allowed",
+                opacity: saving ? 0.55 : 1,
+              }}
+            >
+              {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
+            </button>
+
             {squadGoals.length > 0 && (
               <button
-                onClick={onCarryForward}
-                style={{ ...primaryButton, background: C.ink }}
+                onClick={carryForward}
+                disabled={busy === "carry"}
+                style={{
+                  ...primaryButton,
+                  background: C.ink,
+                  opacity: busy === "carry" ? 0.55 : 1,
+                  cursor: busy === "carry" ? "not-allowed" : "pointer",
+                }}
               >
-                Carry into the briefing →
+                {busy === "carry" ? "Carrying…" : "Carry into the briefing →"}
               </button>
             )}
           </div>
         </div>
       )}
+
     </div>
   );
 }

@@ -1,0 +1,16 @@
+rules_version = '2';
+
+/*
+ * TEMPORARY — wide open, matching firestore.rules.
+ *
+ * Storage will hold the per-sailor documents. Before anything real lands here
+ * this must be closed: the bucket is addressable by anyone with the project
+ * id, which ships in the client bundle.
+ */
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}

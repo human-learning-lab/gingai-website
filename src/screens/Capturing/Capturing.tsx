@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useMemo, useCallback, useState } from "react";
+import ContextFilePreview from "@/components/ContextFilePreview";
+import type { SquadGoal } from '@/lib/carriedContext';
 
 /* ============================================================
    Ginga — Capture
@@ -53,7 +55,7 @@ export interface CaptureProps {
   sailors: Sailor[];
 
   /** Squad goals as agreed in the briefing — the yardstick for tonight. */
-  squadGoals: string[];
+  squadGoals: SquadGoal[];
   /** Each sailor's own goal from this morning's priming. */
   ownGoals: Record<SailorId, string>;
   /**
@@ -72,7 +74,7 @@ export interface CaptureProps {
     prompt: string;
     scope: Scope;
     sailor?: Sailor;
-    squadGoals: string[];
+    squadGoals: SquadGoal[];
     ownGoal?: string;
   }) => Promise<string[]>;
 
@@ -147,67 +149,73 @@ export default function Capture({
   //const metrics = primingData[activeSailor] ?? [];
   //const dataAttached = value.attachDataFor.includes(activeSailor);
 
+  /* `value` is the single source of truth. An absent personal entry means the
+     sailor falls back to the team set — so entries are created on first edit,
+     never pre-filled. */
+  const personalSet = value.personal[activeSailor];
+
   const current_questions = isTeam
     ? value.teamQuestions
-    : value.personal[activeSailor].questions;
+    : personalSet?.questions ?? value.teamQuestions;
   const current_prompt = isTeam
-  	? value.teamPrompt
-	: value.personal[activeSailor].prompt;
+    ? value.teamPrompt
+    : personalSet?.prompt ?? value.teamPrompt;
 
- 
-  const [questions, setQuestions] = useState<string[]>(current_questions);
-  const [prompt, setPrompt] = useState<string>(current_prompt);
+  /** Write a question list into whichever scope is active. */
+  const setCurrentQuestions = (next: string[]) => {
+    if (isTeam) {
+      onChange({ ...value, teamQuestions: next });
+    } else {
+      onChange({
+        ...value,
+        personal: {
+          ...value.personal,
+          [activeSailor]: { questions: next, prompt: current_prompt },
+        },
+      });
+    }
+  };
 
-  
-  const editQuestion = (index: number, text: string) => {
-    setQuestions(questions.map((q, i) => (i === index ? text : q)));
-	if (isTeam){
-		value.teamQuestions[index] = text;
-	} else{
-		value.personal[activeSailor].questions[index] = text;
-	}
-  }
+  const setCurrentPrompt = (next: string) => {
+    if (isTeam) {
+      onChange({ ...value, teamPrompt: next });
+    } else {
+      onChange({
+        ...value,
+        personal: {
+          ...value.personal,
+          [activeSailor]: { questions: current_questions, prompt: next },
+        },
+      });
+    }
+  };
 
-  const removeQuestion = (index: number) => {
-    setQuestions(questions.filter((_, i) => i !== index));
-	if (isTeam){
-		value.teamQuestions.splice(index, 1);
-	} else{
-		value.personal[activeSailor].questions.splice(index, 1);
-	}
-  }
+  const editQuestion = (index: number, text: string) =>
+    setCurrentQuestions(current_questions.map((q, i) => (i === index ? text : q)));
+
+  const removeQuestion = (index: number) =>
+    setCurrentQuestions(current_questions.filter((_, i) => i !== index));
 
   const moveQuestion = (index: number, delta: number) => {
     const target = index + delta;
-    if (target < 0 || target >= questions.length) return;
-    const next = [...questions];
+    if (target < 0 || target >= current_questions.length) return;
+    const next = [...current_questions];
     [next[index], next[target]] = [next[target], next[index]];
-    setQuestions(next);
-	if (isTeam){
-		value.teamQuestions = next;
-		console.log(value.teamQuestions)
-	} else{
-		value.personal[activeSailor].questions = next
-	}
-
+    setCurrentQuestions(next);
   };
 
   const generate = async () => {
     setGenerating(true);
     try {
-      const next = await onGenerate({
-        prompt: prompt,
-        scope,
-        sailor: isTeam ? undefined : sailor,
-        squadGoals,
-        ownGoal: isTeam ? undefined : ownGoals[activeSailor],
-      });
-      setQuestions(next);
-	  if (isTeam){
-		value.teamQuestions = next;
-	  } else{
-		value.personal[activeSailor].questions = next;
-	  }
+      setCurrentQuestions(
+        await onGenerate({
+          prompt: current_prompt,
+          scope,
+          sailor: isTeam ? undefined : sailor,
+          squadGoals,
+          ownGoal: isTeam ? undefined : ownGoals[activeSailor],
+        }),
+      );
     } finally {
       setGenerating(false);
     }
@@ -266,19 +274,37 @@ export default function Capture({
               <div
                 key={i}
                 style={{
-                  display: "flex",
-                  gap: 9,
                   padding: "8px 0",
-                  fontSize: 13,
-                  lineHeight: 1.5,
                   borderBottom:
                     i < squadGoals.length - 1 ? `1px solid ${C.line}` : "none",
                 }}
               >
-                <span style={{ ...label, color: C.green, paddingTop: 2 }}>
-                  {i + 1}
-                </span>
-                {goal}
+                <div style={{ display: "flex", gap: 9, fontSize: 13, lineHeight: 1.5 }}>
+                  <span style={{ ...label, color: C.green, paddingTop: 2 }}>
+                    {i + 1}
+                  </span>
+                  {goal.text}
+                </div>
+
+                {/* What the room did with the goal it was given — reworded,
+                    added, or left unaddressed. Absent means carried through
+                    unchanged, so there is nothing to note. */}
+                {goal.change && (
+                  <div
+                    style={{
+                      marginLeft: 30,
+                      marginTop: 6,
+                      padding: "8px 10px",
+                      background: C.sand,
+                      borderRadius: 6,
+                      fontSize: 11.5,
+                      color: C.warm,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {goal.change}
+                  </div>
+                )}
               </div>
             ))}
             <Footnote>
@@ -317,18 +343,32 @@ export default function Capture({
             </>
           )}
 
+          {/* What the questions will be written against — the squad's file in
+              team scope, the selected sailor's in personal. Same panel as the
+              skeleton brief, so both screens show context the same way. */}
+          {isTeam ? (
+            <ContextFilePreview label="Team context" endpoint="/api/team-profile" />
+          ) : (
+            activeSailor && (
+              <ContextFilePreview
+                label={`Context · ${activeSailor}`}
+                endpoint={`/api/sailor-profile?sailor=${encodeURIComponent(activeSailor)}`}
+              />
+            )
+          )}
+
           <Card
             title={
               isTeam ? "Questions — everyone" : `Questions — ${sailor?.name}`
             }
           >
-            {questions.map((question, i) => (
+            {current_questions.map((question, i) => (
               <QuestionRow
                 key={i}
                 index={i}
                 value={question}
                 isFirst={i === 0}
-                isLast={i === questions.length - 1}
+                isLast={i === current_questions.length - 1}
                 onEdit={(text) => editQuestion(i, text)}
                 onMove={(delta) => moveQuestion(i, delta)}
                 onRemove={() => removeQuestion(i)}
@@ -336,13 +376,13 @@ export default function Capture({
             ))}
             <div style={{ display: "flex", gap: 8, marginTop: 11 }}>
               <button
-                onClick={() => setQuestions([...current_questions, ""])}
+                onClick={() => setCurrentQuestions([...current_questions, ""])}
                 style={dashedButton}
               >
                 + Add question
               </button>
               <button
-                onClick={() => setQuestions([...defaultQuestions])}
+                onClick={() => setCurrentQuestions([...defaultQuestions])}
                 style={quietButton}
               >
                 Reset to default set
@@ -393,8 +433,8 @@ export default function Capture({
             </p>
 
             <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              value={current_prompt}
+              onChange={(e) => setCurrentPrompt(e.target.value)}
               style={{
                 width: "100%",
                 minHeight: 176,
@@ -429,6 +469,7 @@ export default function Capture({
               Replaces the questions above — you can still edit every one.
             </Footnote>
           </Card>
+
             </div>
 
             <div style={{ flex: "1 1 0", minWidth: 0 }}>

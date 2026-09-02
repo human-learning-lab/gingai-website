@@ -1,15 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { parseRunId } from "@/lib/questionStore";
 import HotDebrief, {
   type DebriefDraft,
   type DebriefSource,
 } from "./HotDebrief";
-
-/* ============================================================
-   Example wiring. Replace local state with your own fetch/save
-   and the handler with a real API call.
-   ============================================================ */
 
 const DEFAULT_PROMPT = `Write the hot debrief document.
 
@@ -50,25 +46,144 @@ Rules:
   that names are handled separately.
 - Where the crew and the data disagree, say both. Do not reconcile them.`;
 
-export default function HotDebriefPage({ runId }: { runId: string }) {
-  /* Detail strings come from the API so the coach sees the real
-     coverage — how many captures are in, which races are covered. */
-  const [sources] = useState<DebriefSource[]>([
-    { id: "captures", label: "Crew captures", detail: "10 of 10", enabled: true },
-    { id: "booth", label: "Rich · per race", detail: "races 1–3", enabled: true },
-    { id: "data", label: "Nico · per race", detail: "races 1–3", enabled: true },
-    { id: "report", label: "Performance report", detail: "18 pages", enabled: true },
-    { id: "goals", label: "Squad goals", detail: "from the briefing", enabled: true },
-    { id: "open", label: "Left open in the brief", detail: "1 item", enabled: true },
-    { id: "priming", label: "This morning's priming", detail: "10 answers", enabled: false },
-  ]);
+interface Section { tone?: string }
 
-  const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>(
-    sources.filter((s) => s.enabled).map((s) => s.id)
-  );
+export default function HotDebriefPage({ runId }: { runId: string }) {
+  /* The details are the real coverage, read from where each phase filed its
+     material. Until the fetches land the list is empty rather than showing
+     invented numbers — the old hardcoded "10 of 10" and "18 pages" described
+     data that did not exist. Rich's and Nico's per-race feeds return as
+     sources once they have somewhere to come from. */
+  const [sources, setSources] = useState<DebriefSource[]>([]);
+  const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
 
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [draft, setDraft] = useState<DebriefDraft | null>(null);
+  /* Unsaved edits to the document. Cleared by a save, by a fresh run, and by
+     loading what is already on file. */
+  const [dirty, setDirty] = useState(false);
+  /* Two independent loads — the sources and the debrief already on file. The
+     screen waits for both: offering to run the prompt before the sources have
+     landed would run it over nothing. */
+  const [sourcesLoaded, setSourcesLoaded] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [publishState, setPublishState] = useState<{
+    busy: boolean;
+    message?: string | null;
+    error?: boolean;
+  }>({ busy: false });
+
+  /* Files the debrief and refreshes what it feeds: the squad context file, and
+     each sailor's, against what they said in today's capture. One call, because
+     the three belong together — a debrief on file whose context files still
+     describe yesterday is the state worth avoiding. */
+  async function handlePublish() {
+    const text = draft?.edited?.trim();
+    if (!text) {
+      setPublishState({ busy: false, message: "Nothing to file — run the prompt first.", error: true });
+      return;
+    }
+
+    setPublishState({ busy: true, message: null });
+    try {
+      const res = await fetch(`/api/sessions/${encodeURIComponent(runId)}/debrief/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? "Could not file the debrief");
+
+      /* Partial success is reported as such: the document is filed either way,
+         and a sailor whose profile failed should be named rather than folded
+         into a tick. */
+      const parts = [`Filed to ${data.document?.path ?? "storage"}`];
+      if (data.sailors?.length) parts.push(`${data.sailors.length} sailor files updated`);
+      if (data.team) parts.push("team file updated");
+      if (data.teamError) parts.push(`team file failed: ${data.teamError}`);
+      if (data.sailorsFailed?.length) {
+        parts.push(`failed: ${data.sailorsFailed.map((f: { sailor: string }) => f.sailor).join(", ")}`);
+      }
+
+      setPublishState({
+        busy: false,
+        message: parts.join(" · "),
+        error: Boolean(data.teamError || data.sailorsFailed?.length),
+      });
+    } catch (e) {
+      setPublishState({
+        busy: false,
+        message: e instanceof Error ? e.message : "Could not file the debrief",
+        error: true,
+      });
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      const [captures, briefing, captureArts, priming] = await Promise.all([
+        fetch(`/api/responses/${encodeURIComponent(runId)}?kind=capture`)
+          .then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`/api/sessions/${encodeURIComponent(runId)}/briefing`)
+          .then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`/api/capture-artifacts?runId=${encodeURIComponent(runId)}`)
+          .then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`/api/priming-artifacts?runId=${encodeURIComponent(runId)}`)
+          .then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      ]);
+      if (cancelled) return;
+
+      const capturesIn = Array.isArray(captures) ? captures.length : 0;
+      const goals = Array.isArray(briefing?.goals) ? briefing.goals.length : 0;
+      const decisions = Array.isArray(briefing?.decisions) ? briefing.decisions.length : 0;
+      const open = Array.isArray(briefing?.sections)
+        ? (briefing.sections as Section[]).filter((s) => s?.tone === "open").length
+        : 0;
+      const hasReading = Boolean(captureArts?.teamReading);
+      const primingIn = priming?.distilled ? Object.keys(priming.distilled).length : 0;
+
+      const next: DebriefSource[] = [
+        { id: "captures", label: "Crew captures", detail: capturesIn ? `${capturesIn} in` : "none in yet", enabled: capturesIn > 0 },
+        { id: "reading", label: "Captures synthesis", detail: hasReading ? "carried from captures in" : "not built yet", enabled: hasReading },
+        { id: "goals", label: "Squad goals", detail: goals ? `${goals} from the briefing` : "no briefing saved", enabled: goals > 0 },
+        { id: "decisions", label: "Briefing decisions", detail: decisions ? `${decisions} on file` : "none on file", enabled: decisions > 0 },
+        { id: "open", label: "Left open in the brief", detail: open ? `${open} item${open === 1 ? "" : "s"}` : "nothing left open", enabled: open > 0 },
+        { id: "priming", label: "This morning's priming", detail: primingIn ? `${primingIn} sailors distilled` : "nothing filed", enabled: false },
+      ];
+      setSources(next);
+      setSelectedSourceIds(next.filter((s) => s.enabled).map((s) => s.id));
+      setSourcesLoaded(true);
+    }
+
+    load().catch(() => { if (!cancelled) setSourcesLoaded(true); });
+
+    /* A debrief already written for this run fills the screen, edits included,
+       so reopening the phase does not look like nothing ever happened. */
+    fetch(`/api/sessions/${encodeURIComponent(runId)}/debrief`)
+      .then(async (res) => {
+        if (cancelled) return;
+        if (!res.ok) { setDraftLoaded(true); return; }
+        const data = await res.json().catch(() => null);
+        if (!data?.generatedAt) { setDraftLoaded(true); return; }
+        if (data.prompt) setPrompt(data.prompt);
+        setDraft({
+          generated: data.generated ?? "",
+          edited: data.edited ?? data.generated ?? "",
+          generatedAt: data.generatedAt,
+          sourceIds: data.sourceIds ?? [],
+          promptVersion: data.promptVersion ?? 1,
+        });
+        setDirty(false);
+        setDraftLoaded(true);
+      })
+      .catch(() => { if (!cancelled) setDraftLoaded(true); });
+
+    return () => { cancelled = true; };
+  }, [runId]);
 
   /* Keep both versions. `generated` is what the model wrote;
      `edited` is the coach's. Running again replaces `generated`
@@ -85,7 +200,10 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, sourceIds }),
     });
-    if (!res.ok) throw new Error("Could not write the debrief");
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.error ?? "Could not write the debrief");
+    }
 
     const { text, generatedAt, promptVersion } = (await res.json()) as {
       text: string;
@@ -100,22 +218,53 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
       sourceIds,
       promptVersion,
     });
+    setDirty(true);
 
     return text;
   }
 
   function handleDocumentChange(text: string) {
     setDraft((d) => (d ? { ...d, edited: text } : d));
-    // Debounce this in production.
-    void fetch(`/api/sessions/${runId}/debrief/document`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
+    setDirty(true);
+  }
+
+  /* Explicit rather than debounced. The write used to fire 800ms after the last
+     keystroke as void fetch().catch(() => undefined), so a failed save was
+     silent — the coach had no way to know the document had not persisted. */
+  async function handleSave() {
+    const text = draft?.edited;
+    if (typeof text !== "string") return;
+
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch(`/api/sessions/${runId}/debrief/document`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Could not save the document");
+      }
+      setDirty(false);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Could not save the document");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!sourcesLoaded || !draftLoaded) {
+    return (
+      <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22, color: "#8E877A", fontSize: 13 }}>
+        Loading the debrief…
+      </div>
+    );
   }
 
   return (
-    <div style={{ background: "#F7F4ED", minHeight: "100vh", padding: 22 }}>
+    <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
       <HotDebrief
         sources={sources}
         selectedSourceIds={selectedSourceIds}
@@ -126,9 +275,34 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
         onDocumentChange={handleDocumentChange}
         onRun={handleRun}
         onResetPrompt={() => setPrompt(DEFAULT_PROMPT)}
+        onSave={handleSave}
+        saveState={{ dirty, saving, error: saveError }}
+        onPublish={handlePublish}
+        publishState={publishState}
         onCopy={() => draft && navigator.clipboard.writeText(draft.edited)}
         onExport={() => {
-          /* PDF, link, or Drive — decide when the format is settled. */
+          /* Markdown, because that is what the debrief actually is: it is
+             written as markdown, rendered as markdown, and filed to Storage as
+             debrief.md. Anything else would be a conversion, and a lossy one.
+
+             The same text the publish button files, so an exported copy and a
+             filed copy can never disagree. */
+          const text = draft?.edited?.trim();
+          if (!text) return;
+
+          const { race, day } = parseRunId(runId);
+          const url = URL.createObjectURL(
+            new Blob([text], { type: "text/markdown;charset=utf-8" }),
+          );
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `${race}-day${day}-debrief.md`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          /* Revoked on a turn of the loop: revoking straight after click()
+             cancels the download in some browsers. */
+          setTimeout(() => URL.revokeObjectURL(url), 0);
         }}
       />
     </div>

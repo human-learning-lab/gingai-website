@@ -1,6 +1,7 @@
 'use client';
 
 import { useRole } from '@/context/RoleContext';
+import { pruneClips, uploadClip } from "@/lib/audioClips";
 import React, { useCallback, useState, useRef, useEffect } from "react";
 import { IconStop } from '@/components/Icons';
 
@@ -13,6 +14,14 @@ const C = {
 const DISPLAY = "'Archivo Narrow','Roboto Condensed','IBM Plex Sans Condensed',system-ui,sans-serif";
 const UI = "'Inter','IBM Plex Sans',-apple-system,system-ui,sans-serif";
 
+/** A recorded answer: playable at once, filed to Storage in the background. */
+interface Clip {
+  localUrl: string;
+  url?: string;
+  status: "uploading" | "saved" | "failed";
+  error?: string;
+}
+
 type Phase    = 'idle' | 'recording' | 'transcribing' | 'review';
 
 interface Sailor {
@@ -21,13 +30,23 @@ interface Sailor {
 }
 
 export default function CaptureResponsePage(
-  { runId, transcriptLines, onRecordingChange}:
+  { runId, sailorName, transcriptLines, onRecordingChange}:
   { runId: string;
+    sailorName?: string;
     transcriptLines?: string[];
-    onRecordingChange?: (recording: boolean) => void;
+    onRecordingChange?: (recording: boolean) => Promise<Blob | null> | null | void;
   }) {
   const { role } = useRole();
-  const sailor = { firstName: role!.name, role: role!.label};
+  /* `role` is null while Clerk is still resolving, and when the stored roleId
+     is not in this environment's roster — which happens whenever an account
+     has signed in to both alpha and production. Render nothing rather than
+     throw: ProtectedShell reassigns the role and re-renders. Throwing here
+     unmounts the shell before its effect can run, so the page never recovers. */
+  if (!role) return null;
+  /* The link names whose set this is. Falling back to the signed-in role is
+     only right when someone opens their own link — a forwarded link, or a
+     shared device, would otherwise fetch the wrong sailor's questions. */
+  const sailor = { firstName: sailorName || role.name, role: role.label };
   const event =  { venue: "Sassnitz", dayLabel: "Tomorrow" };
   return (
     <div className="ginga-viewport" style={{
@@ -111,7 +130,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
   runId: string;
   sailor: Sailor;
   transcriptLines?: string[];
-  onRecordingChange?: (recording: boolean) => void;
+  onRecordingChange?: (recording: boolean) => Promise<Blob | null> | null | void;
 }){
   const [step, setStep] = useState(0);
   const [inputMode, setInputMode] = useState<"voice" | "text">("voice");
@@ -120,6 +139,29 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
   const [times, setTimes] = useState<number[]>([]);
   const [kinds, setKinds] = useState<string[]>([]);
   const [micDenied, setMicDenied] = useState(false);
+
+  /* One recording per question, kept for playback on the way out and filed to
+     Storage as soon as it exists. Playback uses the local blob so it is instant
+     and works whether or not the upload has landed. */
+  const [clips, setClips] = useState<Record<number, Clip>>({});
+  /* The Storage paths this attempt wrote. Answering again replaces the whole
+     set, so anything filed by a previous attempt and not rewritten here is
+     stale — a question answered by voice the first time and by text the second
+     must not keep playing back the old recording. */
+  const filedPaths = useRef<Set<string>>(new Set());
+  useEffect(
+    () => () => { Object.values(clips).forEach(c => URL.revokeObjectURL(c.localUrl)); },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  /* The submission can be refused upstream: the backend checks the answer count
+     against its own copy of the question set, so a sailor served a set that
+     differs from the one filed for them gets a 400 and saves nothing. This
+     screen used to post and never read the result, so it said "All in" over a
+     rejection and the answers were simply gone. */
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const { recording, secs, start, stop, error } = useRecorder();
   const [questions, setQuestions] = useState<string[]>([]);
   const [phase, setPhase]       = useState<Phase>('idle');
@@ -140,16 +182,64 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
     timerRef.current = setInterval(() => setRecTime(p => p + 1), 1000);
   }, []);
 
+  /** Files one answer's audio, and records on screen whether it landed. */
+  const keepClip = useCallback(async (index: number, blob: Blob) => {
+    const localUrl = URL.createObjectURL(blob);
+    setClips(c => ({ ...c, [index]: { localUrl, status: "uploading" } }));
+    try {
+      const { path, url } = await uploadClip({
+        runId, kind: "capture", sailor: sailor.firstName, index, blob,
+      });
+      filedPaths.current.add(path);
+      setClips(c => ({ ...c, [index]: { ...c[index], url, status: "saved" } }));
+    } catch (err) {
+      setClips(c => ({
+        ...c,
+        [index]: {
+          ...c[index],
+          status: "failed",
+          error: err instanceof Error ? err.message : "Could not save the recording",
+        },
+      }));
+    }
+  }, [runId, sailor.firstName]);
+
   const stopRecording = useCallback(async () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    setDraft(lines.join('\n'));
-    onRecordingChange?.(false);
-	submitText();
-  }, [lines, onRecordingChange]);
+    /* Hand the transcript to submitText directly. setDraft does not apply
+       until the next render, so reading `draft` here would submit the value
+       from before the recording — an empty answer. */
+    const transcript = lines.join('\n');
+    setDraft(transcript);
+
+    /* Started, not awaited: the sailor moves to the next question straight
+       away, and the recording is filed against the question it answers once
+       the recorder has finished draining. */
+    const index = step;
+    const pending = onRecordingChange?.(false) ?? null;
+    submitText(transcript);
+    const clip = await pending;
+    if (clip) void keepClip(index, clip);
+  }, [lines, onRecordingChange, step, keepClip]);
 
 
   useEffect(() => {
 	  async function getResp(){
+		/* Firestore first: /create_run will not replace an existing set, so
+		   Viktor's API can still be serving questions that were superseded.
+		   The mirror always holds the latest. Falls back for runs that
+		   predate it. */
+		const mirrored = await fetch(
+			`/api/question-set?runId=${encodeURIComponent(runId)}&sailor=${encodeURIComponent(sailor.firstName)}&kind=capture`,
+		);
+		if (mirrored.ok) {
+			const set = await mirrored.json();
+			if (set.questions?.length) {
+				setQuestions(set.questions);
+				return;
+			}
+		}
+
 	  	const res = await fetch(`/api/responses/${runId}?kind=capture&sailor=${sailor.firstName}`);
 	  	const resps = await res.json();
 		if (resps.questions)
@@ -165,10 +255,38 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
   const q = questions.length ? questions[step] : "";
   const finished = step >= questions.length;
 
-  function submitText() {
+  /** `text` is passed by the voice path, where `draft` is still a render behind. */
+  function submitText(text?: string) {
 	setPhase('idle');
-    push(draft.trim());
+    push((text ?? draft).trim());
 	setInputMode("voice");
+  }
+
+  /** Files the whole set. Success upstream is `200 null`, so only the status
+      tells us anything; the body carries FastAPI's `detail` on a refusal. */
+  async function submitAll(answers: string[]) {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch(`/api/responses/${runId}?kind=capture`, {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ respondee: sailor.firstName, responses: answers }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.detail ?? `The server refused the answers (${res.status}).`);
+      }
+
+      /* Only now. An abandoned half-attempt must leave the previous recordings
+         alone, because the answers behind them are still the filed ones. */
+      void pruneClips(runId, "capture", sailor.firstName, [...filedPaths.current])
+        .catch(() => undefined);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'The answers could not be sent.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   function push(answer: string) {
@@ -177,14 +295,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
     setTimes(s => [...s, recTime]);
     setDraft("");
     setStep(s => s + 1);
-	if (step >= questions.length - 1)
-	  	fetch(`/api/responses/${runId}?kind=capture`, {
-			method: 'POST',
-			headers: {
-          	  "Content-Type": "application/json",
-        	},
-       		body: JSON.stringify({ respondee: sailor.firstName, responses: [...sent, answer] }),
-		});
+	if (step >= questions.length - 1) void submitAll([...sent, answer]);
   }
 
 
@@ -312,7 +423,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
       </header>
 
       {finished ? (
-        <Done sent={sent} questions={questions} sailor={sailor} kinds={kinds} times={times} />
+        <Done sent={sent} questions={questions} sailor={sailor} kinds={kinds} times={times} saveError={saveError} saving={saving} onRetry={() => void submitAll(sent)} clips={clips} />
       ) : (
         <>
           { 
@@ -353,7 +464,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
               </>
             ) : (
               <>
-                <button onClick={submitText} disabled={!draft.trim()} style={{
+                <button onClick={() => submitText()} disabled={!draft.trim()} style={{
                   ...btn,
                   background: draft.trim() ? C.green : C.sand,
                   color: draft.trim() ? "#fff" : C.warmLt,
@@ -368,30 +479,77 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
   );
 }
 
-function Done({questions, sent, kinds, times, sailor}: {questions: string[], sent: string[]; kinds: string[]; times: number[]; sailor: Sailor}) {
+function Done({questions, sent, kinds, times, sailor, saveError, saving, onRetry, clips}: {questions: string[], sent: string[]; kinds: string[]; times: number[]; sailor: Sailor; saveError: string | null; saving: boolean; onRetry: () => void; clips: Record<number, Clip>}) {
   return (
     <div style={{ padding: "32px 22px", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-      <div style={{ width: 38, height: 38, borderRadius: 38, background: C.greenLt, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 15 }}>
-        <span style={{ color: C.green, fontSize: 18, fontWeight: 700 }}>✓</span>
+      <div style={{ width: 38, height: 38, borderRadius: 38, background: saveError ? "#F7E4D8" : C.greenLt, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 15 }}>
+        <span style={{ color: saveError ? C.clay : C.green, fontSize: 18, fontWeight: 700 }}>{saveError ? "!" : "✓"}</span>
       </div>
 
       {(
         <>
           <h2 style={{ fontFamily: DISPLAY, fontSize: 25, fontWeight: 700, color: C.ink, margin: 0, lineHeight: 1.15 }}>
-            All in.<br />Thanks, {sailor.firstName}.
+            {saveError
+              ? <>Not sent.<br />Sorry, {sailor.firstName}.</>
+              : <>All in.<br />Thanks, {sailor.firstName}.</>}
           </h2>
-          <p style={{ fontSize: 13, color: C.warm, lineHeight: 1.6, marginTop: 11 }}>
-            Your answers go straight into tonight's debrief picture. You'll get your own summary
-            afterwards — what you set out to do, and what happened.
-          </p>
+          {saveError ? (
+            <>
+              <p style={{ fontSize: 13, color: C.warm, lineHeight: 1.6, marginTop: 11 }}>
+                Your answers are still here, but they did not reach the team — nothing was saved.
+                Try again, and tell the coach if it keeps failing.
+              </p>
+              <p style={{ fontSize: 12, color: C.clay, lineHeight: 1.5, marginTop: 9 }}>{saveError}</p>
+              <button
+                onClick={onRetry}
+                disabled={saving}
+                style={{ marginTop: 12, padding: "9px 16px", borderRadius: 8, border: "none", background: saving ? C.warmLt : C.ink, color: C.paper, fontFamily: UI, fontSize: 13, fontWeight: 600, cursor: saving ? "default" : "pointer" }}
+              >
+                {saving ? "Sending…" : "Try again"}
+              </button>
+            </>
+          ) : (
+            <p style={{ fontSize: 13, color: C.warm, lineHeight: 1.6, marginTop: 11 }}>
+              Your answers go straight into tonight's debrief picture. You'll get your own summary
+              afterwards — what you set out to do, and what happened.
+            </p>
+          )}
           <div style={{ marginTop: 20, paddingTop: 15, borderTop: `1px solid ${C.line}` }}>
-            <div style={{ ...lbl, marginBottom: 8 }}>What you sent</div>
+            <div style={{ ...lbl, marginBottom: 8 }}>{saveError ? "What you answered" : "What you sent"}</div>
             {sent.map((a: string, i: number) => (
-              <div key={i} style={{ display: "flex", gap: 9, padding: "6px 0", fontSize: 12, color: C.warm, alignItems: "baseline" }}>
-                <span style={{ color: C.green, fontWeight: 600 }}>{i + 1}</span>
-                <span style={{ flex: 1, lineHeight: 1.45 }}>{questions[i]}</span>
-                <span style={{ flex: 1, lineHeight: 1.45 }}>{kinds[i] === 'voice' ? `Voice Note: ${times[i]}s` : 'Text'}</span>
+              <div key={i} style={{ padding: "6px 0" }}>
+                <div style={{ display: "flex", gap: 9, fontSize: 12, color: C.warm, alignItems: "baseline" }}>
+                  <span style={{ color: C.green, fontWeight: 600 }}>{i + 1}</span>
+                  <span style={{ flex: 1, lineHeight: 1.45 }}>{questions[i]}</span>
+                  <span style={{ flex: 1, lineHeight: 1.45 }}>{kinds[i] === 'voice' ? `Voice Note: ${times[i]}s` : 'Text'}</span>
+                </div>
+                {clips[i] && (
+                  <div style={{ marginTop: 7, paddingLeft: 18 }}>
+                    {/* Native controls on purpose: scrubbing, duration and the
+                        volume behaviour a phone's own player gives are not worth
+                        rebuilding badly. */}
+                    <audio
+                      controls
+                      preload="metadata"
+                      src={clips[i].localUrl}
+                      style={{ width: "100%", height: 32 }}
+                    />
+                    <div
+                      style={{
+                        fontSize: 10.5,
+                        marginTop: 3,
+                        color: clips[i].status === "failed" ? C.clay : C.warmLt,
+                      }}
+                    >
+                      {clips[i].status === "uploading"
+                        ? "Saving the recording…"
+                        : clips[i].status === "saved"
+                        ? "Recording saved"
+                        : `Recording not saved — ${clips[i].error}`}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
