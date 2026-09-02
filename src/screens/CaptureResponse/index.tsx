@@ -1,7 +1,7 @@
 'use client';
 
 import { useRole } from '@/context/RoleContext';
-import { uploadClip } from "@/lib/audioClips";
+import { pruneClips, uploadClip } from "@/lib/audioClips";
 import React, { useCallback, useState, useRef, useEffect } from "react";
 import { IconStop } from '@/components/Icons';
 
@@ -144,6 +144,11 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
      Storage as soon as it exists. Playback uses the local blob so it is instant
      and works whether or not the upload has landed. */
   const [clips, setClips] = useState<Record<number, Clip>>({});
+  /* The Storage paths this attempt wrote. Answering again replaces the whole
+     set, so anything filed by a previous attempt and not rewritten here is
+     stale — a question answered by voice the first time and by text the second
+     must not keep playing back the old recording. */
+  const filedPaths = useRef<Set<string>>(new Set());
   useEffect(
     () => () => { Object.values(clips).forEach(c => URL.revokeObjectURL(c.localUrl)); },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -182,9 +187,10 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
     const localUrl = URL.createObjectURL(blob);
     setClips(c => ({ ...c, [index]: { localUrl, status: "uploading" } }));
     try {
-      const { url } = await uploadClip({
+      const { path, url } = await uploadClip({
         runId, kind: "capture", sailor: sailor.firstName, index, blob,
       });
+      filedPaths.current.add(path);
       setClips(c => ({ ...c, [index]: { ...c[index], url, status: "saved" } }));
     } catch (err) {
       setClips(c => ({
@@ -271,6 +277,11 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
         const body = await res.json().catch(() => null);
         throw new Error(body?.detail ?? `The server refused the answers (${res.status}).`);
       }
+
+      /* Only now. An abandoned half-attempt must leave the previous recordings
+         alone, because the answers behind them are still the filed ones. */
+      void pruneClips(runId, "capture", sailor.firstName, [...filedPaths.current])
+        .catch(() => undefined);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'The answers could not be sent.');
     } finally {

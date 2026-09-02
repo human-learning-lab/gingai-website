@@ -113,3 +113,82 @@ export async function uploadClip(opts: {
 
   return { path, url: token ? `${object}?alt=media&token=${token}` : undefined };
 }
+
+/* ── Reading and replacing what is already filed ──────────────── */
+
+export function clipsPrefix(runId: string, kind: string, sailor: string) {
+  return `team/responses/${segment(runId)}/${segment(kind)}/${segment(sailor)}/`;
+}
+
+export interface ClipRef {
+  /** Zero-based question index, read back off the `q{n}` filename. */
+  index: number;
+  path: string;
+  url: string;
+}
+
+function listUrl(prefix: string) {
+  return `${STORAGE}/${BUCKET}/o?prefix=${encodeURIComponent(prefix)}`;
+}
+
+function objectUrl(path: string) {
+  return `${STORAGE}/${BUCKET}/o/${encodeURIComponent(path)}`;
+}
+
+/**
+ * Every clip filed for one sailor on one run, newest naming wins.
+ *
+ * A listing returns names only — no download tokens — but the bucket's rules
+ * are open, so `alt=media` resolves without one. If those rules are ever
+ * tightened this is the line that breaks, and each clip will need its metadata
+ * fetched for a token.
+ */
+export async function listClips(
+  runId: string,
+  kind: string,
+  sailor: string,
+): Promise<ClipRef[]> {
+  if (!BUCKET) return [];
+  const res = await fetch(listUrl(clipsPrefix(runId, kind, sailor)), { cache: 'no-store' });
+  if (!res.ok) return [];
+  const data = await res.json().catch(() => null) as { items?: { name?: string }[] } | null;
+
+  return (data?.items ?? [])
+    .map(item => {
+      const name = item.name ?? '';
+      const m = name.match(/\/q(\d+)\.(?:webm|m4a)$/);
+      return m ? { index: Number(m[1]) - 1, path: name, url: `${objectUrl(name)}?alt=media` } : null;
+    })
+    .filter((c): c is ClipRef => c !== null)
+    .sort((a, b) => a.index - b.index);
+}
+
+export async function deleteClip(path: string): Promise<void> {
+  if (!BUCKET) return;
+  await fetch(objectUrl(path), { method: 'DELETE' });
+}
+
+/**
+ * Drops every clip filed for this sailor that is not in `keep`.
+ *
+ * Answering a second time replaces the whole set, so a question answered by
+ * voice the first time and by text the second must not keep playing back the
+ * old recording. Same-index clips are already overwritten by the upload; this
+ * is for the ones the new set has no answer for, including a format change
+ * (q1.webm from Chrome, q1.m4a from Safari) leaving two files for one question.
+ *
+ * Called only once the new answers have actually been filed — an abandoned
+ * half-session must leave the previous recordings alone.
+ */
+export async function pruneClips(
+  runId: string,
+  kind: string,
+  sailor: string,
+  keep: string[],
+): Promise<string[]> {
+  const kept = new Set(keep);
+  const existing = await listClips(runId, kind, sailor);
+  const stale = existing.filter(c => !kept.has(c.path));
+  await Promise.all(stale.map(c => deleteClip(c.path).catch(() => undefined)));
+  return stale.map(c => c.path);
+}

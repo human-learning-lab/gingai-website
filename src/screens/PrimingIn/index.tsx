@@ -167,6 +167,16 @@ export default function PrimingInPage({
       if (cancelled) return;
 
       const rows: PrimingResponse[] = Array.isArray(resps) ? resps : [];
+
+      /* Mirror the answers into Storage as they are read. Fire and forget: the
+         console must render whether or not the copy lands, and the mirror is a
+         record, not something this screen reads back. */
+      if (rows.length) {
+        void fetch(`/api/responses/${encodeURIComponent(runId)}/mirror?kind=priming`, {
+          method: "POST",
+        }).catch(() => undefined);
+      }
+
       setResponses(rows.map((row) => {
         const own = day?.sailors?.[row.recipient]?.questions as string[] | undefined;
         const questions = own?.length

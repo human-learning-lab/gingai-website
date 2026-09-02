@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { listClips } from "@/lib/audioClips";
 
 /* ============================================================
    Ginga — Priming in
@@ -164,6 +165,23 @@ export default function PrimingIn({
   const [view, setView] = useState<View>("individuals");
   const [depth, setDepth] = useState<Depth>("full");
   const [selected, setSelected] = useState<SailorId>(answered[0]?.name ?? "");
+
+  /* The recordings behind the answers, for the sailor being read. Listed per
+     selection rather than for the whole crew: a coach reads one person at a
+     time, and there is no reason to enumerate everyone's audio to show one. */
+  const [clips, setClips] = useState<Record<number, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    setClips({});
+    if (!selected) return;
+    listClips(runId, "priming", selected)
+      .then((refs) => {
+        if (cancelled) return;
+        setClips(Object.fromEntries(refs.map((r) => [r.index, r.url])));
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [runId, selected]);
   const [busy, setBusy] = useState<Busy>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -414,6 +432,16 @@ export default function PrimingIn({
 						  { depth === 'distilled' && (response?.distilled ? response.distilled[i] : "—" )} 
 						  { depth === 'full' && (response.responses[i] ?? "—")}
                         </div>
+                        {clips[i] && (
+                          /* preload="none": a coach opens one recording, not
+                             every recording on the screen. */
+                          <audio
+                            controls
+                            preload="none"
+                            src={clips[i]}
+                            style={{ width: "100%", height: 32, marginTop: 9 }}
+                          />
+                        )}
                       </div>
                     ))}
 					{ depth === 'distilled' && (
