@@ -141,6 +141,11 @@ export const REGATTAS: Regatta[] = [
 			start: '2026-12-12', end: '2026-12-13', lat: 59.89, lon: 10.53,
 			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
 		},
+		{
+			id: 'sandnes', city: 'Sandnes', short: 'Sandnes', dates: 'Dec 15–16 · TEST',
+			start: '2026-12-15', end: '2026-12-16', lat: 58.85, lon: 5.74,
+			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
+		},
 	] : []),
 ];
 
