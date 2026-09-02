@@ -94,7 +94,7 @@ export default function InterviewConsolePage() {
     const url = `${base}/interview`;
     recipients.forEach((name, i) => {
       const text = encodeURIComponent(
-        `${name} — your sailor context interview. Eleven questions, voice or text, whatever suits. It builds your profile.\n${url}`,
+        `Your sailor context interview. Eleven questions, voice or text, whatever suits. It builds your profile.\n${url}`,
       );
       const open = () => window.open(`https://wa.me/?text=${text}`, "_blank");
       if (i === 0) open();

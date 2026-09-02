@@ -100,6 +100,7 @@ export default function InterviewConsole({
     [sailors, byName],
   );
 
+  /** Returns whether the work succeeded, so a caller can refresh on success. */
   const run = async (key: string, fn: () => Promise<unknown>, done?: string) => {
     setBusy(key);
     setError(null);
@@ -107,15 +108,31 @@ export default function InterviewConsole({
     try {
       await fn();
       if (done) setNote(done);
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
+      return false;
     } finally {
       setBusy(null);
     }
   };
 
   return (
-    <div style={{ fontFamily: UI, color: C.ink, background: C.paper, minHeight: "100%", padding: 22 }}>
+    /* .screen-wrap is a flex parent with overflow:hidden, so a screen that does
+       not scroll itself simply gets clipped. minHeight:0 is what lets a flex
+       child shrink below its content and actually scroll. */
+    <div
+      style={{
+        fontFamily: UI,
+        color: C.ink,
+        background: C.paper,
+        flex: 1,
+        minWidth: 0,
+        minHeight: 0,
+        overflowY: "auto",
+        padding: 22,
+      }}
+    >
       <header style={{ marginBottom: 16 }}>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 700, margin: 0 }}>
           Interview console
@@ -325,7 +342,7 @@ function ReadStep({
   byName: Map<string, InterviewAnswer>;
   busy: string | null;
   onDistil: () => void;
-  onGenerate: (sailor: string) => void;
+  onGenerate: (sailor: string) => Promise<boolean>;
 }) {
   const answeredNames = sailors
     .filter((s) => (byName.get(s.name)?.responses ?? []).some((r) => r?.trim()))
@@ -333,6 +350,10 @@ function ReadStep({
 
   const [selected, setSelected] = useState<string>(answeredNames[0] ?? "");
   const [depth, setDepth] = useState<"full" | "distilled">("full");
+  /* The preview reads its file once, on mount. Generating replaces that file,
+     so the panel would otherwise keep showing the version it was built from
+     until the page was reloaded. Bumping this remounts it against the new one. */
+  const [profileVersion, setProfileVersion] = useState(0);
   const row = selected ? byName.get(selected) : undefined;
 
   /* The recordings behind the answers, for whoever is being read. */
@@ -491,7 +512,10 @@ function ReadStep({
             answers alone — no other transcripts are read.
           </p>
           <button
-            onClick={() => selected && onGenerate(selected)}
+            onClick={async () => {
+              if (!selected) return;
+              if (await onGenerate(selected)) setProfileVersion((n) => n + 1);
+            }}
             disabled={!selected || busy === `gen:${selected}`}
             style={{
               width: "100%",
@@ -514,6 +538,7 @@ function ReadStep({
 
         {selected && (
           <ContextFilePreview
+            key={`${selected}:${profileVersion}`}
             label={`Profile · ${selected}`}
             endpoint={`/api/sailor-profile?sailor=${encodeURIComponent(selected)}`}
           />
