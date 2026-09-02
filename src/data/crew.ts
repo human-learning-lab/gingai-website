@@ -22,7 +22,7 @@ export function isHuleLabRole(role: string | undefined | null): boolean {
  * By name, for the server routes that read context files out of Storage and
  * have no roster to consult — Storage keys on the sailor's first name only.
  */
-export const HULELAB_MEMBERS = ['Christian'] as const;
+export const HULELAB_MEMBERS = ['Christian', 'Benjamin', 'Daniel'] as const;
 
 export function isHuleLabMember(sailor: string): boolean {
   const name = sailor.trim().toLowerCase();

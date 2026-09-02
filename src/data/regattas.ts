@@ -117,33 +117,13 @@ export const REGATTAS: Regatta[] = [
 	   so they cannot appear in the squad's picker. */
 	...(IS_ALPHA ? [
 		{
-			id: 'kristiansand', city: 'Kristiansand', short: 'Kristiansand', dates: 'Dec 1–2 · TEST',
-			start: '2026-12-01', end: '2026-12-02', lat: 58.15, lon: 7.99,
+			id: 'brighton', city: 'Brighton', short: 'Brighton', dates: 'Dec 1–2 · TEST',
+			start: '2026-12-01', end: '2026-12-02', lat: 50.82, lon: -0.14,
 			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
 		},
 		{
-			id: 'oslo', city: 'Oslo', short: 'Oslo', dates: 'Dec 5–6 · TEST',
-			start: '2026-12-05', end: '2026-12-06', lat: 59.91, lon: 10.75,
-			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
-		},
-		/* Replaces a first Sandvika, dropped from the picker once its response
-		   rows were locked by probe writes the backend offers no way to remove.
-		   Its records still sit under SandvikaRaceday*; nothing reads them. The
-		   space here is stripped when the run id is built, giving
-		   "Sandvikav2Raceday1Season6" — a separate venue to every store. */
-		{
-			id: 'sandvika-v2', city: 'Sandvika v2', short: 'Sandvika v2', dates: 'Dec 8–9 · TEST',
-			start: '2026-12-08', end: '2026-12-09', lat: 59.89, lon: 10.53,
-			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
-		},
-		{
-			id: 'sandvika-v3', city: 'Sandvika v3', short: 'Sandvika v3', dates: 'Dec 12–13 · TEST',
-			start: '2026-12-12', end: '2026-12-13', lat: 59.89, lon: 10.53,
-			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
-		},
-		{
-			id: 'sandnes', city: 'Sandnes', short: 'Sandnes', dates: 'Dec 15–16 · TEST',
-			start: '2026-12-15', end: '2026-12-16', lat: 58.85, lon: 5.74,
+			id: 'copenhagen', city: 'Copenhagen', short: 'Copenhagen', dates: 'Dec 5–6 · TEST',
+			start: '2026-12-05', end: '2026-12-06', lat: 55.68, lon: 12.57,
 			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
 		},
 	] : []),
