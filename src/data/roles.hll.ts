@@ -16,7 +16,6 @@ const SAILOR_SCREENS: ScreenId[] = ['backbone', 'sim', 'capture', 'transcripts',
    "Daniel Martin" would never match the stored recipient "Daniel". */
 export const HLL_ROLES: Role[] = [
   { id: 'hll-daniel',   name: 'Daniel', initial: 'DM', label: 'Helm', view: 'sailor', screens: SAILOR_SCREENS },
-  { id: 'hll-benjamin', name: 'Benjamin', initial: 'BN', label: 'Helm', view: 'sailor', screens: SAILOR_SCREENS },
 ];
 
 /**
@@ -37,7 +36,13 @@ export const HLL_CARRIED_ROLE_IDS = ['christian', 'emilie', 'viktor', 'rasmus'];
  */
 export const HLL_EMAIL_ROLE_MAP: Record<string, string> = {
   'denise@hulelab.com':     'hll-daniel',
-  'benjamin@hulelab.com':   'hll-benjamin',
+  /* Benjamin is no longer a sailor, but this mapping has to stay and has to
+     point somewhere real. The layout only rewrites a stored roleId when the
+     email matches; drop the entry and the roleId already on the Clerk profile
+     keeps pointing at a role that no longer exists, which is the dangling-role
+     white screen again. Pointing it at christian lets the next sign-in heal
+     the stored value. */
+  'benjamin@hulelab.com':   'christian',
   'christian@hulelab.com':  'christian',
   'emilie@sailgpbra.com':   'emilie',
   'viktor@sailgpbra.com':   'viktor',
@@ -62,7 +67,6 @@ interface SailorLike { id: string; name: string; role: string; }
 
 const HLL_SAILORS: SailorLike[] = [
   { id: 'hll-dan', name: 'Daniel',    role: 'Helm' },
-  { id: 'hll-ben', name: 'Benjamin',  role: 'Helm' },
   { id: 'hll-chr', name: 'Christian', role: 'Head Coach' },
   { id: 'hll-ras', name: 'Rasmus',    role: 'Flight Controller' },
 ];
