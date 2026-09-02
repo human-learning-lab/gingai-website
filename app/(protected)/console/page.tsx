@@ -8,7 +8,6 @@ import BriefingPage from "@/screens/Briefing";
 import CapturePage from "@/screens/Capturing";
 import CapturesInPage from "@/screens/CapturesIn";
 import HotDebriefPage from "@/screens/HotDebrief";
-import RegenerateSailorDoc from "@/screens/Console/RegenerateSailorDoc";
 import GenerateTeamDoc from "@/screens/Console/GenerateTeamDoc";
 import { REGATTAS, getRegatResult, getDefaultRegat, getDefaultDay } from "@/data/regattas";
 
@@ -308,9 +307,10 @@ export default function ConsolePage() {
       onPhaseChange={setPhase}
       picker={picker}
     >
-      {/* TEMPORARY — delete this mount and the component before merging to
-          main. Renders only when NEXT_PUBLIC_TEAM=hll. */}
-      <RegenerateSailorDoc />
+      {/* TEMPORARY — a hand-crank on the squad context pipeline, kept until
+          it has a proper home. The per-sailor equivalent used to sit beside it
+          and is unmounted: /interview-console builds a sailor's file from
+          their interview, which is the path we want people using. */}
       <GenerateTeamDoc />
 
       {/* A venue that is reachable but should be left alone until its day.
