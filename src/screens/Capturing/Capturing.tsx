@@ -1,13 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useCallback, useRef, useState } from "react";
-import {
-  compressAudioFile,
-  deleteSessionAudio,
-  listSessionAudio,
-  uploadSessionAudio,
-  type SessionClip,
-} from "@/lib/sessionAudio";
+import React, { useMemo, useCallback, useState } from "react";
 import ContextFilePreview from "@/components/ContextFilePreview";
 import type { SquadGoal } from '@/lib/carriedContext';
 
@@ -89,7 +82,6 @@ export interface CaptureProps {
 
   /** Questions restored by "reset to default". */
   defaultQuestions: string[];
-  runId: string;
 }
 
 /* ---------- tokens ---------- */
@@ -135,7 +127,6 @@ export default function Capture({
   onGenerate,
   onSend,
   defaultQuestions,
-  runId,
 }: CaptureProps) {
   const [scope, setScope] = useState<Scope>("team");
   const [activeSailor, setActiveSailor] = useState<string>(
@@ -479,9 +470,6 @@ export default function Capture({
             </Footnote>
           </Card>
 
-          <div style={{ marginTop: 14 }}>
-            <SessionAudio runId={runId} />
-          </div>
             </div>
 
             <div style={{ flex: "1 1 0", minWidth: 0 }}>
@@ -931,132 +919,6 @@ function RecipientRow({
         </button>
       )}
     </div>
-  );
-}
-
-function bytes(n: number) {
-  return n >= 1_048_576 ? `${(n / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
-}
-
-/**
- * Audio the coach brings to the day — a handheld recording of the dock talk,
- * a voice memo, whatever was captured outside the app.
- *
- * Uncompressed files are downmixed to 16 kHz mono before upload; anything
- * already in a lossy codec goes up untouched. See lib/sessionAudio.
- */
-function SessionAudio({ runId }: { runId: string }) {
-  const [clips, setClips] = useState<SessionClip[]>([]);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [note, setNote] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    listSessionAudio(runId)
-      .then((found) => { if (!cancelled) setClips(found); })
-      .catch(() => undefined);
-    return () => { cancelled = true; };
-  }, [runId]);
-
-  async function add(file: File) {
-    setBusy(file.name);
-    setError(null);
-    setNote(null);
-    try {
-      const { blob, reworked, originalBytes, bytes: size } = await compressAudioFile(file);
-      const clip = await uploadSessionAudio(runId, blob, file.name);
-      setClips((prev) => [...prev.filter((c) => c.path !== clip.path), clip]
-        .sort((a, b) => a.name.localeCompare(b.name)));
-      setNote(reworked
-        ? `Reduced from ${bytes(originalBytes)} to ${bytes(size)} — 16 kHz mono.`
-        : `Uploaded ${bytes(size)} — already compressed, kept as recorded.`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not upload the file");
-    } finally {
-      setBusy(null);
-      if (fileRef.current) fileRef.current.value = "";
-    }
-  }
-
-  async function remove(clip: SessionClip) {
-    setBusy(clip.name);
-    setError(null);
-    try {
-      await deleteSessionAudio(clip.path);
-      setClips((prev) => prev.filter((c) => c.path !== clip.path));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not delete the file");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  return (
-    <Card title="Session audio">
-      <p style={{ fontSize: 12, color: C.warm, lineHeight: 1.55, margin: "0 0 11px" }}>
-        Recordings made outside the app — dock talk, a voice memo, a handheld
-        capture. Kept with the day so it can be listened to or transcribed later.
-      </p>
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="audio/*"
-        style={{ display: "none" }}
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) void add(f); }}
-      />
-      <button
-        onClick={() => fileRef.current?.click()}
-        disabled={Boolean(busy)}
-        style={{
-          border: `1px solid ${C.line}`,
-          background: busy ? C.sand2 : "transparent",
-          color: busy ? C.warmLt : C.ink,
-          borderRadius: 7,
-          padding: "8px 14px",
-          fontSize: 12.5,
-          fontWeight: 600,
-          fontFamily: UI,
-          cursor: busy ? "default" : "pointer",
-        }}
-      >
-        {busy ? "Working…" : "Upload audio"}
-      </button>
-
-      {note && (
-        <div style={{ fontSize: 11, color: C.warmLt, marginTop: 8, lineHeight: 1.5 }}>{note}</div>
-      )}
-      {error && (
-        <div style={{ fontSize: 11.5, color: "#C4622D", marginTop: 8, lineHeight: 1.5 }}>{error}</div>
-      )}
-
-      {clips.map((clip) => (
-        <div key={clip.path} style={{ marginTop: 12, paddingTop: 11, borderTop: `1px solid ${C.line}` }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
-            <span style={{ flex: 1, fontSize: 12, color: C.ink, wordBreak: "break-all" }}>{clip.name}</span>
-            <button
-              onClick={() => void remove(clip)}
-              disabled={Boolean(busy)}
-              style={{
-                border: "none", background: "transparent", color: C.warmLt,
-                fontSize: 11, fontFamily: UI, cursor: busy ? "default" : "pointer", padding: 0,
-              }}
-            >
-              Remove
-            </button>
-          </div>
-          {/* preload="metadata" so the row shows a duration without pulling the
-              whole file down for every clip on the card. */}
-          <audio controls preload="metadata" src={clip.url} style={{ width: "100%", height: 32, marginTop: 7 }} />
-        </div>
-      ))}
-
-      {!clips.length && !busy && (
-        <div style={{ fontSize: 11.5, color: C.warmLt, marginTop: 10 }}>Nothing uploaded for this day yet.</div>
-      )}
-    </Card>
   );
 }
 

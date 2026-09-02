@@ -1,7 +1,12 @@
 /**
- * Audio a coach uploads for a race day, in Firebase Storage.
+ * The briefing recording, in Firebase Storage.
  *
- *   team/captures/{runId}/audio/{filename}
+ *   team/briefings/{runId}/audio/{filename}
+ *   team/briefings/{runId}/transcript.md   (written by lib/briefingStore)
+ *
+ * The recording of the room goes to Viktor's service to be transcribed and is
+ * not kept there in any form we control, so this is the only copy that outlives
+ * the transcription. Filed beside the transcript it produced.
  *
  * Storage rather than Firestore: these are media files of arbitrary size, and
  * Firestore caps a document at 1 MB. The filename is kept (sanitised), so
@@ -19,8 +24,8 @@ function objectUrl(path: string) {
   return `${STORAGE}/${BUCKET}/o/${encodeURIComponent(path)}`;
 }
 
-export function sessionAudioPrefix(runId: string) {
-  return `team/captures/${segment(runId)}/audio/`;
+export function briefingAudioPrefix(runId: string) {
+  return `team/briefings/${segment(runId)}/audio/`;
 }
 
 /* ── Compression ───────────────────────────────────────────────
@@ -113,22 +118,22 @@ export async function compressAudioFile(file: File): Promise<Compressed> {
 
 /* ── Storage ───────────────────────────────────────────────── */
 
-export interface SessionClip {
+export interface BriefingClip {
   path: string;
   name: string;
   url: string;
 }
 
-export async function uploadSessionAudio(
+export async function uploadBriefingAudio(
   runId: string,
   blob: Blob,
   filename: string,
-): Promise<SessionClip> {
+): Promise<BriefingClip> {
   if (!BUCKET) throw new Error('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is not configured');
   if (!blob.size) throw new Error('The file is empty');
 
   const name = segment(filename);
-  const path = `${sessionAudioPrefix(runId)}${name}`;
+  const path = `${briefingAudioPrefix(runId)}${name}`;
   const res = await fetch(
     `${STORAGE}/${BUCKET}/o?uploadType=media&name=${encodeURIComponent(path)}`,
     { method: 'POST', headers: { 'Content-Type': blob.type || 'application/octet-stream' }, body: blob },
@@ -144,16 +149,16 @@ export async function uploadSessionAudio(
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      metadata: { runId, kind: 'session-audio', originalName: filename, uploadedAt: new Date().toISOString() },
+      metadata: { runId, kind: 'briefing-audio', originalName: filename, uploadedAt: new Date().toISOString() },
     }),
   }).catch(() => undefined);
 
   return { path, name, url: `${objectUrl(path)}?alt=media` };
 }
 
-export async function listSessionAudio(runId: string): Promise<SessionClip[]> {
+export async function listBriefingAudio(runId: string): Promise<BriefingClip[]> {
   if (!BUCKET) return [];
-  const prefix = sessionAudioPrefix(runId);
+  const prefix = briefingAudioPrefix(runId);
   const res = await fetch(
     `${STORAGE}/${BUCKET}/o?prefix=${encodeURIComponent(prefix)}`,
     { cache: 'no-store' },
@@ -168,7 +173,7 @@ export async function listSessionAudio(runId: string): Promise<SessionClip[]> {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function deleteSessionAudio(path: string): Promise<void> {
+export async function deleteBriefingAudio(path: string): Promise<void> {
   if (!BUCKET) return;
   const res = await fetch(objectUrl(path), { method: 'DELETE' });
   if (!res.ok && res.status !== 404) throw new Error(`Storage delete ${res.status}`);

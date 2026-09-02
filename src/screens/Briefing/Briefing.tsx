@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { listBriefingAudio, type BriefingClip } from "@/lib/briefingAudio";
 
 /* ============================================================
    Ginga — Briefing
@@ -75,6 +76,7 @@ export interface BriefingProps {
   onUpload: (file: File) => Promise<void>;
   /** Why the last attempt failed, if it did. */
   uploadError?: string | null;
+  runId: string;
   /** A briefing is already on file, so uploading replaces it rather than starting one. */
   hasRecording?: boolean;
   /** Re-run the prompt against the saved transcript. Never re-processes audio. */
@@ -132,6 +134,7 @@ export default function Briefing({
   onPromptChange,
   onUpload,
   uploadError = null,
+  runId,
   hasRecording = false,
   onRestructure,
   onTranscriptChange,
@@ -143,6 +146,17 @@ export default function Briefing({
   const [saving, setSaving] = useState(false);
   const [restructuring, setRestructuring] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  /* The recording this transcript came from. Re-listed when the stage settles,
+     so a freshly uploaded file appears without a reload. */
+  const [audio, setAudio] = useState<BriefingClip[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    listBriefingAudio(runId)
+      .then((found) => { if (!cancelled) setAudio(found); })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [runId, stage]);
 
   const busy = STAGE_ORDER.includes(stage);
 
@@ -372,6 +386,21 @@ export default function Briefing({
 
               {depth === "transcript" ? (
                 <Card title="The room, as recorded">
+                  {audio.map((clip) => (
+                    <div key={clip.path} style={{ marginBottom: 13 }}>
+                      {/* preload="metadata" so the duration shows without
+                          pulling a long recording down on every visit. */}
+                      <audio
+                        controls
+                        preload="metadata"
+                        src={clip.url}
+                        style={{ width: "100%", height: 34 }}
+                      />
+                      <div style={{ fontSize: 10.5, color: C.warmLt, marginTop: 4 }}>
+                        {clip.name}
+                      </div>
+                    </div>
+                  ))}
                   <textarea
                     value={recording.transcript}
                     onChange={(e) => onTranscriptChange?.(e.target.value)}

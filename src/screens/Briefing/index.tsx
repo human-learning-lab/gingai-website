@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { compressAudioFile, uploadBriefingAudio } from "@/lib/briefingAudio";
 import Briefing, {
   type Recording,
   type Stage,
@@ -137,6 +138,22 @@ export default function BriefingPage({
   async function runUpload(file: File) {
     setStage("uploading");
 
+    /* Keep our own copy. The recording goes to the transcription service and is
+       not retained anywhere we control, so without this the only record of what
+       the room actually said is whatever the transcript got right.
+
+       Started here and not awaited: transcription is the thing the coach is
+       waiting on, and archiving must never be what holds it up or what fails
+       it. A failure is logged, not raised. */
+    void (async () => {
+      try {
+        const { blob } = await compressAudioFile(file);
+        await uploadBriefingAudio(runId, blob, file.name);
+      } catch (e) {
+        console.error("[briefing] could not archive the recording", e);
+      }
+    })();
+
     const form = new FormData();
     form.append("audio", file);
 
@@ -257,6 +274,7 @@ export default function BriefingPage({
         structured={structured}
         prompt={prompt}
         onPromptChange={(next) => { setPrompt(next); setDirty(true); }}
+        runId={runId}
         onUpload={handleUpload}
         uploadError={uploadError}
         dirty={dirty}

@@ -387,7 +387,6 @@ export default function CapturePage({
         onGenerate={handleGenerate}
         onSend={handleSend}
         defaultQuestions={DEFAULT_QUESTIONS}
-        runId={runId}
       />
     </div>
   );
