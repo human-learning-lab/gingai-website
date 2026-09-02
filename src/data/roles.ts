@@ -61,10 +61,20 @@ const BASE_ALLOWED_DOMAINS: Record<string, string> = {
 // on its own — nothing here needs to be undone before a merge.
 const IS_HLL = process.env.NEXT_PUBLIC_TEAM === 'hll';
 
-// A few production roles are carried across by id so the accounts that need
-// alpha keep working; see HLL_CARRIED_ROLE_IDS for why each one is there.
+/* Alpha carries every production role, plus the HLL testers.
+ *
+ * It used to carry a handful by id, which left the rest of the squad signing in
+ * with a perfectly good roleId that alpha did not recognise — ProtectedShell
+ * failed its check, assign-role 403'd on the narrower alpha maps, and they
+ * landed on /pending. Since the console roster now shows the whole squad, they
+ * could be sent questions they could not open.
+ *
+ * This does not reassign anyone. The layout only writes a roleId when the
+ * account has none or its email is in the alpha map, and neither is true for
+ * these accounts — their stored role is simply recognised now. HLL_CARRIED_ROLE_IDS
+ * is kept for the email map, which still needs to name who is reachable. */
 export const ROLES: Role[] = IS_HLL
-  ? [...BASE_ROLES.filter(r => HLL_CARRIED_ROLE_IDS.includes(r.id)), ...HLL_ROLES]
+  ? [...BASE_ROLES, ...HLL_ROLES]
   : BASE_ROLES;
 
 export const EMAIL_ROLE_MAP: Record<string, string> = IS_HLL
