@@ -86,13 +86,13 @@ export default function InterviewConsolePage() {
       throw new Error(data?.error ?? "Could not create the interview run");
     }
 
-    /* One link per sailor carrying their name: without it the response page
-       falls back to the Clerk first name of whoever opens it, so a forwarded
-       link answers against someone else's profile. Popup blockers allow the
-       first window without a gesture but not the rest, hence the stagger. */
+    /* A bare link. There is one interview and one run, so there is nothing to
+       select — the page resolves both from its own defaults, and who is
+       answering from the signed-in account. Popup blockers allow the first
+       window without a gesture but not the rest, hence the stagger. */
     const base = shareBaseUrl();
+    const url = `${base}/interview`;
     recipients.forEach((name, i) => {
-      const url = `${base}/interview?id=${encodeURIComponent(runId)}&sailor=${encodeURIComponent(name)}`;
       const text = encodeURIComponent(
         `${name} — your sailor context interview. Eleven questions, voice or text, whatever suits. It builds your profile.\n${url}`,
       );
