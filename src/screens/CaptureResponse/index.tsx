@@ -30,9 +30,13 @@ interface Sailor {
 }
 
 export default function CaptureResponsePage(
-  { runId, sailorName, transcriptLines, onRecordingChange}:
+  { runId, sailorName, transcriptLines, onRecordingChange, kind = "capture"}:
   { runId: string;
     sailorName?: string;
+    /* Which set of questions this page is answering. The screen is identical
+       for a capture and an interview — only the run's kind differs, and it
+       decides where answers, audio and the question set are read and written. */
+    kind?: string;
     transcriptLines?: string[];
     onRecordingChange?: (recording: boolean) => Promise<Blob | null> | null | void;
   }) {
@@ -120,15 +124,17 @@ export default function CaptureResponsePage(
 	  	runId={runId} 
 		sailor={sailor} 
 		transcriptLines={transcriptLines}
+		kind={kind}
 		onRecordingChange={onRecordingChange}/>
     </div>
   );
 }
 
-function Page({ runId, sailor, transcriptLines, onRecordingChange }: 
+function Page({ runId, sailor, transcriptLines, onRecordingChange, kind }: 
 {
   runId: string;
   sailor: Sailor;
+  kind: string;
   transcriptLines?: string[];
   onRecordingChange?: (recording: boolean) => Promise<Blob | null> | null | void;
 }){
@@ -188,7 +194,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
     setClips(c => ({ ...c, [index]: { localUrl, status: "uploading" } }));
     try {
       const { path, url } = await uploadClip({
-        runId, kind: "capture", sailor: sailor.firstName, index, blob,
+        runId, kind, sailor: sailor.firstName, index, blob,
       });
       filedPaths.current.add(path);
       setClips(c => ({ ...c, [index]: { ...c[index], url, status: "saved" } }));
@@ -230,7 +236,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 		   The mirror always holds the latest. Falls back for runs that
 		   predate it. */
 		const mirrored = await fetch(
-			`/api/question-set?runId=${encodeURIComponent(runId)}&sailor=${encodeURIComponent(sailor.firstName)}&kind=capture`,
+			`/api/question-set?runId=${encodeURIComponent(runId)}&sailor=${encodeURIComponent(sailor.firstName)}&kind=${encodeURIComponent(kind)}`,
 		);
 		if (mirrored.ok) {
 			const set = await mirrored.json();
@@ -240,7 +246,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 			}
 		}
 
-	  	const res = await fetch(`/api/responses/${runId}?kind=capture&sailor=${sailor.firstName}`);
+	  	const res = await fetch(`/api/responses/${runId}?kind=${encodeURIComponent(kind)}&sailor=${sailor.firstName}`);
 	  	const resps = await res.json();
 		if (resps.questions)
 	  		setQuestions(resps.questions);
@@ -268,7 +274,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
     setSaving(true);
     setSaveError(null);
     try {
-      const res = await fetch(`/api/responses/${runId}?kind=capture`, {
+      const res = await fetch(`/api/responses/${runId}?kind=${encodeURIComponent(kind)}`, {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ respondee: sailor.firstName, responses: answers }),
@@ -280,7 +286,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 
       /* Only now. An abandoned half-attempt must leave the previous recordings
          alone, because the answers behind them are still the filed ones. */
-      void pruneClips(runId, "capture", sailor.firstName, [...filedPaths.current])
+      void pruneClips(runId, kind, sailor.firstName, [...filedPaths.current])
         .catch(() => undefined);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'The answers could not be sent.');
