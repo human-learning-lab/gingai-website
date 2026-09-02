@@ -57,19 +57,24 @@ export const HLL_ALLOWED_DOMAINS: Record<string, string> = {
  * each keep their own `SAILORS` list, separate from ROLES above, because
  * their display labels and membership differ from the access roster.
  *
+ * Alpha now shows the whole squad rather than replacing it with a three-person
+ * test team: the additions below are appended to it. Anyone already on the
+ * squad list — Christian and Rasmus are both on it — is not duplicated.
+ *
  * Names here are first names: `recipients` is keyed by `sailor.name`, and
  * the Capture screen tags uploads with the Clerk first name.
  */
 
 interface SailorLike { id: string; name: string; role: string; }
 
-const HLL_SAILORS: SailorLike[] = [
-  { id: 'hll-dan', name: 'Daniel',    role: 'Helm' },
-  { id: 'hll-chr', name: 'Christian', role: 'Head Coach' },
-  { id: 'hll-ras', name: 'Rasmus',    role: 'Flight Controller' },
+/** Testers who are not on the squad list. Benjamin is deliberately absent. */
+const HLL_EXTRA_SAILORS: SailorLike[] = [
+  { id: 'hll-dan', name: 'Daniel', role: 'Helm' },
 ];
 
-/** Returns `base` untouched unless NEXT_PUBLIC_TEAM=hll, which swaps in the HLL team. */
+/** Returns `base` untouched unless NEXT_PUBLIC_TEAM=hll, which appends the testers. */
 export function teamSailors(base: SailorLike[]): SailorLike[] {
-  return process.env.NEXT_PUBLIC_TEAM === 'hll' ? HLL_SAILORS : base;
+  if (process.env.NEXT_PUBLIC_TEAM !== 'hll') return base;
+  const known = new Set(base.map((s) => s.name));
+  return [...base, ...HLL_EXTRA_SAILORS.filter((s) => !known.has(s.name))];
 }
