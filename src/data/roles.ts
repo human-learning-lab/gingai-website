@@ -92,21 +92,19 @@ export const ALLOWED_DOMAINS: Record<string, string> = IS_HLL
 export const DEFAULT_ROLE = BASE_ROLES.find(r => r.id === 'rasmus')!;
 
 /**
- * The role a signed-in account gets, by email, then domain, then first name,
- * then a default.
+ * The role a signed-in account gets, by email, then domain, then first name.
  *
- * Both the layout and /api/assign-role resolve access, and they used to do it
- * differently: the layout ended in a fallback, the route ended in a 403. An
- * account the route refused therefore sat on /pending while the layout would
- * happily have let it in. One function, so that cannot drift again.
+ * Undefined means no role, which means /pending. There is deliberately no
+ * catch-all: the layout used to end in `?? 'christian'`, so any account that
+ * reached a protected page was written a role and admitted — an open door that
+ * nothing in the UI announced. Access now has to be granted by one of the three
+ * maps below.
  *
- * The final fallback is what makes access open: anyone who can sign in gets in.
- * That is deliberate for a closed project, and it is the line to change if it
- * ever stops being one.
+ * Both the layout and /api/assign-role call this. They used to resolve access
+ * differently, which is how an account the route refused could sit on /pending
+ * holding a role the layout would have given it.
  */
-export const FALLBACK_ROLE_ID = 'christian';
-
-export function resolveRoleId(email?: string, firstName?: string): string {
+export function resolveRoleId(email?: string, firstName?: string): string | undefined {
   const address = email?.toLowerCase().trim();
   const domain = address?.split('@')[1];
   const name = firstName?.toLowerCase().trim();
@@ -114,7 +112,6 @@ export function resolveRoleId(email?: string, firstName?: string): string {
   return (
     (address ? EMAIL_ROLE_MAP[address] : undefined) ??
     (domain ? ALLOWED_DOMAINS[domain] : undefined) ??
-    (name ? ROLES.find(r => r.name.toLowerCase().split(' ')[0] === name)?.id : undefined) ??
-    FALLBACK_ROLE_ID
+    (name ? ROLES.find(r => r.name.toLowerCase().split(' ')[0] === name)?.id : undefined)
   );
 }

@@ -47,16 +47,13 @@ export const HLL_EMAIL_ROLE_MAP: Record<string, string> = {
 /**
  * Replaces the production domain map in alpha.
  *
- * sailgpbra.com used to be withheld here so a crew member opening the alpha URL
- * landed on /pending rather than being silently reassigned — a rewrite that
- * would have followed them back into production through the shared Clerk
- * instance. Alpha now carries every production role, so an existing account is
- * recognised and never reaches the assignment path at all; only an account with
- * no role does, which is exactly the one we want to admit.
+ * sailgpbra.com is deliberately absent. The crew already hold a role and alpha
+ * now recognises every production one, so they are admitted without ever
+ * reaching the assignment path. Mapping the domain would additionally admit any
+ * future sailgpbra.com account, which is broader than intended.
  */
 export const HLL_ALLOWED_DOMAINS: Record<string, string> = {
-  'hulelab.com':   'christian',
-  'sailgpbra.com': 'christian',
+  'hulelab.com': 'christian',
 };
 
 /* ── Phase-console roster ──────────────────────────────────────
