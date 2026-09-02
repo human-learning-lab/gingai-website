@@ -140,6 +140,16 @@ export default function CapturesInPage({
 
       const rows: CaptureResponse[] = Array.isArray(resps) ? resps : [];
 
+      /* Mirror the answers into Storage as they are read, the same way step 2
+         does. Fire and forget: the console must render whether or not the copy
+         lands, and the mirror is a record, not something this screen reads. */
+      if (rows.length) {
+        void fetch(`/api/responses/${encodeURIComponent(runId)}/mirror?kind=capture`, {
+          method: "POST",
+        }).catch(() => undefined);
+      }
+
+
       setLoaded(true);
       setResponses(rows.map((row) => {
         const filed = day?.sailors?.[row.recipient] as
@@ -377,6 +387,7 @@ async function handleSynthesise(prompt: string) {
   return (
     <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
       <CapturesIn
+        runId={runId}
         sailors={SAILORS}
         responses={responses}
         squadGoals={squadGoals}

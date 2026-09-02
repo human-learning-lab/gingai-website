@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { listClips } from "@/lib/audioClips";
 
 /* ============================================================
    Ginga — Captures in
@@ -102,6 +103,7 @@ export interface CapturesInProps {
 
   /** When the debrief starts, e.g. "19:30". Shown as context for the hurry. */
   debriefAt?: string;
+  runId: string;
 }
 
 type View = "individuals" | "team";
@@ -158,6 +160,7 @@ export default function CapturesIn({
   onCarried,
   onSynthesise,
   onCarryForward,
+  runId,
 }: CapturesInProps) {
   /* Distilled lines live in the parent so a run already on file can hydrate
      them; they are merged in here rather than written into `responses`, which
@@ -177,6 +180,23 @@ export default function CapturesIn({
   const [view, setView] = useState<View>("individuals");
   const [depth, setDepth] = useState<Depth>("full");
   const [selected, setSelected] = useState<SailorId>(answered[0]?.name ?? "");
+
+  /* The recordings behind the answers, for the sailor being read. Listed per
+     selection rather than for the whole crew — a coach reads one person at a
+     time. Mirrors what step 2 does with the priming answers. */
+  const [clips, setClips] = useState<Record<number, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    setClips({});
+    if (!selected) return;
+    listClips(runId, "capture", selected)
+      .then((refs) => {
+        if (cancelled) return;
+        setClips(Object.fromEntries(refs.map((r) => [r.index, r.url])));
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [runId, selected]);
   const [busy, setBusy] = useState<"distil" | "synthesis" | "carry" | null>(null);
   const [carryState, setCarryState] = useState<"idle" | "done" | "error">("idle");
   const [carryError, setCarryError] = useState<string | null>(null);
@@ -402,6 +422,16 @@ export default function CapturesIn({
 						  { depth === 'distilled' && (response?.distilled ? response.distilled[i] : "—" )} 
 						  { depth === 'full' && (response.responses[i] ?? "—")}
                         </div>
+                        {clips[i] && (
+                          /* preload="none": a coach opens one recording, not
+                             every recording on the screen. */
+                          <audio
+                            controls
+                            preload="none"
+                            src={clips[i]}
+                            style={{ width: "100%", height: 32, marginTop: 9 }}
+                          />
+                        )}
                       </div>
                     ))}
 					{ depth === 'distilled' && (
