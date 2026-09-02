@@ -1,6 +1,7 @@
 'use client';
 
 import { useRole } from '@/context/RoleContext';
+import { uploadClip } from "@/lib/audioClips";
 import React, { useCallback, useState, useRef, useEffect } from "react";
 import { IconStop } from '@/components/Icons';
 
@@ -18,6 +19,14 @@ type Mode = "capture" | "priming" | "note";
 
 type ShareChoice = "private" | "rich" | "team";
 
+/** A recorded answer: playable at once, filed to Storage in the background. */
+interface Clip {
+  localUrl: string;
+  url?: string;
+  status: "uploading" | "saved" | "failed";
+  error?: string;
+}
+
 type Phase    = 'idle' | 'recording' | 'transcribing' | 'review';
 
 interface Sailor {
@@ -30,7 +39,7 @@ export default function PrimingResponsePage(
   { runId: string;
     sailorName?: string;
     transcriptLines?: string[];
-    onRecordingChange?: (recording: boolean) => void;
+    onRecordingChange?: (recording: boolean) => Promise<Blob | null> | null | void;
 }) {
   const { role } = useRole();
   /* `role` is null while Clerk is still resolving, and when the stored roleId
@@ -132,7 +141,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
   runId: string;
   sailor: Sailor;
   transcriptLines?: string[];
-  onRecordingChange?: (recording: boolean) => void;
+  onRecordingChange?: (recording: boolean) => Promise<Blob | null> | null | void;
 }){
   const [step, setStep] = useState(0);
   const [inputMode, setInputMode] = useState<"voice" | "text">("voice");
@@ -141,6 +150,16 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
   const [kinds, setKinds] = useState<string[]>([]);
   const [times, setTimes] = useState<number[]>([]);
   const [micDenied, setMicDenied] = useState(false);
+
+  /* One recording per question, kept for playback on the way out and filed to
+     Storage as soon as it exists. Playback uses the local blob so it is instant
+     and works whether or not the upload has landed. */
+  const [clips, setClips] = useState<Record<number, Clip>>({});
+  useEffect(
+    () => () => { Object.values(clips).forEach(c => URL.revokeObjectURL(c.localUrl)); },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   /* The submission can be refused upstream: the backend checks the answer count
      against its own copy of the question set, so a sailor served a set that
@@ -169,6 +188,27 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
     timerRef.current = setInterval(() => setRecTime(p => p + 1), 1000);
   }, []);
 
+  /** Files one answer's audio, and records on screen whether it landed. */
+  const keepClip = useCallback(async (index: number, blob: Blob) => {
+    const localUrl = URL.createObjectURL(blob);
+    setClips(c => ({ ...c, [index]: { localUrl, status: "uploading" } }));
+    try {
+      const { url } = await uploadClip({
+        runId, kind: "priming", sailor: sailor.firstName, index, blob,
+      });
+      setClips(c => ({ ...c, [index]: { ...c[index], url, status: "saved" } }));
+    } catch (err) {
+      setClips(c => ({
+        ...c,
+        [index]: {
+          ...c[index],
+          status: "failed",
+          error: err instanceof Error ? err.message : "Could not save the recording",
+        },
+      }));
+    }
+  }, [runId, sailor.firstName]);
+
   const stopRecording = useCallback(async () => {
     if (timerRef.current) clearInterval(timerRef.current);
     /* Hand the transcript to submitText directly. setDraft does not apply
@@ -176,9 +216,16 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
        from before the recording — an empty answer. */
     const transcript = lines.join('\n');
     setDraft(transcript);
-    onRecordingChange?.(false);
+
+    /* Started, not awaited: the sailor moves to the next question straight
+       away, and the recording is filed against the question it answers once
+       the recorder has finished draining. */
+    const index = step;
+    const pending = onRecordingChange?.(false) ?? null;
     submitText(transcript);
-  }, [lines, onRecordingChange]);
+    const clip = await pending;
+    if (clip) void keepClip(index, clip);
+  }, [lines, onRecordingChange, step, keepClip]);
 
 
   useEffect(() => {
@@ -377,7 +424,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
       </header>
 
       {finished ? (
-        <Done sent={sent} questions={questions} sailor={sailor} kinds={kinds} times={times} saveError={saveError} saving={saving} onRetry={() => void submitAll(sent)} />
+        <Done sent={sent} questions={questions} sailor={sailor} kinds={kinds} times={times} saveError={saveError} saving={saving} onRetry={() => void submitAll(sent)} clips={clips} />
       ) : (
         <>
           { 
@@ -433,7 +480,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
   );
 }
 
-function Done({questions, sent, kinds, times, sailor, saveError, saving, onRetry}: {questions: string[], sent: string[]; kinds: string[]; times: number[]; sailor: Sailor; saveError: string | null; saving: boolean; onRetry: () => void}) {
+function Done({questions, sent, kinds, times, sailor, saveError, saving, onRetry, clips}: {questions: string[], sent: string[]; kinds: string[]; times: number[]; sailor: Sailor; saveError: string | null; saving: boolean; onRetry: () => void; clips: Record<number, Clip>}) {
   return (
     <div style={{ padding: "32px 22px", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
@@ -472,10 +519,38 @@ function Done({questions, sent, kinds, times, sailor, saveError, saving, onRetry
           <div style={{ marginTop: 20, paddingTop: 15, borderTop: `1px solid ${C.line}` }}>
             <div style={{ ...lbl, marginBottom: 8 }}>{saveError ? "What you answered" : "What you sent"}</div>
             {sent.map((a: string, i: number) => (
-              <div key={i} style={{ display: "flex", gap: 9, padding: "6px 0", fontSize: 12, color: C.warm, alignItems: "baseline" }}>
-                <span style={{ color: C.green, fontWeight: 600 }}>{i + 1}</span>
-                <span style={{ flex: 1, lineHeight: 1.45 }}>{questions[i]}</span>
-                <span style={{ flex: 1, lineHeight: 1.45 }}>{kinds[i] === 'voice' ? `Voice Note: ${times[i]}s` : 'Text'}</span>
+              <div key={i} style={{ padding: "6px 0" }}>
+                <div style={{ display: "flex", gap: 9, fontSize: 12, color: C.warm, alignItems: "baseline" }}>
+                  <span style={{ color: C.green, fontWeight: 600 }}>{i + 1}</span>
+                  <span style={{ flex: 1, lineHeight: 1.45 }}>{questions[i]}</span>
+                  <span style={{ flex: 1, lineHeight: 1.45 }}>{kinds[i] === 'voice' ? `Voice Note: ${times[i]}s` : 'Text'}</span>
+                </div>
+                {clips[i] && (
+                  <div style={{ marginTop: 7, paddingLeft: 18 }}>
+                    {/* Native controls on purpose: scrubbing, duration and the
+                        volume behaviour a phone's own player gives are not worth
+                        rebuilding badly. */}
+                    <audio
+                      controls
+                      preload="metadata"
+                      src={clips[i].localUrl}
+                      style={{ width: "100%", height: 32 }}
+                    />
+                    <div
+                      style={{
+                        fontSize: 10.5,
+                        marginTop: 3,
+                        color: clips[i].status === "failed" ? C.clay : C.warmLt,
+                      }}
+                    >
+                      {clips[i].status === "uploading"
+                        ? "Saving the recording…"
+                        : clips[i].status === "saved"
+                        ? "Recording saved"
+                        : `Recording not saved — ${clips[i].error}`}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
