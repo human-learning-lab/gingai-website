@@ -322,6 +322,37 @@ function buildProfilePrompt(
   ].join('\n');
 }
 
+/**
+ * Builds a context file from one sailor's interview answers and nothing else.
+ *
+ * regenerateProfile scans every transcript on file and folds the interview in
+ * as extra material. This does not: the interview is a deliberate pass over the
+ * whole structure, one question per section, and letting months of race-day
+ * chatter in alongside it would dilute the very answers that were gathered to
+ * be authoritative. What the sailor said, in the order the file is written.
+ */
+export async function profileFromInterview(
+  sailor: string,
+  role: string,
+  material: string,
+  previous: string | null,
+): Promise<SailorProfile> {
+  if (!material.trim()) throw new Error(`No interview answers on file for "${sailor}"`);
+
+  const content = await runAgent(
+    buildProfilePrompt(sailor, role, `FROM THEIR INTERVIEW:\n${material.trim()}`, previous),
+    PROFILE_APP,
+  );
+
+  return {
+    sailor,
+    content,
+    generatedAt: new Date().toISOString(),
+    scanned: { rows: 0, totalChars: material.length, usedChars: material.length },
+    revised: Boolean(previous),
+  };
+}
+
 export async function regenerateProfile(
   sailor: string,
   role: string,
