@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import ContextFilePreview from "@/components/ContextFilePreview";
 import { listClips } from "@/lib/audioClips";
+import GenerateTeamDoc from "@/screens/Console/GenerateTeamDoc";
 import {
   INTERVIEW_KIND,
   INTERVIEW_QUESTIONS,
@@ -544,6 +545,11 @@ function ReadStep({
             endpoint={`/api/sailor-profile?sailor=${encodeURIComponent(selected)}`}
           />
         )}
+
+        {/* The squad file is read across the individual ones, so it belongs at
+            the end of the screen that writes them — rebuild it once the
+            profiles it reads are the ones you just built. */}
+        <GenerateTeamDoc />
       </div>
     </div>
   );

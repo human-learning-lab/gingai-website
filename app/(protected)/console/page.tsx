@@ -8,7 +8,6 @@ import BriefingPage from "@/screens/Briefing";
 import CapturePage from "@/screens/Capturing";
 import CapturesInPage from "@/screens/CapturesIn";
 import HotDebriefPage from "@/screens/HotDebrief";
-import GenerateTeamDoc from "@/screens/Console/GenerateTeamDoc";
 import { REGATTAS, getRegatResult, getDefaultRegat, getDefaultDay } from "@/data/regattas";
 
 /* ============================================================
@@ -307,12 +306,6 @@ export default function ConsolePage() {
       onPhaseChange={setPhase}
       picker={picker}
     >
-      {/* TEMPORARY — a hand-crank on the squad context pipeline, kept until
-          it has a proper home. The per-sailor equivalent used to sit beside it
-          and is unmounted: /interview-console builds a sailor's file from
-          their interview, which is the path we want people using. */}
-      <GenerateTeamDoc />
-
       {/* A venue that is reachable but should be left alone until its day.
           Unlike the TEST venues this is not alpha-gated — the warning matters
           most in production, where Valencia is the next real race day and the

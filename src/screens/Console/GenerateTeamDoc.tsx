@@ -6,8 +6,8 @@ import { useState } from "react";
    TEMPORARY — a hand-crank on the squad context pipeline.
 
    TODO: remove this component, its mount in
-   app/(protected)/console/page.tsx, and the route at
-   app/api/team-report/regenerate, once the squad file is
+   src/screens/InterviewConsole/InterviewConsole.tsx, and the
+   route at app/api/team-report/regenerate, once the squad file is
    rebuilt on a schedule or off the back of the debrief rather
    than by someone pressing a button. The pipeline it drives
    (generateTeamContext in src/lib/sailorReport.ts) is meant to
@@ -16,9 +16,11 @@ import { useState } from "react";
    Reads every sailor's context file and writes the squad-level
    one to team/current.md.
 
-   Unlike the per-sailor version, which is unmounted, this one
-   ships to production deliberately: there is no other way to
-   rebuild the squad file yet. It is kept small and marked so
+   It lives on /interview-console, beside the profiles it reads
+   across, rather than on /console where it had nothing to do
+   with the phase in front of it. Unlike the per-sailor version,
+   which is unmounted, it ships to production deliberately:
+   there is no other way to rebuild the squad file yet. It is kept small and marked so
    nobody mistakes it for finished furniture, but it does cost
    one model call across every sailor file, so it is not a
    button to lean on.
