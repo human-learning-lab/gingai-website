@@ -385,7 +385,7 @@ async function handleSynthesise(prompt: string) {
   }
 
   return (
-    <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
+    <div className="phase-pad" style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
       <CapturesIn
         runId={runId}
         sailors={SAILORS}

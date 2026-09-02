@@ -267,7 +267,7 @@ export default function BriefingPage({
   }
 
   return (
-    <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
+    <div className="phase-pad" style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
       <Briefing
         carriedGoals={carriedGoals}
         recording={recording}

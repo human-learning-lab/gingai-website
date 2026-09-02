@@ -249,7 +249,7 @@ export default function SkeletonBrief({
         </p>
       </header>
 
-      <div
+      <div className="phase-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "minmax(0,1fr) 236px",
@@ -400,7 +400,7 @@ export default function SkeletonBrief({
           </Card>
         </div>
 
-        <aside
+        <aside className="phase-sticky"
           style={{
             display: "flex",
             flexDirection: "column",

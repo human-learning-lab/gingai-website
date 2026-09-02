@@ -152,7 +152,7 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
         { id: "goals", label: "Squad goals", detail: goals ? `${goals} from the briefing` : "no briefing saved", enabled: goals > 0 },
         { id: "decisions", label: "Briefing decisions", detail: decisions ? `${decisions} on file` : "none on file", enabled: decisions > 0 },
         { id: "open", label: "Left open in the brief", detail: open ? `${open} item${open === 1 ? "" : "s"}` : "nothing left open", enabled: open > 0 },
-        { id: "priming", label: "This morning's priming", detail: primingIn ? `${primingIn} sailors distilled` : "nothing filed", enabled: false },
+        { id: "priming", label: "This morning's priming", detail: primingIn ? `${primingIn} sailors distilled` : "nothing filed", enabled: primingIn > 0 },
       ];
       setSources(next);
       setSelectedSourceIds(next.filter((s) => s.enabled).map((s) => s.id));
@@ -264,7 +264,7 @@ export default function HotDebriefPage({ runId }: { runId: string }) {
   }
 
   return (
-    <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
+    <div className="phase-pad" style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
       <HotDebrief
         sources={sources}
         selectedSourceIds={selectedSourceIds}

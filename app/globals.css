@@ -1878,3 +1878,41 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── Console phases on a narrow screen ─────────────────────────
+ * The six phases lay out in two or three fixed columns — a crew list, the
+ * answers, a prompt panel — which cannot fit a phone. Rather than rewrite each
+ * layout, the columns stack and the side panels stop sticking.
+ *
+ * The declarations are !important because these grids set grid-template-columns
+ * inline, and an inline style otherwise wins over a stylesheet. Tagging the
+ * element is then the only change each screen needs.
+ */
+@media (max-width: 900px) {
+  .phase-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* A sticky side panel in a stacked layout follows the reader down the page
+     over the content it belongs beside. */
+  .phase-sticky {
+    position: static !important;
+  }
+}
+
+@media (max-width: 640px) {
+  /* The phases pad to 22px, which costs a tenth of a phone's width on each
+     side before any content is drawn. */
+  .phase-pad {
+    padding: 14px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Step 4 caps its side column to the viewport and scrolls inside it, so the
+     send button stays reachable on a tall screen. Stacked on a phone that
+     becomes a short scroll box nested in the page scroll — two scrollbars for
+     one list. Release it and let the column run at its natural height. */
+  .phase-sticky {
+    max-height: none !important;
+  }
+}

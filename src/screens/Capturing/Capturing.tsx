@@ -260,7 +260,7 @@ export default function Capture({
         </p>
       </header>
 
-      <div
+      <div className="phase-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "minmax(0,1fr) minmax(520px, 620px)",
@@ -393,7 +393,7 @@ export default function Capture({
 
         </div>
 
-        <aside
+        <aside className="phase-sticky"
           style={{
             display: "flex",
             flexDirection: "column",

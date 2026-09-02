@@ -336,7 +336,7 @@ export default function PrimingIn({
       </div>
 
       {view === "individuals" ? (
-        <div
+        <div className="phase-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "212px minmax(0,1fr) 280px",
@@ -461,7 +461,7 @@ export default function PrimingIn({
             )}
           </div>
 
-          <div style={{ position: "sticky", top: 16 }}>
+          <div className="phase-sticky" style={{ position: "sticky", top: 16 }}>
             <Card title="Distilling prompt">
               <p
                 style={{
@@ -520,7 +520,7 @@ export default function PrimingIn({
           </div>
         </div>
       ) : (
-        <div
+        <div className="phase-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "minmax(0,1fr) 300px",
@@ -678,7 +678,7 @@ export default function PrimingIn({
             </Card>
           </div>
 
-          <div
+          <div className="phase-sticky"
             style={{
               display: "flex",
               flexDirection: "column",

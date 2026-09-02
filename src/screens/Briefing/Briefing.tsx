@@ -222,7 +222,7 @@ export default function Briefing({
         style={{ display: "none" }}
       />
 
-      <div
+      <div className="phase-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "minmax(0,1fr) 300px",
@@ -532,7 +532,7 @@ export default function Briefing({
           )}
         </div>
 
-        <aside
+        <aside className="phase-sticky"
           style={{
             display: "flex",
             flexDirection: "column",
