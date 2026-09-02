@@ -56,7 +56,7 @@ You are given: the squad goals agreed in the briefing, this sailor's own
 goal from the morning, and their role.
 
 Rules:
-- Four questions maximum. They are standing on a dock and tired.
+- Three questions maximum. They are standing on a dock and tired.
 - One must ask directly about their own goal, in their own words.
 - One must ask about a squad goal — the one closest to their role.
 - Ask what happened, not how they felt about it.
@@ -371,7 +371,7 @@ export default function CapturePage({
   }
 
   return (
-    <div style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
+    <div className="phase-pad" style={{ background: "#F7F4ED", minHeight: "100%", padding: 22 }}>
       {!hasSent && (
         <p
           style={{

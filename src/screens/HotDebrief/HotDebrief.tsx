@@ -167,7 +167,7 @@ export default function HotDebrief({
         </p>
       </header>
 
-      <div
+      <div className="phase-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "minmax(0,1fr) 300px",
@@ -352,7 +352,7 @@ export default function HotDebrief({
           )}
         </div>
 
-        <aside
+        <aside className="phase-sticky"
           style={{
             display: "flex",
             flexDirection: "column",

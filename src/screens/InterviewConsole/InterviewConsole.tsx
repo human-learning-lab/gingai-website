@@ -122,6 +122,7 @@ export default function InterviewConsole({
        not scroll itself simply gets clipped. minHeight:0 is what lets a flex
        child shrink below its content and actually scroll. */
     <div
+      className="phase-pad"
       style={{
         fontFamily: UI,
         color: C.ink,
@@ -246,7 +247,7 @@ function SendStep({
     onQuestionsChange(questions.map((q, n) => (n === i ? text : q)));
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 320px", gap: 16, alignItems: "start" }}>
+    <div className="phase-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 320px", gap: 16, alignItems: "start" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <Card title="The interview">
           <p style={{ fontSize: 12, color: C.warm, lineHeight: 1.55, margin: "0 0 12px" }}>
@@ -313,7 +314,7 @@ function SendStep({
         </Footnote>
       </div>
 
-      <div style={{ position: "sticky", top: 16 }}>
+      <div className="phase-sticky" style={{ position: "sticky", top: 16 }}>
         <ContextFilePreview
           label={`The worked example · ${INTERVIEW_REFERENCE_SAILOR}`}
           endpoint={`/api/sailor-profile?sailor=${encodeURIComponent(INTERVIEW_REFERENCE_SAILOR)}`}
@@ -372,7 +373,7 @@ function ReadStep({
   }, [runId, selected]);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "200px minmax(0,1fr) 300px", gap: 16, alignItems: "start" }}>
+    <div className="phase-grid" style={{ display: "grid", gridTemplateColumns: "200px minmax(0,1fr) 300px", gap: 16, alignItems: "start" }}>
       <Card title="Crew">
         {sailors.map((s) => {
           const has = (byName.get(s.name)?.responses ?? []).some((r) => r?.trim());
@@ -479,7 +480,7 @@ function ReadStep({
         )}
       </div>
 
-      <div style={{ position: "sticky", top: 16, display: "flex", flexDirection: "column", gap: 14 }}>
+      <div className="phase-sticky" style={{ position: "sticky", top: 16, display: "flex", flexDirection: "column", gap: 14 }}>
         <Card title="Distil">
           <p style={{ fontSize: 12, color: C.warm, lineHeight: 1.55, margin: "0 0 10px" }}>
             One line per answer, keeping the specifics. Both the line and the

@@ -1878,3 +1878,97 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── Console phases on a narrow screen ─────────────────────────
+ * The six phases lay out in two or three fixed columns — a crew list, the
+ * answers, a prompt panel — which cannot fit a phone. Rather than rewrite each
+ * layout, the columns stack and the side panels stop sticking.
+ *
+ * The declarations are !important because these grids set grid-template-columns
+ * inline, and an inline style otherwise wins over a stylesheet. Tagging the
+ * element is then the only change each screen needs.
+ */
+@media (max-width: 900px) {
+  .phase-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* A sticky side panel in a stacked layout follows the reader down the page
+     over the content it belongs beside. */
+  .phase-sticky {
+    position: static !important;
+  }
+}
+
+@media (max-width: 640px) {
+  /* The phases pad to 22px, which costs a tenth of a phone's width on each
+     side before any content is drawn. */
+  .phase-pad {
+    padding: 14px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Step 4 caps its side column to the viewport and scrolls inside it, so the
+     send button stays reachable on a tall screen. Stacked on a phone that
+     becomes a short scroll box nested in the page scroll — two scrollbars for
+     one list. Release it and let the column run at its natural height. */
+  .phase-sticky {
+    max-height: none !important;
+  }
+}
+
+/* ── Step 1 running order on a phone ───────────────────────────
+ * Desktop reads across two columns: the work on the left, Send to pinned on
+ * the right. Stacked, the DOM order would put the context file between the
+ * scope toggle and the questions, and the send button below everything.
+ *
+ * The wanted order is title, scope, questions, prompt, send. `display: contents`
+ * dissolves the left column so its blocks become grid items alongside the
+ * aside, which is what makes a single `order` sequence across both possible.
+ *
+ * The two blocks not in that list keep their sense: the sailor picker follows
+ * the scope toggle it belongs to, and the context file — reference rather than
+ * an action — goes last instead of pushing the questions off the screen.
+ *
+ * Everything here is inside the media query, so the desktop layout is
+ * untouched.
+ */
+@media (max-width: 900px) {
+  .sb-col { display: contents; }
+
+  .sb-scope     { order: 1; }
+  .sb-picker    { order: 2; }
+  .sb-questions { order: 3; }
+  .sb-prompt    { order: 4; }
+  .sb-send      { order: 5; }
+  .sb-context   { order: 6; }
+}
+
+/* ── Step 4 running order on a phone ───────────────────────────
+ * Wanted: title, scope, questions, prompt, send. Desktop reads across two
+ * columns, with the prompt and Send to sitting side by side inside the right
+ * one — so three levels have to be dissolved before a single `order` sequence
+ * can address them: the left column, the aside, and the row inside it.
+ *
+ * Dissolving that row also drops its side-by-side flex and its own scrollbar,
+ * which is what a phone wants anyway.
+ *
+ * The blocks not in the list keep their sense: the sailor picker follows the
+ * scope toggle it belongs to, and the yardstick and context file go last —
+ * reference rather than actions, and either one third would push the questions
+ * off the screen.
+ */
+@media (max-width: 900px) {
+  .cap-col,
+  .cap-aside,
+  .cap-asiderow { display: contents; }
+
+  .cap-scope     { order: 1; }
+  .cap-picker    { order: 2; }
+  .cap-questions { order: 3; }
+  .cap-prompt    { order: 4; }
+  .cap-send      { order: 5; }
+  .cap-sendbtn   { order: 6; }
+  .cap-yardstick { order: 7; }
+  .cap-context   { order: 8; }
+}

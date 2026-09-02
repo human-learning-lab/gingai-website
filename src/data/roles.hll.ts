@@ -44,7 +44,14 @@ export const HLL_EMAIL_ROLE_MAP: Record<string, string> = {
   'rkostner@sailgpbra.com': 'rasmus',
 };
 
-/** Replaces the production domain map in alpha. sailgpbra.com is deliberately absent. */
+/**
+ * Replaces the production domain map in alpha.
+ *
+ * sailgpbra.com is deliberately absent. The crew already hold a role and alpha
+ * now recognises every production one, so they are admitted without ever
+ * reaching the assignment path. Mapping the domain would additionally admit any
+ * future sailgpbra.com account, which is broader than intended.
+ */
 export const HLL_ALLOWED_DOMAINS: Record<string, string> = {
   'hulelab.com': 'christian',
 };

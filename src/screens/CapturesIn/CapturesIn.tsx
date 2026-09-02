@@ -302,7 +302,7 @@ export default function CapturesIn({
       </div>
 
       {view === "individuals" ? (
-        <div
+        <div className="phase-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "212px minmax(0,1fr) 280px",
@@ -451,7 +451,7 @@ export default function CapturesIn({
             )}
           </div>
 
-          <div style={{ position: "sticky", top: 16 }}>
+          <div className="phase-sticky" style={{ position: "sticky", top: 16 }}>
             <Card title="Distilling prompt">
               <Hint>
                 How Ginga condenses each answer. Edit it if the distilled version
@@ -472,10 +472,21 @@ export default function CapturesIn({
                 Applies to everyone. The full answers are never touched.
               </Footnote>
             </Card>
+
+            {/* Directly under the distil box, the way the team view puts it
+                above Carry into the debrief: the save belongs with the work. */}
+            <Button
+              onClick={save}
+              disabled={!dirty || saving}
+              dark={dirty}
+              style={{ marginTop: 14 }}
+            >
+              {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
+            </Button>
           </div>
         </div>
       ) : (
-        <div
+        <div className="phase-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "minmax(0,1fr) 300px",
@@ -653,7 +664,7 @@ export default function CapturesIn({
             )}
           </div>
 
-          <div
+          <div className="phase-sticky"
             style={{
               display: "flex",
               flexDirection: "column",
@@ -739,30 +750,6 @@ export default function CapturesIn({
         </div>
       )}
 
-      {/* The save sits beside Carry into the debrief once there is a reading to
-          carry. Until then — and on the individuals view, whose distilled
-          answers are editable — it falls back to the end of the work. */}
-      {(view === "individuals" || !teamReading) && (
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
-        <button
-          onClick={save}
-          disabled={!dirty || saving}
-          style={{
-            border: "none",
-            borderRadius: 7,
-            padding: "8px 16px",
-            fontSize: 13,
-            fontWeight: 600,
-            background: dirty ? C.ink : C.sand2,
-            color: dirty ? "#fff" : C.warmLt,
-            cursor: dirty && !saving ? "pointer" : "not-allowed",
-            opacity: saving ? 0.55 : 1,
-          }}
-        >
-          {saving ? "Saving…" : dirty ? "Save changes" : "Saved ✓"}
-        </button>
-      </div>
-      )}
     </div>
   );
 }
