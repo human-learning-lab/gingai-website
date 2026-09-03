@@ -43,8 +43,11 @@ const BASE_SAILORS: Sailor[] = [
 
 const SAILORS: Sailor[] = teamSailors(BASE_SAILORS);
 
+/* Three, because the count is fixed once a set is sent and the backend
+   validates a submission against it. The dropped opener was "What is the main
+   thing on your mind?" — the three kept are the ones the capture reading
+   actually measures against: their goal, where it broke, what carries. */
 const DEFAULT_QUESTIONS = [
-  "What is the main thing on your mind?",
   "Did you achieve the goal you set this morning?",
   "Where did the plan break down most clearly?",
   "What should we take into tomorrow?",
@@ -56,7 +59,8 @@ You are given: the squad goals agreed in the briefing, this sailor's own
 goal from the morning, and their role.
 
 Rules:
-- Three questions maximum. They are standing on a dock and tired.
+- Exactly three questions, no more and no fewer. They are standing on a
+  dock and tired.
 - One must ask directly about their own goal, in their own words.
 - One must ask about a squad goal — the one closest to their role.
 - Ask what happened, not how they felt about it.

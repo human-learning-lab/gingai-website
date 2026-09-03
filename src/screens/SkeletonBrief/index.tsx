@@ -43,7 +43,7 @@ items carried forward from the last debrief.
 
 Rules:
 - Ask what the sailor already knows. Do not teach or suggest answers.
-- Three questions maximum.
+- Exactly three questions, no more and no fewer.
 - Each must be answerable in under a minute of speaking.
 - Plain language. No jargon the sailor wouldn't use themselves.`;
 
