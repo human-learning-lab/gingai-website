@@ -164,9 +164,6 @@ export default function SkeletonBrief({
   const editQuestion = (index: number, text: string) =>
     setCurrentQuestions(current_questions.map((q, i) => (i === index ? text : q)));
 
-  const removeQuestion = (index: number) =>
-    setCurrentQuestions(current_questions.filter((_, i) => i !== index));
-
   const moveQuestion = (index: number, delta: number) => {
     const target = index + delta;
     if (target < 0 || target >= current_questions.length) return;
@@ -302,17 +299,10 @@ export default function SkeletonBrief({
                 isLast={index === current_questions.length - 1}
                 onEdit={(text) => editQuestion(index, text)}
                 onMove={(delta) => moveQuestion(index, delta)}
-                onRemove={() => removeQuestion(index)}
               />
             ))}
 
             <div style={{ display: "flex", gap: 8, marginTop: 11 }}>
-              <button
-                onClick={() => setCurrentQuestions([...current_questions, ""])}
-                style={dashedButton}
-              >
-                + Add question
-              </button>
               <button
                 onClick={() => setCurrentQuestions([...defaultQuestions])}
                 style={quietButton}
@@ -604,7 +594,6 @@ function QuestionRow({
   isLast,
   onEdit,
   onMove,
-  onRemove,
 }: {
   index: number;
   value: string;
@@ -612,7 +601,6 @@ function QuestionRow({
   isLast: boolean;
   onEdit: (text: string) => void;
   onMove: (delta: number) => void;
-  onRemove: () => void;
 }) {
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "6px 0" }}>
@@ -641,9 +629,6 @@ function QuestionRow({
       </IconButton>
       <IconButton onClick={() => onMove(1)} disabled={isLast} label="Move down">
         ↓
-      </IconButton>
-      <IconButton onClick={onRemove} label="Remove question">
-        ×
       </IconButton>
     </div>
   );
@@ -765,17 +750,6 @@ const primaryButton: React.CSSProperties = {
   color: "#fff",
   fontSize: 13.5,
   fontWeight: 600,
-  fontFamily: UI,
-};
-
-const dashedButton: React.CSSProperties = {
-  padding: "8px 13px",
-  borderRadius: 6,
-  cursor: "pointer",
-  background: "transparent",
-  border: `1px dashed ${C.line}`,
-  color: C.warm,
-  fontSize: 12,
   fontFamily: UI,
 };
 

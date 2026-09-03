@@ -162,7 +162,6 @@ function RegattaStrip({
               <button
                 key={r.id}
                 data-active={active}
-                title={r.warning ?? undefined}
                 onClick={() => { onRegatChange(r.id); onDayChange(0); }}
                 style={{
                   appearance: "none",
@@ -306,29 +305,6 @@ export default function ConsolePage() {
       onPhaseChange={setPhase}
       picker={picker}
     >
-      {/* A venue that is reachable but should be left alone until its day.
-          Unlike the TEST venues this is not alpha-gated — the warning matters
-          most in production, where Valencia is the next real race day and the
-          one most easily opened by mistake. */}
-      {regat.warning && (
-        <div
-          role="status"
-          style={{
-            margin: "0 0 16px",
-            padding: "11px 14px",
-            borderRadius: 7,
-            border: "1px solid #E3CE94",
-            background: "#FDF6E6",
-            color: "#7A5E14",
-            fontFamily: STRIP_FONT,
-            fontSize: 12.5,
-            fontWeight: 600,
-            lineHeight: 1.5,
-          }}
-        >
-          {regat.warning}
-        </div>
-      )}
 
       {phase === "skeleton" && <SkeletonBriefPage runId={runId} />}
       {phase === "priming" && (
