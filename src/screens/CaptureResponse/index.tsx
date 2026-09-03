@@ -50,15 +50,10 @@ export default function CaptureResponsePage(
   /* The link names whose set this is. Falling back to the signed-in role is
      only right when someone opens their own link — a forwarded link, or a
      shared device, would otherwise fetch the wrong sailor's questions. */
-  /* The backend keys a row by first name, and the roster uses first names only
-     — "Paul" — while a role may carry a disambiguator: "Paul G.", "Paul B.".
-     Falling back to the whole role name meant submitting as "Paul G.", for
-     which no row exists, so the answer was refused with "Question not found".
-     The first token is the same key layout.tsx resolves a role by. */
-  const sailor = {
-    firstName: sailorName || role.name.trim().split(/\s+/)[0],
-    role: role.label,
-  };
+  /* Identity is the role's own name, disambiguator included — "Paul G." rather
+     than "Paul". The console sends under that name, so the row exists under it,
+     and a bare /interview link resolves to the same person. */
+  const sailor = { firstName: sailorName || role.name, role: role.label };
   const event =  { venue: "Sassnitz", dayLabel: "Tomorrow" };
   return (
     <div className="ginga-viewport" style={{

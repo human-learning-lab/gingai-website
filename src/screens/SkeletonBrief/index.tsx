@@ -15,7 +15,7 @@ import { shareBaseUrl } from '@/lib/appUrl';
 
 const BASE_SAILORS: Sailor[] = [
   { id: "mar", name: "Martine", role: "Helm" },
-  { id: "pau", name: "Paul", role: "Strategist" },
+  { id: "pau", name: "Paul G.", role: "Strategist" },
   { id: "pie", name: "Pietro", role: "Speed" },
   { id: "ras", name: "Rasmus", role: "Flight controller" },
   { id: "mrc", name: "Marco", role: "Trim" },

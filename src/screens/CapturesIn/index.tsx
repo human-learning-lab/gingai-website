@@ -47,7 +47,7 @@ const FALLBACK_READING_FORMAT = `Ignore your usual format. Return ONLY JSON in e
 
 const BASE_SAILORS: Sailor[] = [
   { id: "mar", name: "Martine", role: "Strategist" },
-  { id: "pau", name: "Paul", role: "Helm" },
+  { id: "pau", name: "Paul G.", role: "Helm" },
   { id: "pie", name: "Pietro", role: "Speed" },
   { id: "ras", name: "Rasmus", role: "Flight controller" },
   { id: "mrc", name: "Marco", role: "Trim" },

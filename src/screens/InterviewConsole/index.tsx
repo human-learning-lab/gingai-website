@@ -22,7 +22,7 @@ Use the sailor names exactly as given. Keep every sailor, even where their answe
 
 const BASE_SAILORS: SailorLike[] = [
   { id: "mar", name: "Martine", role: "Helm" },
-  { id: "pau", name: "Paul", role: "Strategist" },
+  { id: "pau", name: "Paul G.", role: "Strategist" },
   { id: "pie", name: "Pietro", role: "Speed" },
   { id: "ras", name: "Rasmus", role: "Flight controller" },
   { id: "mrc", name: "Marco", role: "Trim" },
