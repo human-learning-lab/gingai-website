@@ -23,7 +23,11 @@ export async function GET(
       { status: 400 }
     );
   }
-  const path = sailor ? `/responses/${runId}/${kind}/${sailor}` : `/responses/${runId}/${kind}`
+  /* Encoded: a name can carry a space or a dot — "Paul G." — and an unencoded
+     one relies on whatever the fetch implementation does with it. */
+  const path = sailor
+    ? `/responses/${runId}/${kind}/${encodeURIComponent(sailor)}`
+    : `/responses/${runId}/${kind}`
 
   try {
     const res= await upstream(path);

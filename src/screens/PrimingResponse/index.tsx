@@ -254,7 +254,7 @@ function Page({ runId, sailor, transcriptLines, onRecordingChange }:
 			}
 		}
 
-	  	const res = await fetch(`/api/responses/${runId}?kind=priming&sailor=${sailor.firstName}`);
+	  	const res = await fetch(`/api/responses/${runId}?kind=priming&sailor=${encodeURIComponent(sailor.firstName)}`);
 	  	const resps = await res.json();
 		if (resps.questions)
 	  		setQuestions(resps.questions);
