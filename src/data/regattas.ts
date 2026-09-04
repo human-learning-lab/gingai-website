@@ -103,7 +103,10 @@ export const REGATTAS: Regatta[] = [
 	},
 	{ id: 'portsmouth',  city: 'Portsmouth',     short: 'Portsmouth',   dates: 'Jul 25–26',     start: '2026-07-25', end: '2026-07-26', lat:  50.80,  lon:  -1.08,  photo: '/images/boat-portsmouth.jpg',   photoPos: 'center 50%',    days: ['Day 1', 'Day 2'] },
 	{ id: 'sassnitz',    city: 'Sassnitz',       short: 'Sassnitz',     dates: 'Aug 22–23',     start: '2026-08-22', end: '2026-08-23', lat:  54.52,  lon:  13.64,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
-	{ id: 'valencia',    city: 'Valencia',       short: 'Valencia',     dates: 'Sep 5–6',       start: '2026-09-05', end: '2026-09-06', lat:  39.47,  lon:  -0.38,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'], warning: VALENCIA_WARNING },
+	/* Days 3–5 are appended, never inserted before Day 1/2 — run ids are keyed
+	   to tab position (ValenciaRaceday1Season6 = first tab), so prepending
+	   would shift every existing record onto the wrong day. */
+	{ id: 'valencia',    city: 'Valencia',       short: 'Valencia',     dates: 'Sep 5–9',       start: '2026-09-05', end: '2026-09-09', lat:  39.47,  lon:  -0.38,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'], warning: VALENCIA_WARNING },
 	{ id: 'geneva',      city: 'Geneva',         short: 'Geneva',       dates: 'Sep 19–20',     start: '2026-09-19', end: '2026-09-20', lat:  46.20,  lon:   6.14,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 	{ id: 'dubai',       city: 'Dubai',          short: 'Dubai',        dates: 'Nov 21–22',     start: '2026-11-21', end: '2026-11-22', lat:  25.08,  lon:  55.13,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 	{ id: 'abudhabi',    city: 'Abu Dhabi',      short: 'Grand Final',  dates: 'Nov 28–29',     start: '2026-11-28', end: '2026-11-29', lat:  24.47,  lon:  54.37,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
