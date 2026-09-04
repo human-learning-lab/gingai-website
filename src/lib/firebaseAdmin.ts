@@ -1,5 +1,7 @@
 import { initializeApp, getApps, getApp, cert, type App } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
+import type { Bucket } from '@google-cloud/storage';
 
 /**
  * Firestore access for server code — API routes and server components only.
@@ -34,4 +36,18 @@ function adminApp(): App {
 /** Call inside a request handler, not at module scope — it throws when unconfigured. */
 export function db(): Firestore {
   return getFirestore(adminApp());
+}
+
+/**
+ * Firebase Storage access for server code, via the Admin SDK.
+ *
+ * `sailorStore.ts` writes storage through the plain REST API instead — that
+ * was to dodge the *client* `firebase/storage` SDK, which assumes a browser.
+ * The Admin SDK has no such assumption (it's the same credential path as
+ * `db()` above), so there's no reason to repeat that workaround here.
+ */
+export function bucket(): Bucket {
+  const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+  if (!bucketName) throw new Error('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is not configured');
+  return getStorage(adminApp()).bucket(bucketName);
 }
