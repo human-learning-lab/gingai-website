@@ -103,13 +103,24 @@ function decodeXmlEntities(s: string): string {
     .replace(/&amp;/g, '&'); // last, so "&amp;lt;" doesn't double-decode
 }
 
+const MEDIA_CONTENT_TYPES: Record<string, string> = {
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+  webp: 'image/webp', bmp: 'image/bmp', svg: 'image/svg+xml', tiff: 'image/tiff',
+  emf: 'image/emf', wmf: 'image/wmf', mp4: 'video/mp4',
+};
+
+interface PptxContent {
+  text: string;
+  media: { name: string; bytes: Uint8Array; contentType: string }[];
+}
+
 /**
- * Pulls the text out of a .pptx locally. A .pptx is a zip; each slide is
- * ppt/slides/slideN.xml, and every visible text run sits in an <a:t>
- * element. That's all an AI consumer needs — layout, images and styling
- * are deliberately dropped.
+ * Pulls text and embedded media out of a .pptx locally. A .pptx is a zip:
+ * each slide is ppt/slides/slideN.xml with every visible text run in an
+ * <a:t> element, and images/charts live under ppt/media/. Layout and
+ * styling are deliberately dropped.
  */
-function extractPptxText(pptxBytes: Buffer): string {
+function extractPptx(pptxBytes: Buffer): PptxContent {
   const files = unzipSync(new Uint8Array(pptxBytes));
 
   const slides = Object.keys(files)
@@ -127,25 +138,49 @@ function extractPptxText(pptxBytes: Buffer): string {
       .filter((t) => t.trim().length > 0);
     parts.push(`[Slide ${m[1]}]\n${runs.join('\n')}`);
   }
-  return parts.join('\n\n');
+
+  const media = Object.keys(files)
+    .filter((p) => p.startsWith('ppt/media/'))
+    .sort()
+    .map((p) => {
+      const name = p.slice('ppt/media/'.length);
+      const ext = name.split('.').pop()?.toLowerCase() ?? '';
+      return { name, bytes: files[p], contentType: MEDIA_CONTENT_TYPES[ext] ?? 'application/octet-stream' };
+    });
+
+  return { text: parts.join('\n\n'), media };
 }
 
 /**
- * Extracts plain text from a presentation. Native Google Slides export
- * directly (files.export creates nothing, so no quota involved); an
- * uploaded .pptx is downloaded and unzipped locally instead — Drive's
- * copy-to-Slides converter needs storage the service account doesn't have.
+ * Gets a presentation as .pptx bytes. Uploaded .pptx files download as-is;
+ * native Google Slides are exported to .pptx (files.export creates nothing
+ * on Drive, so no storage quota involved — unlike the copy-to-Slides
+ * converter, which needs storage the service account doesn't have).
+ * Returns null when a native Slides deck exceeds the export size limit;
+ * the caller falls back to text-only extraction.
  */
-async function extractPresentationText(drive: drive_v3.Drive, file: GFile): Promise<string> {
-  if (file.mimeType === GOOGLE_SLIDES_MIME) {
+async function getPresentationPptx(drive: drive_v3.Drive, file: GFile): Promise<Buffer | null> {
+  if (file.mimeType !== GOOGLE_SLIDES_MIME) {
+    return downloadFileBytes(drive, file.id);
+  }
+  try {
     const res = await drive.files.export(
-      { fileId: file.id, mimeType: 'text/plain' },
+      { fileId: file.id, mimeType: PPTX_MIME },
       { responseType: 'stream' },
     );
-    const buf = await streamToBuffer(res.data as unknown as Readable);
-    return buf.toString('utf-8');
+    return await streamToBuffer(res.data as unknown as Readable);
+  } catch {
+    return null; // export cap (~10MB) — fall back to plain-text export
   }
-  return extractPptxText(await downloadFileBytes(drive, file.id));
+}
+
+/** Text-only fallback for native Slides decks too large to export as .pptx. */
+async function exportSlidesText(drive: drive_v3.Drive, fileId: string): Promise<string> {
+  const res = await drive.files.export(
+    { fileId, mimeType: 'text/plain' },
+    { responseType: 'stream' },
+  );
+  return (await streamToBuffer(res.data as unknown as Readable)).toString('utf-8');
 }
 
 async function downloadFileBytes(drive: drive_v3.Drive, fileId: string): Promise<Buffer> {
@@ -208,11 +243,51 @@ export async function syncPowerpointFolders(rootFolderId: string): Promise<SyncR
           };
 
           if (PRESENTATION_MIME_TYPES.has(file.mimeType)) {
-            const textContent = await extractPresentationText(drive, file);
-            await docRef.set({ ...base, kind: 'presentation', textContent });
+            const pptx = await getPresentationPptx(drive, file);
+            if (!pptx) {
+              // Native Slides deck over the export cap: keep the text at least.
+              const textContent = await exportSlidesText(drive, file.id);
+              await docRef.set({ ...base, kind: 'presentation', textContent, images: [] });
+            } else {
+              const { text, media } = extractPptx(pptx);
+
+              /* Everything lands under races/{regatta}/powerpoint/ — race-
+                 specific like the existing races/{venue}/1/debrief.md, but
+                 always in its own new files: nothing here can overwrite a
+                 debrief.md, current.md, or anything else already stored. */
+              const raceDir = `races/${regatta.name}/powerpoint`;
+
+              // The original deck, downloadable from Storage.
+              const deckName = /\.pptx?$/i.test(file.name) ? file.name : `${file.name}.pptx`;
+              const deckPath = `${raceDir}/${deckName}`;
+              await bucket().file(deckPath).save(pptx, { contentType: PPTX_MIME });
+
+              // The extracted text as its own markdown file beside the deck.
+              const stem = deckName.replace(/\.pptx?$/i, '');
+              const textPath = `${raceDir}/${stem}.md`;
+              await bucket().file(textPath).save(text, { contentType: 'text/markdown; charset=utf-8' });
+
+              // Embedded images, each its own object beside the deck.
+              const images: string[] = [];
+              for (const m of media) {
+                const mediaPath = `${raceDir}/media/${m.name}`;
+                await bucket().file(mediaPath).save(Buffer.from(m.bytes), { contentType: m.contentType });
+                images.push(mediaPath);
+              }
+
+              await docRef.set({
+                ...base,
+                kind: 'presentation',
+                textContent: text,
+                storagePath: deckPath,
+                textPath,
+                sizeBytes: pptx.length,
+                images,
+              });
+            }
           } else {
             const bytes = await downloadFileBytes(drive, file.id);
-            const storagePath = `race-powerpoints/${regatta.name}/${file.name}`;
+            const storagePath = `races/${regatta.name}/powerpoint/${file.name}`;
             await bucket().file(storagePath).save(bytes, { contentType: file.mimeType });
             await docRef.set({ ...base, kind: 'file', storagePath, sizeBytes: bytes.length });
           }
