@@ -100,7 +100,10 @@ export const REGATTAS: Regatta[] = [
 	   amended, so sailors on them were refused on every submission. The space
 	   is stripped when the run id is built, giving "ValenciaV1Raceday1Season6":
 	   a separate venue to every store, and a clean set of rows. */
-	{ id: 'valencia-v1', city: 'Valencia V1',    short: 'Valencia V1',  dates: 'Sep 5–6',       start: '2026-09-05', end: '2026-09-06', lat:  39.47,  lon:  -0.38,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
+	/* Days 3–5 appended for the extended Valencia stay — appended only, never
+	   inserted before Day 1/2: run ids key off tab position, so prepending
+	   would shift the weekend's existing records onto the wrong day. */
+	{ id: 'valencia-v1', city: 'Valencia V1',    short: 'Valencia V1',  dates: 'Sep 5–9',       start: '2026-09-05', end: '2026-09-09', lat:  39.47,  lon:  -0.38,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'] },
 	{ id: 'geneva',      city: 'Geneva',         short: 'Geneva',       dates: 'Sep 19–20',     start: '2026-09-19', end: '2026-09-20', lat:  46.20,  lon:   6.14,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 	{ id: 'dubai',       city: 'Dubai',          short: 'Dubai',        dates: 'Nov 21–22',     start: '2026-11-21', end: '2026-11-22', lat:  25.08,  lon:  55.13,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
 	{ id: 'abudhabi',    city: 'Abu Dhabi',      short: 'Grand Final',  dates: 'Nov 28–29',     start: '2026-11-28', end: '2026-11-29', lat:  24.47,  lon:  54.37,  photo: '',                              photoPos: 'center center', days: ['Day 1', 'Day 2'] },
@@ -119,9 +122,12 @@ export const REGATTAS: Regatta[] = [
 			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
 		},
 		{
-			id: 'copenhagen', city: 'Copenhagen', short: 'Copenhagen', dates: 'Dec 5–6 · TEST',
-			start: '2026-12-05', end: '2026-12-06', lat: 55.68, lon: 12.57,
-			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2'],
+			/* Five days as a dry run for Valencia V1's extension — days are only
+			   ever APPENDED: run ids key off tab position, so inserting before
+			   Day 1 would shift every existing record onto the wrong day. */
+			id: 'copenhagen', city: 'Copenhagen', short: 'Copenhagen', dates: 'Dec 5–9 · TEST',
+			start: '2026-12-05', end: '2026-12-09', lat: 55.68, lon: 12.57,
+			photo: '', photoPos: 'center center', days: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'],
 		},
 	] : []),
 ];
